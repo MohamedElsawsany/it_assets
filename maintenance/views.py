@@ -1,3 +1,141 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.utils.translation import gettext as _
+from django.views.decorators.http import require_http_methods
+from django.db.models import Q
 
-# Create your views here.
+from accounts.permissions import permission_required, has_permission, Perms
+from inventory.models import Device
+from .models import MaintenanceRecord
+from .forms import MaintenanceForm, CloseMaintenanceForm
+
+
+@login_required
+@permission_required(Perms.MAINTENANCE_VIEW)
+def maintenance_index(request):
+    return render(request, 'maintenance/index.html', {
+        'devices': Device.objects.filter(
+            deleted_date__isnull=True
+        ).select_related('category', 'brand').order_by('serial_number'),
+        'type_choices': MaintenanceRecord.MaintenanceType.choices,
+    })
+
+
+@login_required
+@permission_required(Perms.MAINTENANCE_VIEW)
+def maintenance_data(request):
+    search   = request.GET.get('search', '').strip()
+    status_f = request.GET.get('status', '').strip()
+    type_f   = request.GET.get('type', '').strip()
+    show_cost = has_permission(request.user, Perms.MAINTENANCE_VIEW_COST)
+
+    qs = MaintenanceRecord.objects.select_related(
+        'device', 'device__category', 'device__brand'
+    )
+    if search:
+        qs = qs.filter(
+            Q(device__serial_number__icontains=search) |
+            Q(vendor_name__icontains=search) |
+            Q(issue_description__icontains=search)
+        )
+    if status_f == 'open':
+        qs = qs.filter(returned_date__isnull=True)
+    elif status_f == 'closed':
+        qs = qs.filter(returned_date__isnull=False)
+    if type_f:
+        qs = qs.filter(maintenance_type=type_f)
+
+    items = []
+    for r in qs.order_by('-sent_date'):
+        item = {
+            'id': r.pk,
+            'device_id': r.device_id,
+            'device_serial': r.device.serial_number,
+            'maintenance_type': r.maintenance_type,
+            'maintenance_type_display': r.get_maintenance_type_display(),
+            'vendor_name': r.vendor_name or '',
+            'issue_description': r.issue_description[:80],
+            'sent_date': r.sent_date.strftime('%Y-%m-%d'),
+            'returned_date': r.returned_date.strftime('%Y-%m-%d') if r.returned_date else '',
+            'is_open': r.is_open,
+        }
+        if show_cost:
+            item['cost'] = str(r.cost) if r.cost is not None else ''
+        items.append(item)
+    return JsonResponse({'success': True, 'items': items, 'total': len(items),
+                         'show_cost': show_cost})
+
+
+@login_required
+def maintenance_detail(request, pk):
+    if not has_permission(request.user, Perms.MAINTENANCE_EDIT):
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+    rec = get_object_or_404(MaintenanceRecord.objects.select_related('device'), pk=pk)
+    return JsonResponse({'success': True, 'item': {
+        'id': rec.pk,
+        'device_id': rec.device_id, 'device_serial': rec.device.serial_number,
+        'issue_description': rec.issue_description,
+        'maintenance_type': rec.maintenance_type,
+        'vendor_name': rec.vendor_name or '',
+        'sent_date': rec.sent_date.strftime('%Y-%m-%dT%H:%M'),
+    }})
+
+
+@login_required
+@require_http_methods(['POST'])
+def maintenance_create(request):
+    if not has_permission(request.user, Perms.MAINTENANCE_CREATE):
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+    form = MaintenanceForm(request.POST)
+    if form.is_valid():
+        rec = form.save(commit=False)
+        rec.created_by = request.user
+        rec.save()
+        return JsonResponse({'success': True, 'message': _('Maintenance record created successfully.')})
+    errors = {f: [str(e) for e in v] for f, v in form.errors.items()}
+    return JsonResponse({'success': False, 'errors': errors})
+
+
+@login_required
+@require_http_methods(['POST'])
+def maintenance_edit(request, pk):
+    if not has_permission(request.user, Perms.MAINTENANCE_EDIT):
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+    rec = get_object_or_404(MaintenanceRecord, pk=pk)
+    form = MaintenanceForm(request.POST, instance=rec)
+    if form.is_valid():
+        form.save()
+        return JsonResponse({'success': True, 'message': _('Maintenance record updated successfully.')})
+    errors = {f: [str(e) for e in v] for f, v in form.errors.items()}
+    return JsonResponse({'success': False, 'errors': errors})
+
+
+@login_required
+@require_http_methods(['POST'])
+def maintenance_close(request, pk):
+    if not has_permission(request.user, Perms.MAINTENANCE_CLOSE):
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+    rec = get_object_or_404(MaintenanceRecord, pk=pk)
+    if not rec.is_open:
+        return JsonResponse({'success': False, 'message': _('Record is already closed.')})
+    form = CloseMaintenanceForm(request.POST)
+    if form.is_valid():
+        rec.returned_date    = form.cleaned_data['returned_date']
+        rec.resolution_notes = form.cleaned_data.get('resolution_notes', '')
+        if has_permission(request.user, Perms.MAINTENANCE_VIEW_COST):
+            rec.cost = form.cleaned_data.get('cost')
+        rec.save()
+        return JsonResponse({'success': True, 'message': _('Maintenance record closed successfully.')})
+    errors = {f: [str(e) for e in v] for f, v in form.errors.items()}
+    return JsonResponse({'success': False, 'errors': errors})
+
+
+@login_required
+@require_http_methods(['POST'])
+def maintenance_delete(request, pk):
+    if not has_permission(request.user, Perms.MAINTENANCE_DELETE):
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+    rec = get_object_or_404(MaintenanceRecord, pk=pk)
+    rec.delete()
+    return JsonResponse({'success': True, 'message': _('Maintenance record deleted successfully.')})

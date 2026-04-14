@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Transfers" %} — {% trans "IT Asset Management" %}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">{% trans "Transfers" %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+  <div class="page-header">
+    <div>
+      <h4 class="page-title">{% trans "Device Transfers" %}</h4>
+      <p class="page-subtitle">{% trans "Track device movements between sites." %}</p>
+    </div>
+    {% if rbac.transfers_create %}
+    <div>
+      <button class="btn btn-primary d-flex align-items-center gap-2" onclick="openCreateModal()">
+        <i class="bi bi-plus-lg"></i><span>{% trans "New Transfer" %}</span>
+      </button>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Filter bar -->
+  <div class="card card-app mb-3">
+    <div class="card-body py-3">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-6">
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" id="searchInput"
+                   placeholder="{% trans 'Search by device serial or site…' %}"
+                   oninput="debounceLoad()">
+          </div>
+        </div>
+        <div class="col-md-3">
+          <button class="btn btn-outline-secondary" onclick="resetFilters()">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Reset" %}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="card card-app">
+    <div class="card-body p-0">
+      <div id="tableLoader" class="text-center py-5 d-none">
+        <div class="spinner-border text-primary" role="status"></div>
+      </div>
+      <div id="tableWrapper" class="table-responsive">
+        <table class="table table-hover app-table mb-0">
+          <thead>
+            <tr>
+              <th style="width:50px">#</th>
+              <th>{% trans "Device" %}</th>
+              <th>{% trans "From Site" %}</th>
+              <th>{% trans "To Site" %}</th>
+              <th>{% trans "Transfer Date" %}</th>
+              <th>{% trans "Transferred By" %}</th>
+              <th>{% trans "Notes" %}</th>
+              <th class="text-end" style="width:80px">{% trans "Actions" %}</th>
+            </tr>
+          </thead>
+          <tbody id="transfersTableBody"></tbody>
+        </table>
+      </div>
+      <div id="emptyState" class="text-center py-5 d-none">
+        <i class="bi bi-arrow-left-right display-6 text-muted"></i>
+        <p class="mt-3 text-muted">{% trans "No transfers found." %}</p>
+      </div>
+      <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
+        <span class="text-muted small" id="recordCount"></span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ===== CREATE MODAL ===== -->
+<div class="modal fade" id="createModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-arrow-left-right me-2 text-primary"></i>{% trans "New Transfer" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="createForm" novalidate>
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Device" %} <span class="text-danger">*</span></label>
+              <select class="form-select" name="device" required><option value=""></option></select>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Transfer Date" %} <span class="text-danger">*</span></label>
+              <input type="datetime-local" class="form-control" name="transfer_date" required>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% trans "From Site" %} <span class="text-danger">*</span></label>
+              <select class="form-select" name="from_site" required><option value=""></option></select>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% trans "To Site" %} <span class="text-danger">*</span></label>
+              <select class="form-select" name="to_site" required><option value=""></option></select>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-12">
+              <label class="form-label">{% trans "Notes" %}</label>
+              <textarea class="form-control" name="notes" rows="2"></textarea>
+              <div class="invalid-feedback"></div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-primary" id="createSubmitBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Record Transfer" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== DELETE MODAL ===== -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center pt-0 pb-4">
+        <div class="delete-icon-wrapper mb-3"><i class="bi bi-trash3 text-danger"></i></div>
+        <h5 class="fw-semibold">{% trans "Delete Transfer" %}</h5>
+        <p class="text-muted"><strong id="deleteTransferLabel"></strong><br>
+          <small>{% trans "This action cannot be undone." %}</small></p>
+      </div>
+      <div class="modal-footer justify-content-center border-0 pt-0">
+        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+        <button type="button" class="btn btn-danger px-4" id="confirmDeleteBtn">
+          <span class="btn-text"><i class="bi bi-trash3 me-1"></i>{% trans "Delete" %}</span>
+          <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Deleting…" %}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+const CAN_DELETE = {{ rbac.transfers_delete|yesno:"true,false" }};
+
+const URL_DATA   = '{% url "transfers-data" %}';
+const URL_CREATE = '{% url "transfer-create" %}';
+const deleteUrl  = pk => `/assignments/transfers/${pk}/delete/`;
+
+const T = { records: '{% trans "records" %}' };
+
+let deleteTargetId = null;
+let debounceTimer  = null;
+
+const createModal = new bootstrap.Modal('#createModal');
+const deleteModal = new bootstrap.Modal('#deleteModal');
+
+function loadTransfers() {
+  const search = document.getElementById('searchInput').value.trim();
+  const params = new URLSearchParams();
+  if (search) params.set('search', search);
+  document.getElementById('tableLoader').classList.remove('d-none');
+  document.getElementById('tableWrapper').classList.add('d-none');
+  ajaxGet(`${URL_DATA}?${params}`)
+    .then(data => {
+      renderTable(data.items);
+      document.getElementById('recordCount').textContent = `${data.total} ${T.records}`;
+    })
+    .catch(() => showToast('{% trans "Failed to load transfers." %}', 'danger'))
+    .finally(() => { document.getElementById('tableLoader').classList.add('d-none'); document.getElementById('tableWrapper').classList.remove('d-none'); });
+}
+
+function debounceLoad() { clearTimeout(debounceTimer); debounceTimer = setTimeout(loadTransfers, 400); }
+function resetFilters() { document.getElementById('searchInput').value = ''; loadTransfers(); }
+
+function renderTable(items) {
+  const tbody = document.getElementById('transfersTableBody');
+  const empty = document.getElementById('emptyState');
+  if (!items.length) {
+    tbody.innerHTML = '';
+    empty.classList.remove('d-none');
+    document.getElementById('tableWrapper').classList.add('d-none');
+    return;
+  }
+  empty.classList.add('d-none');
+  document.getElementById('tableWrapper').classList.remove('d-none');
+  tbody.innerHTML = items.map((t, i) => `
+    <tr>
+      <td class="text-muted small">${i + 1}</td>
+      <td class="fw-medium font-monospace">${escHtml(t.device_serial)}</td>
+      <td>${escHtml(t.from_site_name)}</td>
+      <td>${escHtml(t.to_site_name)}</td>
+      <td class="text-muted small">${t.transfer_date}</td>
+      <td>${escHtml(t.transferred_by)}</td>
+      <td class="text-muted small">${t.notes ? escHtml(t.notes.substring(0, 50)) : '—'}</td>
+      <td class="text-end">
+        ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDeleteModal(${t.id},'${escHtml(t.device_serial)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openCreateModal() {
+  document.getElementById('createForm').reset();
+  resetFormSelects(document.getElementById('createForm'));
+  clearFormErrors(document.getElementById('createForm'));
+  const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  document.getElementById('createForm').querySelector('[name=transfer_date]').value = now.toISOString().slice(0,16);
+  createModal.show();
+}
+document.getElementById('createForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('createSubmitBtn');
+  clearFormErrors(this); setButtonLoading(btn, true);
+  ajaxPost(URL_CREATE, new FormData(this))
+    .then(data => { if (data.success) { createModal.hide(); showToast(data.message, 'success'); loadTransfers(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+function openDeleteModal(pk, label) {
+  deleteTargetId = pk;
+  document.getElementById('deleteTransferLabel').textContent = label;
+  deleteModal.show();
+}
+document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+  if (!deleteTargetId) return;
+  const btn = this;
+  setButtonLoading(btn, true);
+  ajaxPost(deleteUrl(deleteTargetId), new FormData())
+    .then(data => { if (data.success) { deleteModal.hide(); showToast(data.message, 'success'); loadTransfers(); } else { showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => { setButtonLoading(btn, false); deleteTargetId = null; });
+});
+
+/* ── Init ── */
+document.addEventListener('DOMContentLoaded', () => {
+  const S = '— {% trans "Select" %} —';
+  initSelect2($('#createForm [name=device]'),    'devices', null, S);
+  initSelect2($('#createForm [name=from_site]'), 'sites',   null, S);
+  initSelect2($('#createForm [name=to_site]'),   'sites',   null, S);
+  loadTransfers();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,483 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Maintenance" %} — {% trans "IT Asset Management" %}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">{% trans "Maintenance" %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+  <div class="page-header">
+    <div>
+      <h4 class="page-title">{% trans "Maintenance Records" %}</h4>
+      <p class="page-subtitle">{% trans "Track device maintenance and repairs." %}</p>
+    </div>
+    {% if rbac.maintenance_create %}
+    <div>
+      <button class="btn btn-primary d-flex align-items-center gap-2" onclick="openCreateModal()">
+        <i class="bi bi-plus-lg"></i><span>{% trans "New Record" %}</span>
+      </button>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Filter bar -->
+  <div class="card card-app mb-3">
+    <div class="card-body py-3">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-4">
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" id="searchInput"
+                   placeholder="{% trans 'Search by serial, vendor, issue…' %}"
+                   oninput="debounceLoad()">
+          </div>
+        </div>
+        <div class="col-md-2">
+          <select class="form-select" id="statusFilter" onchange="loadMaintenance()">
+            <option value="">{% trans "All Status" %}</option>
+            <option value="open">{% trans "Open" %}</option>
+            <option value="closed">{% trans "Closed" %}</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <select class="form-select" id="typeFilter" onchange="loadMaintenance()">
+            <option value="">{% trans "All Types" %}</option>
+            {% for value, label in type_choices %}
+            <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button class="btn btn-outline-secondary w-100" onclick="resetFilters()">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Reset" %}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="card card-app">
+    <div class="card-body p-0">
+      <div id="tableLoader" class="text-center py-5 d-none">
+        <div class="spinner-border text-primary" role="status"></div>
+      </div>
+      <div id="tableWrapper" class="table-responsive">
+        <table class="table table-hover app-table mb-0">
+          <thead>
+            <tr>
+              <th style="width:50px">#</th>
+              <th>{% trans "Device" %}</th>
+              <th>{% trans "Type" %}</th>
+              <th>{% trans "Vendor" %}</th>
+              <th>{% trans "Issue" %}</th>
+              <th>{% trans "Sent Date" %}</th>
+              <th>{% trans "Returned Date" %}</th>
+              {% if rbac.maintenance_view_cost %}<th>{% trans "Cost" %}</th>{% endif %}
+              <th>{% trans "Status" %}</th>
+              <th class="text-end" style="width:160px">{% trans "Actions" %}</th>
+            </tr>
+          </thead>
+          <tbody id="maintenanceTableBody"></tbody>
+        </table>
+      </div>
+      <div id="emptyState" class="text-center py-5 d-none">
+        <i class="bi bi-tools display-6 text-muted"></i>
+        <p class="mt-3 text-muted">{% trans "No maintenance records found." %}</p>
+      </div>
+      <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
+        <span class="text-muted small" id="recordCount"></span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ===== CREATE MODAL ===== -->
+<div class="modal fade" id="createModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-tools me-2 text-primary"></i>{% trans "New Maintenance Record" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="createForm" novalidate>
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Device" %} <span class="text-danger">*</span></label>
+              <select class="form-select" name="device" required><option value=""></option></select>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Maintenance Type" %} <span class="text-danger">*</span></label>
+              <select class="form-select" name="maintenance_type" required onchange="toggleVendor(this.value)">
+                {% for value, label in type_choices %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6" id="vendorField">
+              <label class="form-label">{% trans "Vendor Name" %}</label>
+              <input type="text" class="form-control" name="vendor_name">
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Sent Date" %} <span class="text-danger">*</span></label>
+              <input type="datetime-local" class="form-control" name="sent_date" required>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-12">
+              <label class="form-label">{% trans "Issue Description" %} <span class="text-danger">*</span></label>
+              <textarea class="form-control" name="issue_description" rows="3" required></textarea>
+              <div class="invalid-feedback"></div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-primary" id="createSubmitBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Create" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== EDIT MODAL ===== -->
+<div class="modal fade" id="editModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil me-2 text-primary"></i>{% trans "Edit Maintenance Record" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="editForm" novalidate>
+        {% csrf_token %}
+        <input type="hidden" id="editRecordId">
+        <div class="modal-body">
+          <div id="editLoader" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+          <div id="editContent" class="d-none">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">{% trans "Device" %} <span class="text-danger">*</span></label>
+                <select class="form-select" name="device" required><option value=""></option></select>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{% trans "Maintenance Type" %} <span class="text-danger">*</span></label>
+                <select class="form-select" name="maintenance_type" required onchange="toggleVendorEdit(this.value)">
+                  {% for value, label in type_choices %}
+                  <option value="{{ value }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6" id="vendorFieldEdit">
+                <label class="form-label">{% trans "Vendor Name" %}</label>
+                <input type="text" class="form-control" name="vendor_name">
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{% trans "Sent Date" %} <span class="text-danger">*</span></label>
+                <input type="datetime-local" class="form-control" name="sent_date" required>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-12">
+                <label class="form-label">{% trans "Issue Description" %} <span class="text-danger">*</span></label>
+                <textarea class="form-control" name="issue_description" rows="3" required></textarea>
+                <div class="invalid-feedback"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-primary" id="editSubmitBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Save Changes" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== CLOSE MODAL ===== -->
+<div class="modal fade" id="closeModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-check-circle me-2 text-success"></i>{% trans "Close Maintenance Record" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="closeForm" novalidate>
+        {% csrf_token %}
+        <input type="hidden" id="closeRecordId">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">{% trans "Return Date" %} <span class="text-danger">*</span></label>
+            <input type="datetime-local" class="form-control" name="returned_date" required>
+            <div class="invalid-feedback"></div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{% trans "Resolution Notes" %}</label>
+            <textarea class="form-control" name="resolution_notes" rows="3"></textarea>
+          </div>
+          {% if rbac.maintenance_view_cost %}
+          <div class="mb-3">
+            <label class="form-label">{% trans "Cost" %}</label>
+            <input type="number" class="form-control" name="cost" step="0.01" min="0">
+            <div class="invalid-feedback"></div>
+          </div>
+          {% endif %}
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-success" id="closeSubmitBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Close Record" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== DELETE MODAL ===== -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center pt-0 pb-4">
+        <div class="delete-icon-wrapper mb-3"><i class="bi bi-trash3 text-danger"></i></div>
+        <h5 class="fw-semibold">{% trans "Delete Record" %}</h5>
+        <p class="text-muted"><strong id="deleteRecordLabel"></strong><br>
+          <small>{% trans "This action cannot be undone." %}</small></p>
+      </div>
+      <div class="modal-footer justify-content-center border-0 pt-0">
+        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+        <button type="button" class="btn btn-danger px-4" id="confirmDeleteBtn">
+          <span class="btn-text"><i class="bi bi-trash3 me-1"></i>{% trans "Delete" %}</span>
+          <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Deleting…" %}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+const CAN_EDIT   = {{ rbac.maintenance_edit|yesno:"true,false" }};
+const CAN_DELETE = {{ rbac.maintenance_delete|yesno:"true,false" }};
+const CAN_CLOSE  = {{ rbac.maintenance_close|yesno:"true,false" }};
+const SHOW_COST  = {{ rbac.maintenance_view_cost|yesno:"true,false" }};
+
+const URL_DATA   = '{% url "maintenance-data" %}';
+const URL_CREATE = '{% url "maintenance-create" %}';
+const detailUrl  = pk => `/maintenance/${pk}/`;
+const editUrl    = pk => `/maintenance/${pk}/edit/`;
+const closeUrl   = pk => `/maintenance/${pk}/close/`;
+const deleteUrl  = pk => `/maintenance/${pk}/delete/`;
+
+const T = {
+  records: '{% trans "records" %}',
+  open:    '{% trans "Open" %}',
+  closed:  '{% trans "Closed" %}',
+};
+
+let deleteTargetId = null;
+let debounceTimer  = null;
+
+const createModal = new bootstrap.Modal('#createModal');
+const editModal   = new bootstrap.Modal('#editModal');
+const closeModal  = new bootstrap.Modal('#closeModal');
+const deleteModal = new bootstrap.Modal('#deleteModal');
+
+function loadMaintenance() {
+  const search = document.getElementById('searchInput').value.trim();
+  const status = document.getElementById('statusFilter').value;
+  const type   = document.getElementById('typeFilter').value;
+  const params = new URLSearchParams();
+  if (search) params.set('search', search);
+  if (status) params.set('status', status);
+  if (type)   params.set('type', type);
+  document.getElementById('tableLoader').classList.remove('d-none');
+  document.getElementById('tableWrapper').classList.add('d-none');
+  ajaxGet(`${URL_DATA}?${params}`)
+    .then(data => {
+      renderTable(data.items, data.show_cost);
+      document.getElementById('recordCount').textContent = `${data.total} ${T.records}`;
+    })
+    .catch(() => showToast('{% trans "Failed to load records." %}', 'danger'))
+    .finally(() => { document.getElementById('tableLoader').classList.add('d-none'); document.getElementById('tableWrapper').classList.remove('d-none'); });
+}
+
+function debounceLoad() { clearTimeout(debounceTimer); debounceTimer = setTimeout(loadMaintenance, 400); }
+function resetFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('statusFilter').value = '';
+  document.getElementById('typeFilter').value = '';
+  loadMaintenance();
+}
+
+function renderTable(items, showCost) {
+  const tbody = document.getElementById('maintenanceTableBody');
+  const empty = document.getElementById('emptyState');
+  if (!items.length) {
+    tbody.innerHTML = '';
+    empty.classList.remove('d-none');
+    document.getElementById('tableWrapper').classList.add('d-none');
+    return;
+  }
+  empty.classList.add('d-none');
+  document.getElementById('tableWrapper').classList.remove('d-none');
+  tbody.innerHTML = items.map((r, i) => `
+    <tr>
+      <td class="text-muted small">${i + 1}</td>
+      <td class="fw-medium font-monospace">${escHtml(r.device_serial)}</td>
+      <td><span class="badge bg-${r.maintenance_type === 'External' ? 'info' : 'secondary'}-subtle text-${r.maintenance_type === 'External' ? 'info' : 'secondary'} rounded-pill">${escHtml(r.maintenance_type_display)}</span></td>
+      <td>${r.vendor_name ? escHtml(r.vendor_name) : '<span class="text-muted">—</span>'}</td>
+      <td class="text-muted small" title="${escHtml(r.issue_description)}">${escHtml(r.issue_description)}</td>
+      <td class="text-muted small">${r.sent_date}</td>
+      <td class="text-muted small">${r.returned_date || '<span class="text-muted">—</span>'}</td>
+      ${showCost ? `<td class="text-muted small">${r.cost !== undefined && r.cost !== '' ? escHtml(r.cost) : '—'}</td>` : ''}
+      <td>
+        <span class="badge rounded-pill ${r.is_open ? 'bg-warning-subtle text-warning' : 'bg-success-subtle text-success'}">
+          ${r.is_open ? T.open : T.closed}
+        </span>
+      </td>
+      <td class="text-end">
+        <div class="d-flex gap-1 justify-content-end">
+          ${CAN_EDIT ? `<button class="btn btn-sm btn-icon btn-outline-primary" onclick="openEditModal(${r.id})" title="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></button>` : ''}
+          ${CAN_CLOSE && r.is_open ? `<button class="btn btn-sm btn-icon btn-outline-success" onclick="openCloseModal(${r.id})" title="{% trans 'Close' %}"><i class="bi bi-check-circle"></i></button>` : ''}
+          ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDeleteModal(${r.id},'${escHtml(r.device_serial)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function toggleVendor(val) {
+  document.getElementById('vendorField').style.display = val === 'External' ? '' : 'none';
+}
+function toggleVendorEdit(val) {
+  document.getElementById('vendorFieldEdit').style.display = val === 'External' ? '' : 'none';
+}
+
+/* Create */
+function openCreateModal() {
+  document.getElementById('createForm').reset();
+  resetFormSelects(document.getElementById('createForm'));
+  clearFormErrors(document.getElementById('createForm'));
+  const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  document.getElementById('createForm').querySelector('[name=sent_date]').value = now.toISOString().slice(0,16);
+  toggleVendor(document.getElementById('createForm').querySelector('[name=maintenance_type]').value);
+  createModal.show();
+}
+document.getElementById('createForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('createSubmitBtn');
+  clearFormErrors(this); setButtonLoading(btn, true);
+  ajaxPost(URL_CREATE, new FormData(this))
+    .then(data => { if (data.success) { createModal.hide(); showToast(data.message, 'success'); loadMaintenance(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+/* Edit */
+function openEditModal(pk) {
+  document.getElementById('editLoader').classList.remove('d-none');
+  document.getElementById('editContent').classList.add('d-none');
+  document.getElementById('editRecordId').value = pk;
+  clearFormErrors(document.getElementById('editForm'));
+  editModal.show();
+  ajaxGet(detailUrl(pk))
+    .then(data => {
+      if (!data.success) { showToast(data.message, 'danger'); editModal.hide(); return; }
+      const r = data.item;
+      const f = document.getElementById('editForm');
+      setSelect2Value($('#editForm [name=device]'), r.device_id, r.device_serial);
+      f.querySelector('[name=maintenance_type]').value  = r.maintenance_type;
+      f.querySelector('[name=vendor_name]').value       = r.vendor_name || '';
+      f.querySelector('[name=sent_date]').value         = r.sent_date;
+      f.querySelector('[name=issue_description]').value = r.issue_description;
+      toggleVendorEdit(r.maintenance_type);
+      document.getElementById('editLoader').classList.add('d-none');
+      document.getElementById('editContent').classList.remove('d-none');
+    })
+    .catch(() => { showToast('{% trans "Failed to load record." %}', 'danger'); editModal.hide(); });
+}
+document.getElementById('editForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const pk  = document.getElementById('editRecordId').value;
+  const btn = document.getElementById('editSubmitBtn');
+  clearFormErrors(this); setButtonLoading(btn, true);
+  ajaxPost(editUrl(pk), new FormData(this))
+    .then(data => { if (data.success) { editModal.hide(); showToast(data.message, 'success'); loadMaintenance(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+/* Close */
+function openCloseModal(pk) {
+  document.getElementById('closeForm').reset();
+  clearFormErrors(document.getElementById('closeForm'));
+  document.getElementById('closeRecordId').value = pk;
+  const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  document.getElementById('closeForm').querySelector('[name=returned_date]').value = now.toISOString().slice(0,16);
+  closeModal.show();
+}
+document.getElementById('closeForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const pk  = document.getElementById('closeRecordId').value;
+  const btn = document.getElementById('closeSubmitBtn');
+  clearFormErrors(this); setButtonLoading(btn, true);
+  ajaxPost(closeUrl(pk), new FormData(this))
+    .then(data => { if (data.success) { closeModal.hide(); showToast(data.message, 'success'); loadMaintenance(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+/* Delete */
+function openDeleteModal(pk, label) {
+  deleteTargetId = pk;
+  document.getElementById('deleteRecordLabel').textContent = label;
+  deleteModal.show();
+}
+document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+  if (!deleteTargetId) return;
+  const btn = this;
+  setButtonLoading(btn, true);
+  ajaxPost(deleteUrl(deleteTargetId), new FormData())
+    .then(data => { if (data.success) { deleteModal.hide(); showToast(data.message, 'success'); loadMaintenance(); } else { showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => { setButtonLoading(btn, false); deleteTargetId = null; });
+});
+
+/* ── Init ── */
+document.addEventListener('DOMContentLoaded', () => {
+  const S = '— {% trans "Select" %} —';
+  initSelect2($('#createForm [name=device]'), 'devices', null, S);
+  initSelect2($('#editForm [name=device]'),   'devices', null, S);
+  loadMaintenance();
+});
+</script>
+{% endblock %}

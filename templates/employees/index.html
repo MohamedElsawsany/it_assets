@@ -1,0 +1,601 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Employees" %} — {% trans "IT Asset Management" %}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">{% trans "Employees" %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+  <div class="page-header">
+    <div>
+      <h4 class="page-title">{% trans "Employees" %}</h4>
+      <p class="page-subtitle">{% trans "Manage employees and departments." %}</p>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <ul class="nav nav-tabs mb-3" id="empTabs">
+    <li class="nav-item">
+      <button class="nav-link active" id="tab-employees" onclick="switchTab('employees')">
+        <i class="bi bi-person-badge me-1"></i>{% trans "Employees" %}
+        <span class="badge bg-secondary ms-1" id="empCount">0</span>
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="tab-departments" onclick="switchTab('departments')">
+        <i class="bi bi-diagram-3 me-1"></i>{% trans "Departments" %}
+        <span class="badge bg-secondary ms-1" id="deptCount">0</span>
+      </button>
+    </li>
+  </ul>
+
+  <!-- ── EMPLOYEES PANEL ── -->
+  <div id="panel-employees">
+    <div class="card card-app mb-3">
+      <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-4">
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input type="text" class="form-control" id="empSearch"
+                     placeholder="{% trans 'Search by name or card ID…' %}"
+                     oninput="debounce(loadEmployees, 400)()">
+            </div>
+          </div>
+          <div class="col-md-3">
+            <select class="form-select" id="deptFilter">
+              <option value="">{% trans "All Departments" %}</option>
+            </select>
+          </div>
+          {% if rbac.sees_all_sites %}
+          <div class="col-md-3">
+            <select class="form-select" id="empSiteFilter">
+              <option value="">{% trans "All Sites" %}</option>
+            </select>
+          </div>
+          {% endif %}
+          {% if rbac.employees_create %}
+          <div class="col-md-auto ms-auto">
+            <button class="btn btn-primary d-flex align-items-center gap-2" onclick="openCreateEmpModal()">
+              <i class="bi bi-plus-lg"></i><span>{% trans "Add Employee" %}</span>
+            </button>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-app">
+      <div class="card-body p-0">
+        <div id="empLoader" class="text-center py-5 d-none">
+          <div class="spinner-border text-primary" role="status"></div>
+        </div>
+        <div id="empTableWrapper" class="table-responsive">
+          <table class="table table-hover app-table mb-0">
+            <thead>
+              <tr>
+                <th style="width:50px">#</th>
+                <th>{% trans "Employee" %}</th>
+                <th>{% trans "Card ID" %}</th>
+                <th>{% trans "Department" %}</th>
+                <th>{% trans "Site" %}</th>
+                <th>{% trans "Created" %}</th>
+                <th class="text-end" style="width:120px">{% trans "Actions" %}</th>
+              </tr>
+            </thead>
+            <tbody id="empTableBody"></tbody>
+          </table>
+        </div>
+        <div id="empEmpty" class="text-center py-5 d-none">
+          <i class="bi bi-person-badge display-6 text-muted"></i>
+          <p class="mt-3 text-muted">{% trans "No employees found." %}</p>
+        </div>
+        <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
+          <span class="text-muted small" id="empRecordCount"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DEPARTMENTS PANEL ── -->
+  <div id="panel-departments" class="d-none">
+    <div class="card card-app mb-3">
+      <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-6">
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input type="text" class="form-control" id="deptSearch"
+                     placeholder="{% trans 'Search departments…' %}"
+                     oninput="debounce(loadDepartments, 400)()">
+            </div>
+          </div>
+          {% if rbac.employees_create %}
+          <div class="col-md-auto ms-auto">
+            <button class="btn btn-primary d-flex align-items-center gap-2" onclick="openCreateDeptModal()">
+              <i class="bi bi-plus-lg"></i><span>{% trans "Add Department" %}</span>
+            </button>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-app">
+      <div class="card-body p-0">
+        <div id="deptLoader" class="text-center py-5 d-none">
+          <div class="spinner-border text-primary" role="status"></div>
+        </div>
+        <div id="deptTableWrapper" class="table-responsive">
+          <table class="table table-hover app-table mb-0">
+            <thead>
+              <tr>
+                <th style="width:50px">#</th>
+                <th>{% trans "Department Name" %}</th>
+                <th>{% trans "Employees" %}</th>
+                <th>{% trans "Created" %}</th>
+                <th class="text-end" style="width:120px">{% trans "Actions" %}</th>
+              </tr>
+            </thead>
+            <tbody id="deptTableBody"></tbody>
+          </table>
+        </div>
+        <div id="deptEmpty" class="text-center py-5 d-none">
+          <i class="bi bi-diagram-3 display-6 text-muted"></i>
+          <p class="mt-3 text-muted">{% trans "No departments found." %}</p>
+        </div>
+        <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
+          <span class="text-muted small" id="deptRecordCount"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== CREATE EMPLOYEE MODAL ===== -->
+<div class="modal fade" id="createEmpModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-person-plus me-2 text-primary"></i>{% trans "Add Employee" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="createEmpForm" novalidate>
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">{% trans "First Name" %} <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="first_name" required>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Last Name" %} <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="last_name" required>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">{% trans "Card ID" %} <span class="text-danger">*</span></label>
+              <input type="number" class="form-control" name="employee_card_id" required>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">{% trans "Department" %} <span class="text-danger">*</span></label>
+              <select class="form-select" name="department" required>
+                <option value=""></option>
+              </select>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">{% trans "Site" %} <span class="text-danger">*</span></label>
+              <select class="form-select" name="site" required>
+                <option value=""></option>
+              </select>
+              <div class="invalid-feedback"></div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-primary" id="createEmpBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Create" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EDIT EMPLOYEE MODAL ===== -->
+<div class="modal fade" id="editEmpModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil me-2 text-primary"></i>{% trans "Edit Employee" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="editEmpForm" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="emp_id" id="editEmpId">
+        <div class="modal-body">
+          <div id="editEmpLoader" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+          <div id="editEmpContent" class="d-none">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">{% trans "First Name" %} <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="first_name" required>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{% trans "Last Name" %} <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="last_name" required>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">{% trans "Card ID" %} <span class="text-danger">*</span></label>
+                <input type="number" class="form-control" name="employee_card_id" required>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">{% trans "Department" %} <span class="text-danger">*</span></label>
+                <select class="form-select" name="department" required>
+                  <option value=""></option>
+                </select>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">{% trans "Site" %} <span class="text-danger">*</span></label>
+                <select class="form-select" name="site" required>
+                  <option value=""></option>
+                </select>
+                <div class="invalid-feedback"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-primary" id="editEmpBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Save Changes" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CREATE DEPARTMENT MODAL ===== -->
+<div class="modal fade" id="createDeptModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-plus-circle me-2 text-primary"></i>{% trans "Add Department" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="createDeptForm" novalidate>
+        {% csrf_token %}
+        <div class="modal-body">
+          <label class="form-label">{% trans "Name" %} <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" name="name" required>
+          <div class="invalid-feedback"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-primary" id="createDeptBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Create" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EDIT DEPARTMENT MODAL ===== -->
+<div class="modal fade" id="editDeptModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil me-2 text-primary"></i>{% trans "Edit Department" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="editDeptForm" novalidate>
+        {% csrf_token %}
+        <input type="hidden" id="editDeptId">
+        <div class="modal-body">
+          <label class="form-label">{% trans "Name" %} <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" name="name" required>
+          <div class="invalid-feedback"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-primary" id="editDeptBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Save Changes" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DELETE MODAL ===== -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center pt-0 pb-4">
+        <div class="delete-icon-wrapper mb-3"><i class="bi bi-trash3 text-danger"></i></div>
+        <h5 class="fw-semibold" id="deleteTitle"></h5>
+        <p class="text-muted"><strong id="deleteItemName"></strong><br>
+          <small>{% trans "This action cannot be undone." %}</small></p>
+      </div>
+      <div class="modal-footer justify-content-center border-0 pt-0">
+        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+        <button type="button" class="btn btn-danger px-4" id="confirmDeleteBtn">
+          <span class="btn-text"><i class="bi bi-trash3 me-1"></i>{% trans "Delete" %}</span>
+          <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Deleting…" %}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+const CAN_EDIT   = {{ rbac.employees_edit|yesno:"true,false" }};
+const CAN_DELETE = {{ rbac.employees_delete|yesno:"true,false" }};
+
+const URL_EMP_DATA    = '{% url "employees-data" %}';
+const URL_EMP_CREATE  = '{% url "employee-create" %}';
+const URL_DEPT_DATA   = '{% url "departments-data" %}';
+const URL_DEPT_CREATE = '{% url "department-create" %}';
+const empDetailUrl    = pk => `/employees/${pk}/`;
+const empEditUrl      = pk => `/employees/${pk}/edit/`;
+const empDeleteUrl    = pk => `/employees/${pk}/delete/`;
+const deptDetailUrl   = pk => `/employees/departments/${pk}/`;
+const deptEditUrl     = pk => `/employees/departments/${pk}/edit/`;
+const deptDeleteUrl   = pk => `/employees/departments/${pk}/delete/`;
+
+const T = { records: '{% trans "records" %}' };
+
+let deleteTarget = { url: null, reload: null };
+
+const createEmpModal  = new bootstrap.Modal('#createEmpModal');
+const editEmpModal    = new bootstrap.Modal('#editEmpModal');
+const createDeptModal = new bootstrap.Modal('#createDeptModal');
+const editDeptModal   = new bootstrap.Modal('#editDeptModal');
+const deleteModal     = new bootstrap.Modal('#deleteModal');
+
+const _timers = {};
+function debounce(fn, ms) {
+  return function() { clearTimeout(_timers[fn]); _timers[fn] = setTimeout(fn, ms); };
+}
+
+function switchTab(tab) {
+  document.getElementById('panel-employees').classList.toggle('d-none', tab !== 'employees');
+  document.getElementById('panel-departments').classList.toggle('d-none', tab !== 'departments');
+  document.getElementById('tab-employees').classList.toggle('active', tab === 'employees');
+  document.getElementById('tab-departments').classList.toggle('active', tab === 'departments');
+  if (tab === 'employees') loadEmployees(); else loadDepartments();
+}
+
+/* ── Employees ── */
+function loadEmployees() {
+  const search = document.getElementById('empSearch').value.trim();
+  const dept   = document.getElementById('deptFilter').value;
+  const siteEl = document.getElementById('empSiteFilter');
+  const site   = siteEl ? siteEl.value : '';
+  const params = new URLSearchParams();
+  if (search) params.set('search', search);
+  if (dept)   params.set('department', dept);
+  if (site)   params.set('site', site);
+  document.getElementById('empLoader').classList.remove('d-none');
+  document.getElementById('empTableWrapper').classList.add('d-none');
+  ajaxGet(`${URL_EMP_DATA}?${params}`)
+    .then(data => {
+      renderTable(data.items, 'empTableBody', 'empEmpty', 'empTableWrapper', renderEmpRow);
+      document.getElementById('empRecordCount').textContent = `${data.total} ${T.records}`;
+      document.getElementById('empCount').textContent = data.total;
+    })
+    .catch(() => showToast('{% trans "Failed to load employees." %}', 'danger'))
+    .finally(() => { document.getElementById('empLoader').classList.add('d-none'); document.getElementById('empTableWrapper').classList.remove('d-none'); });
+}
+
+function renderEmpRow(e, i) {
+  return `<tr>
+    <td class="text-muted small">${i + 1}</td>
+    <td><div class="fw-medium">${escHtml(e.full_name)}</div></td>
+    <td class="text-muted small">${e.employee_card_id}</td>
+    <td>${escHtml(e.department_name)}</td>
+    <td><span class="d-flex align-items-center gap-1"><i class="bi bi-geo-alt text-muted small"></i>${escHtml(e.site_name)}</span></td>
+    <td class="text-muted small">${e.created_date}</td>
+    <td class="text-end">
+      <div class="d-flex gap-1 justify-content-end">
+        ${CAN_EDIT ? `<button class="btn btn-sm btn-icon btn-outline-primary" onclick="openEditEmpModal(${e.id})" title="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></button>` : ''}
+        ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDeleteModal('employee',${e.id},'${escHtml(e.full_name)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
+      </div>
+    </td>
+  </tr>`;
+}
+
+/* ── Departments ── */
+function loadDepartments() {
+  const search = document.getElementById('deptSearch').value.trim();
+  const params = new URLSearchParams();
+  if (search) params.set('search', search);
+  document.getElementById('deptLoader').classList.remove('d-none');
+  document.getElementById('deptTableWrapper').classList.add('d-none');
+  ajaxGet(`${URL_DEPT_DATA}?${params}`)
+    .then(data => {
+      renderTable(data.items, 'deptTableBody', 'deptEmpty', 'deptTableWrapper', renderDeptRow);
+      document.getElementById('deptRecordCount').textContent = `${data.total} ${T.records}`;
+      document.getElementById('deptCount').textContent = data.total;
+    })
+    .catch(() => showToast('{% trans "Failed to load departments." %}', 'danger'))
+    .finally(() => { document.getElementById('deptLoader').classList.add('d-none'); document.getElementById('deptTableWrapper').classList.remove('d-none'); });
+}
+
+function renderDeptRow(d, i) {
+  return `<tr>
+    <td class="text-muted small">${i + 1}</td>
+    <td class="fw-medium">${escHtml(d.name)}</td>
+    <td><span class="badge bg-primary-subtle text-primary rounded-pill">${d.employees_count}</span></td>
+    <td class="text-muted small">${d.created_date}</td>
+    <td class="text-end">
+      <div class="d-flex gap-1 justify-content-end">
+        ${CAN_EDIT ? `<button class="btn btn-sm btn-icon btn-outline-primary" onclick="openEditDeptModal(${d.id})" title="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></button>` : ''}
+        ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDeleteModal('department',${d.id},'${escHtml(d.name)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
+      </div>
+    </td>
+  </tr>`;
+}
+
+function renderTable(items, tbodyId, emptyId, wrapperId, rowFn) {
+  const tbody = document.getElementById(tbodyId);
+  const empty = document.getElementById(emptyId);
+  if (!items.length) {
+    tbody.innerHTML = '';
+    empty.classList.remove('d-none');
+    document.getElementById(wrapperId).classList.add('d-none');
+    return;
+  }
+  empty.classList.add('d-none');
+  document.getElementById(wrapperId).classList.remove('d-none');
+  tbody.innerHTML = items.map((item, i) => rowFn(item, i)).join('');
+}
+
+/* ── Create Employee ── */
+function openCreateEmpModal() {
+  document.getElementById('createEmpForm').reset();
+  resetFormSelects(document.getElementById('createEmpForm'));
+  clearFormErrors(document.getElementById('createEmpForm'));
+  createEmpModal.show();
+}
+document.getElementById('createEmpForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('createEmpBtn');
+  clearFormErrors(this); setButtonLoading(btn, true);
+  ajaxPost(URL_EMP_CREATE, new FormData(this))
+    .then(data => { if (data.success) { createEmpModal.hide(); showToast(data.message, 'success'); loadEmployees(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+/* ── Edit Employee ── */
+function openEditEmpModal(pk) {
+  clearFormErrors(document.getElementById('editEmpForm'));
+  document.getElementById('editEmpLoader').classList.remove('d-none');
+  document.getElementById('editEmpContent').classList.add('d-none');
+  document.getElementById('editEmpId').value = pk;
+  editEmpModal.show();
+  ajaxGet(empDetailUrl(pk))
+    .then(data => {
+      if (!data.success) { showToast(data.message, 'danger'); editEmpModal.hide(); return; }
+      const emp = data.item;
+      const f   = document.getElementById('editEmpForm');
+      f.querySelector('[name=first_name]').value       = emp.first_name;
+      f.querySelector('[name=last_name]').value        = emp.last_name;
+      f.querySelector('[name=employee_card_id]').value = emp.employee_card_id;
+      setSelect2Value($('#editEmpForm [name=department]'), emp.department_id, emp.department_name);
+      setSelect2Value($('#editEmpForm [name=site]'),       emp.site_id,       emp.site_name);
+      document.getElementById('editEmpLoader').classList.add('d-none');
+      document.getElementById('editEmpContent').classList.remove('d-none');
+    })
+    .catch(() => { showToast('{% trans "Failed to load employee." %}', 'danger'); editEmpModal.hide(); });
+}
+document.getElementById('editEmpForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const pk  = document.getElementById('editEmpId').value;
+  const btn = document.getElementById('editEmpBtn');
+  clearFormErrors(this); setButtonLoading(btn, true);
+  ajaxPost(empEditUrl(pk), new FormData(this))
+    .then(data => { if (data.success) { editEmpModal.hide(); showToast(data.message, 'success'); loadEmployees(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+/* ── Create Department ── */
+function openCreateDeptModal() { document.getElementById('createDeptForm').reset(); clearFormErrors(document.getElementById('createDeptForm')); createDeptModal.show(); }
+document.getElementById('createDeptForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('createDeptBtn');
+  clearFormErrors(this); setButtonLoading(btn, true);
+  ajaxPost(URL_DEPT_CREATE, new FormData(this))
+    .then(data => { if (data.success) { createDeptModal.hide(); showToast(data.message, 'success'); loadDepartments(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+/* ── Edit Department ── */
+function openEditDeptModal(pk) {
+  clearFormErrors(document.getElementById('editDeptForm'));
+  document.getElementById('editDeptId').value = pk;
+  editDeptModal.show();
+  ajaxGet(deptDetailUrl(pk))
+    .then(data => { if (!data.success) { showToast(data.message, 'danger'); editDeptModal.hide(); return; } document.getElementById('editDeptForm').querySelector('[name=name]').value = data.item.name; })
+    .catch(() => { showToast('{% trans "Failed to load department." %}', 'danger'); editDeptModal.hide(); });
+}
+document.getElementById('editDeptForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const pk  = document.getElementById('editDeptId').value;
+  const btn = document.getElementById('editDeptBtn');
+  clearFormErrors(this); setButtonLoading(btn, true);
+  ajaxPost(deptEditUrl(pk), new FormData(this))
+    .then(data => { if (data.success) { editDeptModal.hide(); showToast(data.message, 'success'); loadDepartments(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+/* ── Delete ── */
+function openDeleteModal(type, pk, name) {
+  const isEmp = type === 'employee';
+  document.getElementById('deleteTitle').textContent    = isEmp ? '{% trans "Delete Employee" %}' : '{% trans "Delete Department" %}';
+  document.getElementById('deleteItemName').textContent = name;
+  deleteTarget.url    = isEmp ? empDeleteUrl(pk) : deptDeleteUrl(pk);
+  deleteTarget.reload = isEmp ? loadEmployees : loadDepartments;
+  deleteModal.show();
+}
+document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+  if (!deleteTarget.url) return;
+  const btn = this;
+  setButtonLoading(btn, true);
+  ajaxPost(deleteTarget.url, new FormData())
+    .then(data => { if (data.success) { deleteModal.hide(); showToast(data.message, 'success'); deleteTarget.reload(); } else { showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => { setButtonLoading(btn, false); deleteTarget.url = null; });
+});
+
+/* ── Init ── */
+document.addEventListener('DOMContentLoaded', () => {
+  // Filter bar selects
+  initSelect2($('#deptFilter'),    'departments', null, '{% trans "All Departments" %}');
+  initSelect2($('#empSiteFilter'), 'sites',       null, '{% trans "All Sites" %}');
+  $('#deptFilter').on('change', loadEmployees);
+  $('#empSiteFilter').on('change', loadEmployees);
+
+  // Create modal selects
+  initSelect2($('#createEmpForm [name=department]'), 'departments', null, '— {% trans "Select" %} —');
+  initSelect2($('#createEmpForm [name=site]'),       'sites',       null, '— {% trans "Select" %} —');
+
+  // Edit modal selects
+  initSelect2($('#editEmpForm [name=department]'), 'departments', null, '— {% trans "Select" %} —');
+  initSelect2($('#editEmpForm [name=site]'),       'sites',       null, '— {% trans "Select" %} —');
+
+  loadEmployees();
+  loadDepartments();
+});
+</script>
+{% endblock %}

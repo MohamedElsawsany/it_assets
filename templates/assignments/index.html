@@ -1,0 +1,432 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Assignments" %} — {% trans "IT Asset Management" %}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">{% trans "Assignments" %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+  <div class="page-header">
+    <div>
+      <h4 class="page-title">{% trans "Device Assignments" %}</h4>
+      <p class="page-subtitle">{% trans "Track which devices are assigned to which employees." %}</p>
+    </div>
+    {% if rbac.assignments_create %}
+    <div>
+      <button class="btn btn-primary d-flex align-items-center gap-2" onclick="openCreateModal()">
+        <i class="bi bi-plus-lg"></i><span>{% trans "New Assignment" %}</span>
+      </button>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Filter bar -->
+  <div class="card card-app mb-3">
+    <div class="card-body py-3">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-5">
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" id="searchInput"
+                   placeholder="{% trans 'Search by device serial or employee name…' %}"
+                   oninput="debounceLoad()">
+          </div>
+        </div>
+        <div class="col-md-3">
+          <select class="form-select" id="statusFilter" onchange="loadAssignments()">
+            <option value="">{% trans "All Status" %}</option>
+            <option value="active">{% trans "Active" %}</option>
+            <option value="returned">{% trans "Returned" %}</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button class="btn btn-outline-secondary w-100" onclick="resetFilters()">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Reset" %}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="card card-app">
+    <div class="card-body p-0">
+      <div id="tableLoader" class="text-center py-5 d-none">
+        <div class="spinner-border text-primary" role="status"></div>
+      </div>
+      <div id="tableWrapper" class="table-responsive">
+        <table class="table table-hover app-table mb-0">
+          <thead>
+            <tr>
+              <th style="width:50px">#</th>
+              <th>{% trans "Device" %}</th>
+              <th>{% trans "Employee" %}</th>
+              <th>{% trans "Assigned Date" %}</th>
+              <th>{% trans "Returned Date" %}</th>
+              <th>{% trans "Status" %}</th>
+              <th class="text-end" style="width:160px">{% trans "Actions" %}</th>
+            </tr>
+          </thead>
+          <tbody id="assignmentsTableBody"></tbody>
+        </table>
+      </div>
+      <div id="emptyState" class="text-center py-5 d-none">
+        <i class="bi bi-link-45deg display-6 text-muted"></i>
+        <p class="mt-3 text-muted">{% trans "No assignments found." %}</p>
+      </div>
+      <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
+        <span class="text-muted small" id="recordCount"></span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ===== CREATE MODAL ===== -->
+<div class="modal fade" id="createModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-link-45deg me-2 text-primary"></i>{% trans "New Assignment" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="createForm" novalidate>
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Device" %} <span class="text-danger">*</span></label>
+              <select class="form-select" name="device" required><option value=""></option></select>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Employee" %} <span class="text-danger">*</span></label>
+              <select class="form-select" name="employee" required><option value=""></option></select>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Assigned Date" %} <span class="text-danger">*</span></label>
+              <input type="datetime-local" class="form-control" name="assigned_date" required>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Notes" %}</label>
+              <textarea class="form-control" name="notes" rows="2"></textarea>
+              <div class="invalid-feedback"></div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-primary" id="createSubmitBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Assign" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== EDIT MODAL ===== -->
+<div class="modal fade" id="editModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil me-2 text-primary"></i>{% trans "Edit Assignment" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="editForm" novalidate>
+        {% csrf_token %}
+        <input type="hidden" id="editAssignmentId">
+        <div class="modal-body">
+          <div id="editLoader" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+          <div id="editContent" class="d-none">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">{% trans "Device" %} <span class="text-danger">*</span></label>
+                <select class="form-select" name="device" required><option value=""></option></select>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{% trans "Employee" %} <span class="text-danger">*</span></label>
+                <select class="form-select" name="employee" required><option value=""></option></select>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{% trans "Assigned Date" %} <span class="text-danger">*</span></label>
+                <input type="datetime-local" class="form-control" name="assigned_date" required>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{% trans "Notes" %}</label>
+                <textarea class="form-control" name="notes" rows="2"></textarea>
+                <div class="invalid-feedback"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-primary" id="editSubmitBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Save Changes" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== RETURN MODAL ===== -->
+<div class="modal fade" id="returnModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-box-arrow-in-left me-2 text-success"></i>{% trans "Return Device" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="returnForm" novalidate>
+        {% csrf_token %}
+        <input type="hidden" id="returnAssignmentId">
+        <div class="modal-body">
+          <p class="text-muted mb-3">{% trans "Record the return of this device." %}</p>
+          <div class="mb-3">
+            <label class="form-label">{% trans "Return Date" %} <span class="text-danger">*</span></label>
+            <input type="datetime-local" class="form-control" name="returned_date" required>
+            <div class="invalid-feedback"></div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{% trans "Notes" %}</label>
+            <textarea class="form-control" name="notes" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-success" id="returnSubmitBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Confirm Return" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== DELETE MODAL ===== -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center pt-0 pb-4">
+        <div class="delete-icon-wrapper mb-3"><i class="bi bi-trash3 text-danger"></i></div>
+        <h5 class="fw-semibold">{% trans "Delete Assignment" %}</h5>
+        <p class="text-muted"><strong id="deleteAssignmentLabel"></strong><br>
+          <small>{% trans "This action cannot be undone." %}</small></p>
+      </div>
+      <div class="modal-footer justify-content-center border-0 pt-0">
+        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+        <button type="button" class="btn btn-danger px-4" id="confirmDeleteBtn">
+          <span class="btn-text"><i class="bi bi-trash3 me-1"></i>{% trans "Delete" %}</span>
+          <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Deleting…" %}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+const CAN_EDIT   = {{ rbac.assignments_edit|yesno:"true,false" }};
+const CAN_DELETE = {{ rbac.assignments_delete|yesno:"true,false" }};
+const CAN_RETURN = {{ rbac.assignments_return|yesno:"true,false" }};
+
+const URL_DATA   = '{% url "assignments-data" %}';
+const URL_CREATE = '{% url "assignment-create" %}';
+const detailUrl  = pk => `/assignments/${pk}/`;
+const editUrl    = pk => `/assignments/${pk}/edit/`;
+const returnUrl  = pk => `/assignments/${pk}/return/`;
+const deleteUrl  = pk => `/assignments/${pk}/delete/`;
+
+const T = {
+  records:  '{% trans "records" %}',
+  active:   '{% trans "Active" %}',
+  returned: '{% trans "Returned" %}',
+};
+
+let deleteTargetId = null;
+let debounceTimer  = null;
+
+const createModal = new bootstrap.Modal('#createModal');
+const editModal   = new bootstrap.Modal('#editModal');
+const returnModal = new bootstrap.Modal('#returnModal');
+const deleteModal = new bootstrap.Modal('#deleteModal');
+
+function loadAssignments() {
+  const search  = document.getElementById('searchInput').value.trim();
+  const status  = document.getElementById('statusFilter').value;
+  const params  = new URLSearchParams();
+  if (search) params.set('search', search);
+  if (status) params.set('status', status);
+  document.getElementById('tableLoader').classList.remove('d-none');
+  document.getElementById('tableWrapper').classList.add('d-none');
+  ajaxGet(`${URL_DATA}?${params}`)
+    .then(data => {
+      renderTable(data.items);
+      document.getElementById('recordCount').textContent = `${data.total} ${T.records}`;
+    })
+    .catch(() => showToast('{% trans "Failed to load assignments." %}', 'danger'))
+    .finally(() => { document.getElementById('tableLoader').classList.add('d-none'); document.getElementById('tableWrapper').classList.remove('d-none'); });
+}
+
+function debounceLoad() { clearTimeout(debounceTimer); debounceTimer = setTimeout(loadAssignments, 400); }
+function resetFilters() { document.getElementById('searchInput').value = ''; document.getElementById('statusFilter').value = ''; loadAssignments(); }
+
+function renderTable(items) {
+  const tbody = document.getElementById('assignmentsTableBody');
+  const empty = document.getElementById('emptyState');
+  if (!items.length) {
+    tbody.innerHTML = '';
+    empty.classList.remove('d-none');
+    document.getElementById('tableWrapper').classList.add('d-none');
+    return;
+  }
+  empty.classList.add('d-none');
+  document.getElementById('tableWrapper').classList.remove('d-none');
+  tbody.innerHTML = items.map((a, i) => `
+    <tr>
+      <td class="text-muted small">${i + 1}</td>
+      <td>
+        <div class="fw-medium font-monospace">${escHtml(a.device_serial)}</div>
+        <div class="text-muted small">${escHtml(a.device_label)}</div>
+      </td>
+      <td class="fw-medium">${escHtml(a.employee_name)}</td>
+      <td class="text-muted small">${a.assigned_date}</td>
+      <td class="text-muted small">${a.returned_date || '<span class="text-muted">—</span>'}</td>
+      <td>
+        <span class="badge rounded-pill ${a.is_active ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'}">
+          ${a.is_active ? T.active : T.returned}
+        </span>
+      </td>
+      <td class="text-end">
+        <div class="d-flex gap-1 justify-content-end">
+          ${CAN_EDIT ? `<button class="btn btn-sm btn-icon btn-outline-primary" onclick="openEditModal(${a.id})" title="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></button>` : ''}
+          ${CAN_RETURN && a.is_active ? `<button class="btn btn-sm btn-icon btn-outline-success" onclick="openReturnModal(${a.id})" title="{% trans 'Return' %}"><i class="bi bi-box-arrow-in-left"></i></button>` : ''}
+          ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDeleteModal(${a.id},'${escHtml(a.device_serial)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+/* Create */
+function openCreateModal() {
+  document.getElementById('createForm').reset();
+  resetFormSelects(document.getElementById('createForm'));
+  clearFormErrors(document.getElementById('createForm'));
+  const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  document.getElementById('createForm').querySelector('[name=assigned_date]').value = now.toISOString().slice(0,16);
+  createModal.show();
+}
+document.getElementById('createForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('createSubmitBtn');
+  clearFormErrors(this); setButtonLoading(btn, true);
+  ajaxPost(URL_CREATE, new FormData(this))
+    .then(data => { if (data.success) { createModal.hide(); showToast(data.message, 'success'); loadAssignments(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+/* Edit */
+function openEditModal(pk) {
+  document.getElementById('editLoader').classList.remove('d-none');
+  document.getElementById('editContent').classList.add('d-none');
+  document.getElementById('editAssignmentId').value = pk;
+  clearFormErrors(document.getElementById('editForm'));
+  editModal.show();
+  ajaxGet(detailUrl(pk))
+    .then(data => {
+      if (!data.success) { showToast(data.message, 'danger'); editModal.hide(); return; }
+      const a = data.item;
+      const f = document.getElementById('editForm');
+      setSelect2Value($('#editForm [name=device]'),   a.device_id,   a.device_serial);
+      setSelect2Value($('#editForm [name=employee]'), a.employee_id, a.employee_name);
+      f.querySelector('[name=assigned_date]').value = a.assigned_date;
+      f.querySelector('[name=notes]').value         = a.notes || '';
+      document.getElementById('editLoader').classList.add('d-none');
+      document.getElementById('editContent').classList.remove('d-none');
+    })
+    .catch(() => { showToast('{% trans "Failed to load assignment." %}', 'danger'); editModal.hide(); });
+}
+document.getElementById('editForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const pk  = document.getElementById('editAssignmentId').value;
+  const btn = document.getElementById('editSubmitBtn');
+  clearFormErrors(this); setButtonLoading(btn, true);
+  ajaxPost(editUrl(pk), new FormData(this))
+    .then(data => { if (data.success) { editModal.hide(); showToast(data.message, 'success'); loadAssignments(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+/* Return */
+function openReturnModal(pk) {
+  document.getElementById('returnForm').reset();
+  clearFormErrors(document.getElementById('returnForm'));
+  document.getElementById('returnAssignmentId').value = pk;
+  const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  document.getElementById('returnForm').querySelector('[name=returned_date]').value = now.toISOString().slice(0,16);
+  returnModal.show();
+}
+document.getElementById('returnForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const pk  = document.getElementById('returnAssignmentId').value;
+  const btn = document.getElementById('returnSubmitBtn');
+  clearFormErrors(this); setButtonLoading(btn, true);
+  ajaxPost(returnUrl(pk), new FormData(this))
+    .then(data => { if (data.success) { returnModal.hide(); showToast(data.message, 'success'); loadAssignments(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+/* Delete */
+function openDeleteModal(pk, label) {
+  deleteTargetId = pk;
+  document.getElementById('deleteAssignmentLabel').textContent = label;
+  deleteModal.show();
+}
+document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+  if (!deleteTargetId) return;
+  const btn = this;
+  setButtonLoading(btn, true);
+  ajaxPost(deleteUrl(deleteTargetId), new FormData())
+    .then(data => { if (data.success) { deleteModal.hide(); showToast(data.message, 'success'); loadAssignments(); } else { showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => { setButtonLoading(btn, false); deleteTargetId = null; });
+});
+
+/* ── Init ── */
+document.addEventListener('DOMContentLoaded', () => {
+  const S = '— {% trans "Select" %} —';
+  initSelect2($('#createForm [name=device]'),   'devices',   null, S);
+  initSelect2($('#createForm [name=employee]'), 'employees', null, S);
+  initSelect2($('#editForm [name=device]'),     'devices',   null, S);
+  initSelect2($('#editForm [name=employee]'),   'employees', null, S);
+  loadAssignments();
+});
+</script>
+{% endblock %}

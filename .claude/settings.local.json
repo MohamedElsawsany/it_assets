@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python manage.py check)",
+      "Bash(python manage.py check --deploy)",
+      "Bash(python -c ':*)"
+    ]
+  }
+}

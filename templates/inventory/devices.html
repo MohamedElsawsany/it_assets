@@ -1,0 +1,584 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Devices" %} — {% trans "IT Asset Management" %}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">{% trans "Devices" %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+  <div class="page-header">
+    <div>
+      <h4 class="page-title">{% trans "Devices" %}</h4>
+      <p class="page-subtitle">{% trans "Manage all hardware devices in the system." %}</p>
+    </div>
+    {% if rbac.devices_create %}
+    <div>
+      <button class="btn btn-primary d-flex align-items-center gap-2" onclick="openCreateModal()">
+        <i class="bi bi-plus-lg"></i><span>{% trans "Add Device" %}</span>
+      </button>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Filter bar -->
+  <div class="card card-app mb-3">
+    <div class="card-body py-3">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-4">
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" id="searchInput"
+                   placeholder="{% trans 'Search by serial, brand, model…' %}"
+                   oninput="debounceLoad()">
+          </div>
+        </div>
+        <div class="col-md-2">
+          <select class="form-select" id="catFilter">
+            <option value="">{% trans "All Categories" %}</option>
+          </select>
+        </div>
+        {% if rbac.sees_all_sites %}
+        <div class="col-md-2">
+          <select class="form-select" id="siteFilter">
+            <option value="">{% trans "All Sites" %}</option>
+          </select>
+        </div>
+        {% endif %}
+        <div class="col-md-2">
+          <select class="form-select" id="flagFilter">
+            <option value="">{% trans "All Flags" %}</option>
+          </select>
+        </div>
+        <div class="col-md-auto">
+          <button class="btn btn-outline-secondary" onclick="resetFilters()">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Reset" %}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="card card-app">
+    <div class="card-body p-0">
+      <div id="tableLoader" class="text-center py-5 d-none">
+        <div class="spinner-border text-primary" role="status"></div>
+      </div>
+      <div id="tableWrapper" class="table-responsive">
+        <table class="table table-hover app-table mb-0">
+          <thead>
+            <tr>
+              <th style="width:50px">#</th>
+              <th>{% trans "Serial Number" %}</th>
+              <th>{% trans "Category" %}</th>
+              <th>{% trans "Brand / Model" %}</th>
+              <th>{% trans "Site" %}</th>
+              <th>{% trans "Flag" %}</th>
+              <th>{% trans "Maintenance" %}</th>
+              <th>{% trans "Created" %}</th>
+              <th class="text-end" style="width:160px">{% trans "Actions" %}</th>
+            </tr>
+          </thead>
+          <tbody id="devicesTableBody"></tbody>
+        </table>
+      </div>
+      <div id="emptyState" class="text-center py-5 d-none">
+        <i class="bi bi-laptop display-6 text-muted"></i>
+        <p class="mt-3 text-muted">{% trans "No devices found." %}</p>
+      </div>
+      <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
+        <span class="text-muted small" id="recordCount"></span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ===== CREATE MODAL ===== -->
+<div class="modal fade" id="createModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-laptop me-2 text-primary"></i>{% trans "Add Device" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="createForm" novalidate>
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">{% trans "Serial Number" %} <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="serial_number" required>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">{% trans "Category" %} <span class="text-danger">*</span></label>
+              <select class="form-select" name="category" required><option value=""></option></select>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">{% trans "Brand" %} <span class="text-danger">*</span></label>
+              <select class="form-select" name="brand" required><option value=""></option></select>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">{% trans "Model" %} <span class="text-danger">*</span></label>
+              <select class="form-select" name="device_model" required><option value=""></option></select>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">{% trans "Site" %} <span class="text-danger">*</span></label>
+              <select class="form-select" name="site" required><option value=""></option></select>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">{% trans "Flag" %} <span class="text-danger">*</span></label>
+              <select class="form-select" name="flag" required><option value=""></option></select>
+              <div class="invalid-feedback"></div>
+            </div>
+            {% if show_specs %}
+            <div class="col-12"><hr class="my-1"><p class="fw-medium text-muted small mb-0">{% trans "Specifications (optional)" %}</p></div>
+            <div class="col-md-3">
+              <label class="form-label">{% trans "CPU" %}</label>
+              <select class="form-select" name="cpu"><option value=""></option></select>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">{% trans "GPU" %}</label>
+              <select class="form-select" name="gpu"><option value=""></option></select>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">{% trans "Operating System" %}</label>
+              <select class="form-select" name="operating_system"><option value=""></option></select>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-1">
+              <label class="form-label">{% trans "RAM (GB)" %}</label>
+              <input type="number" class="form-control" name="ram_size_gb" min="0">
+            </div>
+            <div class="col-md-1">
+              <label class="form-label">{% trans "HDD (GB)" %}</label>
+              <input type="number" class="form-control" name="hdd_storage_gb" min="0">
+            </div>
+            <div class="col-md-1">
+              <label class="form-label">{% trans "SSD (GB)" %}</label>
+              <input type="number" class="form-control" name="ssd_storage_gb" min="0">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">{% trans "Screen (in)" %}</label>
+              <input type="number" class="form-control" name="screen_size_inch" step="0.1" min="0">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">{% trans "Ports" %}</label>
+              <input type="number" class="form-control" name="ports_number" min="0">
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-primary" id="createSubmitBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Create Device" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== EDIT MODAL ===== -->
+<div class="modal fade" id="editModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil me-2 text-primary"></i>{% trans "Edit Device" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="editForm" novalidate>
+        {% csrf_token %}
+        <input type="hidden" id="editDeviceId">
+        <div class="modal-body">
+          <div id="editLoader" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+          <div id="editContent" class="d-none">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label">{% trans "Serial Number" %} <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="serial_number" required>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">{% trans "Category" %} <span class="text-danger">*</span></label>
+                <select class="form-select" name="category" required><option value=""></option></select>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">{% trans "Brand" %} <span class="text-danger">*</span></label>
+                <select class="form-select" name="brand" required><option value=""></option></select>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">{% trans "Model" %} <span class="text-danger">*</span></label>
+                <select class="form-select" name="device_model" required><option value=""></option></select>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">{% trans "Site" %} <span class="text-danger">*</span></label>
+                <select class="form-select" name="site" required><option value=""></option></select>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">{% trans "Flag" %} <span class="text-danger">*</span></label>
+                <select class="form-select" name="flag" required><option value=""></option></select>
+                <div class="invalid-feedback"></div>
+              </div>
+              {% if show_specs %}
+              <div class="col-12"><hr class="my-1"><p class="fw-medium text-muted small mb-0">{% trans "Specifications (optional)" %}</p></div>
+              <div class="col-md-3">
+                <label class="form-label">{% trans "CPU" %}</label>
+                <select class="form-select" name="cpu"><option value=""></option></select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">{% trans "GPU" %}</label>
+                <select class="form-select" name="gpu"><option value=""></option></select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">{% trans "OS" %}</label>
+                <select class="form-select" name="operating_system"><option value=""></option></select>
+              </div>
+              <div class="col-md-1"><label class="form-label">{% trans "RAM" %}</label><input type="number" class="form-control" name="ram_size_gb" min="0"></div>
+              <div class="col-md-1"><label class="form-label">{% trans "HDD" %}</label><input type="number" class="form-control" name="hdd_storage_gb" min="0"></div>
+              <div class="col-md-1"><label class="form-label">{% trans "SSD" %}</label><input type="number" class="form-control" name="ssd_storage_gb" min="0"></div>
+              <div class="col-md-2"><label class="form-label">{% trans "Screen" %}</label><input type="number" class="form-control" name="screen_size_inch" step="0.1" min="0"></div>
+              <div class="col-md-2"><label class="form-label">{% trans "Ports" %}</label><input type="number" class="form-control" name="ports_number" min="0"></div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-primary" id="editSubmitBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Save Changes" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== CHANGE FLAG MODAL ===== -->
+<div class="modal fade" id="changeFlagModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-flag me-2 text-warning"></i>{% trans "Change Flag" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="changeFlagForm" novalidate>
+        {% csrf_token %}
+        <input type="hidden" id="changeFlagDeviceId">
+        <div class="modal-body">
+          <label class="form-label">{% trans "New Flag" %} <span class="text-danger">*</span></label>
+          <select class="form-select" name="flag" required><option value=""></option></select>
+          <div class="invalid-feedback"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-warning" id="changeFlagBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Update Flag" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== DELETE MODAL ===== -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center pt-0 pb-4">
+        <div class="delete-icon-wrapper mb-3"><i class="bi bi-trash3 text-danger"></i></div>
+        <h5 class="fw-semibold">{% trans "Delete Device" %}</h5>
+        <p class="text-muted"><strong id="deleteDeviceSerial"></strong><br>
+          <small>{% trans "This action cannot be undone." %}</small></p>
+      </div>
+      <div class="modal-footer justify-content-center border-0 pt-0">
+        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+        <button type="button" class="btn btn-danger px-4" id="confirmDeleteBtn">
+          <span class="btn-text"><i class="bi bi-trash3 me-1"></i>{% trans "Delete" %}</span>
+          <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Deleting…" %}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+const CAN_EDIT         = {{ rbac.devices_edit|yesno:"true,false" }};
+const CAN_DELETE       = {{ rbac.devices_delete|yesno:"true,false" }};
+const CAN_CHANGE_FLAG  = {{ rbac.devices_change_flag|yesno:"true,false" }};
+const CAN_TOGGLE_MAINT = {{ rbac.devices_toggle_maintenance|yesno:"true,false" }};
+const SHOW_SPECS       = {{ show_specs|yesno:"true,false" }};
+
+const URL_DEVICES_DATA   = '{% url "devices-data" %}';
+const URL_DEVICE_CREATE  = '{% url "device-create" %}';
+const deviceDetailUrl    = pk => `/inventory/devices/${pk}/`;
+const deviceEditUrl      = pk => `/inventory/devices/${pk}/edit/`;
+const deviceDeleteUrl    = pk => `/inventory/devices/${pk}/delete/`;
+const deviceChangeFlagUrl  = pk => `/inventory/devices/${pk}/change-flag/`;
+const deviceToggleMaintUrl = pk => `/inventory/devices/${pk}/toggle-maintenance/`;
+
+const T = {
+  records: '{% trans "records" %}',
+  yes: '{% trans "Yes" %}',
+  no:  '{% trans "No" %}',
+};
+
+let deleteTargetId = null;
+let debounceTimer  = null;
+
+const createModal     = new bootstrap.Modal('#createModal');
+const editModal       = new bootstrap.Modal('#editModal');
+const changeFlagModal = new bootstrap.Modal('#changeFlagModal');
+const deleteModal     = new bootstrap.Modal('#deleteModal');
+
+function loadDevices() {
+  const search = document.getElementById('searchInput').value.trim();
+  const cat    = document.getElementById('catFilter').value;
+  const siteEl = document.getElementById('siteFilter');
+  const site   = siteEl ? siteEl.value : '';
+  const flag   = document.getElementById('flagFilter').value;
+  const params = new URLSearchParams();
+  if (search) params.set('search', search);
+  if (cat)    params.set('category', cat);
+  if (site)   params.set('site', site);
+  if (flag)   params.set('flag', flag);
+  document.getElementById('tableLoader').classList.remove('d-none');
+  document.getElementById('tableWrapper').classList.add('d-none');
+  ajaxGet(`${URL_DEVICES_DATA}?${params}`)
+    .then(data => {
+      renderDevicesTable(data.items);
+      document.getElementById('recordCount').textContent = `${data.total} ${T.records}`;
+    })
+    .catch(() => showToast('{% trans "Failed to load devices." %}', 'danger'))
+    .finally(() => { document.getElementById('tableLoader').classList.add('d-none'); document.getElementById('tableWrapper').classList.remove('d-none'); });
+}
+
+function debounceLoad() { clearTimeout(debounceTimer); debounceTimer = setTimeout(loadDevices, 400); }
+
+function resetFilters() {
+  document.getElementById('searchInput').value = '';
+  $('#catFilter').val(null).trigger('change');
+  $('#siteFilter').val(null).trigger('change');
+  $('#flagFilter').val(null).trigger('change');
+  loadDevices();
+}
+
+function renderDevicesTable(items) {
+  const tbody = document.getElementById('devicesTableBody');
+  const empty = document.getElementById('emptyState');
+  if (!items.length) {
+    tbody.innerHTML = '';
+    empty.classList.remove('d-none');
+    document.getElementById('tableWrapper').classList.add('d-none');
+    return;
+  }
+  empty.classList.add('d-none');
+  document.getElementById('tableWrapper').classList.remove('d-none');
+  tbody.innerHTML = items.map((d, i) => `
+    <tr>
+      <td class="text-muted small">${i + 1}</td>
+      <td class="fw-medium font-monospace">${escHtml(d.serial_number)}</td>
+      <td>${escHtml(d.category_name)}</td>
+      <td>
+        <div>${escHtml(d.brand_name)}</div>
+        <div class="text-muted small">${escHtml(d.model_name)}</div>
+      </td>
+      <td><span class="d-flex align-items-center gap-1"><i class="bi bi-geo-alt text-muted small"></i>${escHtml(d.site_name)}</span></td>
+      <td><span class="badge bg-secondary-subtle text-secondary rounded-pill">${escHtml(d.flag_name)}</span></td>
+      <td>
+        ${CAN_TOGGLE_MAINT
+          ? `<div class="form-check form-switch mb-0">
+               <input class="form-check-input" type="checkbox" role="switch" ${d.maintenance_mode ? 'checked' : ''}
+                      onchange="toggleMaintenance(${d.id}, this)">
+             </div>`
+          : `<span class="badge ${d.maintenance_mode ? 'bg-warning-subtle text-warning' : 'bg-success-subtle text-success'} rounded-pill">
+               ${d.maintenance_mode ? T.yes : T.no}
+             </span>`}
+      </td>
+      <td class="text-muted small">${d.created_date}</td>
+      <td class="text-end">
+        <div class="d-flex gap-1 justify-content-end">
+          ${CAN_EDIT ? `<button class="btn btn-sm btn-icon btn-outline-primary" onclick="openEditModal(${d.id})" title="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></button>` : ''}
+          ${CAN_CHANGE_FLAG ? `<button class="btn btn-sm btn-icon btn-outline-warning" onclick="openChangeFlagModal(${d.id})" title="{% trans 'Change Flag' %}"><i class="bi bi-flag"></i></button>` : ''}
+          ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDeleteModal(${d.id},'${escHtml(d.serial_number)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+/* Create */
+function openCreateModal() {
+  document.getElementById('createForm').reset();
+  resetFormSelects(document.getElementById('createForm'));
+  clearFormErrors(document.getElementById('createForm'));
+  createModal.show();
+}
+document.getElementById('createForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('createSubmitBtn');
+  clearFormErrors(this); setButtonLoading(btn, true);
+  ajaxPost(URL_DEVICE_CREATE, new FormData(this))
+    .then(data => { if (data.success) { createModal.hide(); showToast(data.message, 'success'); loadDevices(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+/* Edit */
+function openEditModal(pk) {
+  document.getElementById('editLoader').classList.remove('d-none');
+  document.getElementById('editContent').classList.add('d-none');
+  document.getElementById('editDeviceId').value = pk;
+  clearFormErrors(document.getElementById('editForm'));
+  editModal.show();
+  ajaxGet(deviceDetailUrl(pk))
+    .then(data => {
+      if (!data.success) { showToast(data.message, 'danger'); editModal.hide(); return; }
+      const d = data.item;
+      const f = document.getElementById('editForm');
+      f.querySelector('[name=serial_number]').value = d.serial_number;
+      setSelect2Value($('#editForm [name=category]'),     d.category_id,     d.category_name);
+      setSelect2Value($('#editForm [name=brand]'),        d.brand_id,        d.brand_name);
+      setSelect2Value($('#editForm [name=device_model]'), d.device_model_id, d.model_name);
+      setSelect2Value($('#editForm [name=site]'),         d.site_id,         d.site_name);
+      setSelect2Value($('#editForm [name=flag]'),         d.flag_id,         d.flag_name);
+      if (SHOW_SPECS) {
+        const setNum = (n, v) => { const el = f.querySelector(`[name=${n}]`); if (el) el.value = v || ''; };
+        setNum('ram_size_gb', d.ram_size_gb); setNum('hdd_storage_gb', d.hdd_storage_gb);
+        setNum('ssd_storage_gb', d.ssd_storage_gb); setNum('screen_size_inch', d.screen_size_inch);
+        setNum('ports_number', d.ports_number);
+        if (d.cpu_id)              setSelect2Value($('#editForm [name=cpu]'),              d.cpu_id,              d.cpu_name);
+        if (d.gpu_id)              setSelect2Value($('#editForm [name=gpu]'),              d.gpu_id,              d.gpu_name);
+        if (d.operating_system_id) setSelect2Value($('#editForm [name=operating_system]'), d.operating_system_id, d.os_name);
+      }
+      document.getElementById('editLoader').classList.add('d-none');
+      document.getElementById('editContent').classList.remove('d-none');
+    })
+    .catch(() => { showToast('{% trans "Failed to load device." %}', 'danger'); editModal.hide(); });
+}
+document.getElementById('editForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const pk  = document.getElementById('editDeviceId').value;
+  const btn = document.getElementById('editSubmitBtn');
+  clearFormErrors(this); setButtonLoading(btn, true);
+  ajaxPost(deviceEditUrl(pk), new FormData(this))
+    .then(data => { if (data.success) { editModal.hide(); showToast(data.message, 'success'); loadDevices(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+/* Change Flag */
+function openChangeFlagModal(pk) {
+  document.getElementById('changeFlagDeviceId').value = pk;
+  $('#changeFlagForm [name=flag]').val(null).trigger('change');
+  clearFormErrors(document.getElementById('changeFlagForm'));
+  changeFlagModal.show();
+}
+document.getElementById('changeFlagForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const pk  = document.getElementById('changeFlagDeviceId').value;
+  const btn = document.getElementById('changeFlagBtn');
+  clearFormErrors(this); setButtonLoading(btn, true);
+  ajaxPost(deviceChangeFlagUrl(pk), new FormData(this))
+    .then(data => { if (data.success) { changeFlagModal.hide(); showToast(data.message, 'success'); loadDevices(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+/* Toggle maintenance */
+function toggleMaintenance(pk, checkbox) {
+  const original = !checkbox.checked;
+  checkbox.disabled = true;
+  ajaxPost(deviceToggleMaintUrl(pk), new FormData())
+    .then(data => { if (data.success) { showToast(data.message, 'success'); checkbox.checked = data.maintenance_mode; } else { checkbox.checked = original; showToast(data.message, 'danger'); } })
+    .catch(() => { checkbox.checked = original; showToast('{% trans "An error occurred." %}', 'danger'); })
+    .finally(() => { checkbox.disabled = false; });
+}
+
+/* Delete */
+function openDeleteModal(pk, serial) {
+  deleteTargetId = pk;
+  document.getElementById('deleteDeviceSerial').textContent = serial;
+  deleteModal.show();
+}
+document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+  if (!deleteTargetId) return;
+  const btn = this;
+  setButtonLoading(btn, true);
+  ajaxPost(deviceDeleteUrl(deleteTargetId), new FormData())
+    .then(data => { if (data.success) { deleteModal.hide(); showToast(data.message, 'success'); loadDevices(); } else { showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => { setButtonLoading(btn, false); deleteTargetId = null; });
+});
+
+/* ── Init ── */
+document.addEventListener('DOMContentLoaded', () => {
+  const S = '— {% trans "Select" %} —';
+
+  // Filter bar
+  initSelect2($('#catFilter'),  'categories', null, '{% trans "All Categories" %}');
+  initSelect2($('#siteFilter'), 'sites',      null, '{% trans "All Sites" %}');
+  initSelect2($('#flagFilter'), 'flags',      null, '{% trans "All Flags" %}');
+  $('#catFilter, #siteFilter, #flagFilter').on('change', loadDevices);
+
+  // Create modal
+  initSelect2($('#createForm [name=category]'),    'categories',    null, S);
+  initSelect2($('#createForm [name=brand]'),       'brands',        null, S);
+  initSelect2($('#createForm [name=device_model]'),'device-models', null, S);
+  initSelect2($('#createForm [name=site]'),        'sites',         null, S);
+  initSelect2($('#createForm [name=flag]'),        'flags',         null, S);
+  if (SHOW_SPECS) {
+    initSelect2($('#createForm [name=cpu]'),              'cpus', null, '—');
+    initSelect2($('#createForm [name=gpu]'),              'gpus', null, '—');
+    initSelect2($('#createForm [name=operating_system]'), 'os',   null, '—');
+  }
+
+  // Edit modal
+  initSelect2($('#editForm [name=category]'),    'categories',    null, S);
+  initSelect2($('#editForm [name=brand]'),       'brands',        null, S);
+  initSelect2($('#editForm [name=device_model]'),'device-models', null, S);
+  initSelect2($('#editForm [name=site]'),        'sites',         null, S);
+  initSelect2($('#editForm [name=flag]'),        'flags',         null, S);
+  if (SHOW_SPECS) {
+    initSelect2($('#editForm [name=cpu]'),              'cpus', null, '—');
+    initSelect2($('#editForm [name=gpu]'),              'gpus', null, '—');
+    initSelect2($('#editForm [name=operating_system]'), 'os',   null, '—');
+  }
+
+  // Change flag modal
+  initSelect2($('#changeFlagForm [name=flag]'), 'flags', null, S);
+
+  loadDevices();
+});
+</script>
+{% endblock %}

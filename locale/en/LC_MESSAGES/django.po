@@ -1,0 +1,132 @@
+# English translations for IT Asset Management
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en\n"
+
+msgid "IT Asset Management"
+msgstr "IT Asset Management"
+
+msgid "IT Assets"
+msgstr "IT Assets"
+
+msgid "Management System"
+msgstr "Management System"
+
+msgid "Dashboard"
+msgstr "Dashboard"
+
+msgid "Users"
+msgstr "Users"
+
+msgid "Devices"
+msgstr "Devices"
+
+msgid "Accessories"
+msgstr "Accessories"
+
+msgid "Assignments"
+msgstr "Assignments"
+
+msgid "Employees"
+msgstr "Employees"
+
+msgid "Locations"
+msgstr "Locations"
+
+msgid "Maintenance"
+msgstr "Maintenance"
+
+msgid "Reports"
+msgstr "Reports"
+
+msgid "Logout"
+msgstr "Logout"
+
+msgid "Home"
+msgstr "Home"
+
+msgid "Sign In"
+msgstr "Sign In"
+
+msgid "Sign in to your account"
+msgstr "Sign in to your account"
+
+msgid "Email Address"
+msgstr "Email Address"
+
+msgid "Password"
+msgstr "Password"
+
+msgid "Enter your email"
+msgstr "Enter your email"
+
+msgid "Enter your password"
+msgstr "Enter your password"
+
+msgid "Total Users"
+msgstr "Total Users"
+
+msgid "Active Users"
+msgstr "Active Users"
+
+msgid "Total Devices"
+msgstr "Total Devices"
+
+msgid "Assigned Devices"
+msgstr "Assigned Devices"
+
+msgid "Open Maintenance"
+msgstr "Open Maintenance"
+
+msgid "Total Employees"
+msgstr "Total Employees"
+
+msgid "Welcome back, %(name)s"
+msgstr "Welcome back, %(name)s"
+
+msgid "Add User"
+msgstr "Add User"
+
+msgid "Manage system users and access roles."
+msgstr "Manage system users and access roles."
+
+msgid "Search by name or email…"
+msgstr "Search by name or email…"
+
+msgid "All Roles"
+msgstr "All Roles"
+
+msgid "All Status"
+msgstr "All Status"
+
+msgid "Active"
+msgstr "Active"
+
+msgid "Inactive"
+msgstr "Inactive"
+
+msgid "Reset"
+msgstr "Reset"
+
+msgid "User created successfully."
+msgstr "User created successfully."
+
+msgid "User updated successfully."
+msgstr "User updated successfully."
+
+msgid "User deleted successfully."
+msgstr "User deleted successfully."
+
+msgid "Password reset successfully."
+msgstr "Password reset successfully."
+
+msgid "Permission denied."
+msgstr "Permission denied."
+
+msgid "English"
+msgstr "English"
+
+msgid "Arabic"
+msgstr "Arabic"

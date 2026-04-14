@@ -1,0 +1,367 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Lookups" %} — {% trans "IT Asset Management" %}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">{% trans "Lookups" %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+  <div class="page-header">
+    <div>
+      <h4 class="page-title">{% trans "Lookup Tables" %}</h4>
+      <p class="page-subtitle">{% trans "Manage reference data used across the system." %}</p>
+    </div>
+  </div>
+
+  <!-- Lookup type tabs -->
+  <ul class="nav nav-tabs mb-3 flex-wrap" id="lookupTabs">
+    <li class="nav-item">
+      <button class="nav-link active" onclick="switchLookup('brands')">{% trans "Brands" %}</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" onclick="switchLookup('categories')">{% trans "Categories" %}</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" onclick="switchLookup('models')">{% trans "Models" %}</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" onclick="switchLookup('cpus')">{% trans "CPUs" %}</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" onclick="switchLookup('gpus')">{% trans "GPUs" %}</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" onclick="switchLookup('os')">{% trans "OS" %}</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" onclick="switchLookup('flags')">{% trans "Flags" %}</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" onclick="switchLookup('accessory-types')">{% trans "Accessory Types" %}</button>
+    </li>
+  </ul>
+
+  <!-- Filter + Add bar -->
+  <div class="card card-app mb-3">
+    <div class="card-body py-3">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-6">
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" id="lookupSearch"
+                   placeholder="{% trans 'Search…' %}"
+                   oninput="debounce(loadLookup, 400)()">
+          </div>
+        </div>
+        {% if rbac.lookups_create %}
+        <div class="col-md-auto ms-auto">
+          <button class="btn btn-primary d-flex align-items-center gap-2" onclick="openCreateModal()">
+            <i class="bi bi-plus-lg"></i><span id="addBtnLabel">{% trans "Add" %}</span>
+          </button>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="card card-app">
+    <div class="card-body p-0">
+      <div id="lookupLoader" class="text-center py-5 d-none">
+        <div class="spinner-border text-primary" role="status"></div>
+      </div>
+      <div id="lookupTableWrapper" class="table-responsive">
+        <table class="table table-hover app-table mb-0">
+          <thead>
+            <tr id="lookupTableHead"></tr>
+          </thead>
+          <tbody id="lookupTableBody"></tbody>
+        </table>
+      </div>
+      <div id="lookupEmpty" class="text-center py-5 d-none">
+        <i class="bi bi-list-ul display-6 text-muted"></i>
+        <p class="mt-3 text-muted">{% trans "No items found." %}</p>
+      </div>
+      <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
+        <span class="text-muted small" id="lookupCount"></span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== CREATE MODAL ===== -->
+<div class="modal fade" id="createModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="createModalTitle"><i class="bi bi-plus-circle me-2 text-primary"></i></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="createForm" novalidate>
+        {% csrf_token %}
+        <div class="modal-body" id="createFormBody"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-primary" id="createSubmitBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Create" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EDIT MODAL ===== -->
+<div class="modal fade" id="editModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editModalTitle"><i class="bi bi-pencil me-2 text-primary"></i></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="editForm" novalidate>
+        {% csrf_token %}
+        <input type="hidden" id="editItemId">
+        <div class="modal-body">
+          <div id="editLoader" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+          <div id="editContent" class="d-none"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-primary" id="editSubmitBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Save Changes" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DELETE MODAL ===== -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center pt-0 pb-4">
+        <div class="delete-icon-wrapper mb-3"><i class="bi bi-trash3 text-danger"></i></div>
+        <h5 class="fw-semibold">{% trans "Delete Item" %}</h5>
+        <p class="text-muted"><strong id="deleteItemName"></strong><br>
+          <small>{% trans "This action cannot be undone." %}</small></p>
+      </div>
+      <div class="modal-footer justify-content-center border-0 pt-0">
+        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+        <button type="button" class="btn btn-danger px-4" id="confirmDeleteBtn">
+          <span class="btn-text"><i class="bi bi-trash3 me-1"></i>{% trans "Delete" %}</span>
+          <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Deleting…" %}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+const CAN_CREATE = {{ rbac.lookups_create|yesno:"true,false" }};
+const CAN_EDIT   = {{ rbac.lookups_edit|yesno:"true,false" }};
+const CAN_DELETE = {{ rbac.lookups_delete|yesno:"true,false" }};
+
+const T = { records: '{% trans "records" %}', nameLbl: '{% trans "Name" %}', brandLbl: '{% trans "Brand" %}', categoryLbl: '{% trans "Category" %}', select: '{% trans "Select" %}' };
+
+const LOOKUP_META = {
+  'brands':          { label: '{% trans "Brands" %}',         cols: ['{% trans "Name" %}'], hasBrand: false, hasCategory: false },
+  'categories':      { label: '{% trans "Categories" %}',     cols: ['{% trans "Name" %}'], hasBrand: false, hasCategory: false },
+  'models':          { label: '{% trans "Models" %}',         cols: ['{% trans "Name" %}', '{% trans "Brand" %}', '{% trans "Category" %}'], hasBrand: true, hasCategory: true },
+  'cpus':            { label: '{% trans "CPUs" %}',           cols: ['{% trans "Name" %}', '{% trans "Brand" %}'], hasBrand: true, hasCategory: false },
+  'gpus':            { label: '{% trans "GPUs" %}',           cols: ['{% trans "Name" %}', '{% trans "Brand" %}'], hasBrand: true, hasCategory: false },
+  'os':              { label: '{% trans "Operating Systems" %}', cols: ['{% trans "Name" %}'], hasBrand: false, hasCategory: false },
+  'flags':           { label: '{% trans "Flags" %}',          cols: ['{% trans "Name" %}'], hasBrand: false, hasCategory: false },
+  'accessory-types': { label: '{% trans "Accessory Types" %}', cols: ['{% trans "Name" %}'], hasBrand: false, hasCategory: false },
+};
+
+let currentType   = 'brands';
+let deleteTargetPk  = null;
+
+const createModal = new bootstrap.Modal('#createModal');
+const editModal   = new bootstrap.Modal('#editModal');
+const deleteModal = new bootstrap.Modal('#deleteModal');
+
+const _timers = {};
+function debounce(fn, ms) {
+  return function() { clearTimeout(_timers[fn]); _timers[fn] = setTimeout(fn, ms); };
+}
+
+function switchLookup(type) {
+  currentType = type;
+  const meta = LOOKUP_META[type];
+  // Update tabs
+  document.querySelectorAll('#lookupTabs .nav-link').forEach((btn, i) => {
+    const types = ['brands','categories','models','cpus','gpus','os','flags','accessory-types'];
+    btn.classList.toggle('active', types[i] === type);
+  });
+  // Update add button
+  const addLbl = document.getElementById('addBtnLabel');
+  if (addLbl) addLbl.textContent = `{% trans "Add" %} ${meta.label}`;
+  // Update table header
+  const thead = document.getElementById('lookupTableHead');
+  thead.innerHTML = `<th style="width:50px">#</th>` +
+    meta.cols.map(c => `<th>${c}</th>`).join('') +
+    `<th class="text-muted small">{% trans "Created" %}</th>` +
+    `<th class="text-end" style="width:120px">{% trans "Actions" %}</th>`;
+  // Clear search
+  document.getElementById('lookupSearch').value = '';
+  loadLookup();
+}
+
+function loadLookup() {
+  const search = document.getElementById('lookupSearch').value.trim();
+  const params = new URLSearchParams();
+  if (search) params.set('search', search);
+  document.getElementById('lookupLoader').classList.remove('d-none');
+  document.getElementById('lookupTableWrapper').classList.add('d-none');
+  ajaxGet(`/inventory/lookups/${currentType}/data/?${params}`)
+    .then(data => {
+      renderItems(data.items);
+      document.getElementById('lookupCount').textContent = `${data.total} ${T.records}`;
+    })
+    .catch(() => showToast('{% trans "Failed to load items." %}', 'danger'))
+    .finally(() => { document.getElementById('lookupLoader').classList.add('d-none'); document.getElementById('lookupTableWrapper').classList.remove('d-none'); });
+}
+
+function renderItems(items) {
+  const tbody = document.getElementById('lookupTableBody');
+  const empty = document.getElementById('lookupEmpty');
+  const meta  = LOOKUP_META[currentType];
+  if (!items.length) {
+    tbody.innerHTML = '';
+    empty.classList.remove('d-none');
+    document.getElementById('lookupTableWrapper').classList.add('d-none');
+    return;
+  }
+  empty.classList.add('d-none');
+  document.getElementById('lookupTableWrapper').classList.remove('d-none');
+  tbody.innerHTML = items.map((item, i) => {
+    let cells = `<td class="fw-medium">${escHtml(item.name)}</td>`;
+    if (meta.hasBrand)    cells += `<td>${escHtml(item.brand_name || '')}</td>`;
+    if (meta.hasCategory) cells += `<td>${escHtml(item.category_name || '')}</td>`;
+    return `<tr>
+      <td class="text-muted small">${i + 1}</td>
+      ${cells}
+      <td class="text-muted small">${item.created_date}</td>
+      <td class="text-end">
+        <div class="d-flex gap-1 justify-content-end">
+          ${CAN_EDIT ? `<button class="btn btn-sm btn-icon btn-outline-primary" onclick="openEditModal(${item.id})" title="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></button>` : ''}
+          ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDeleteModal(${item.id},'${escHtml(item.name)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function buildFormFields(data) {
+  const meta = LOOKUP_META[currentType];
+  let html = `<div class="mb-3"><label class="form-label">${T.nameLbl} <span class="text-danger">*</span></label>
+    <input type="text" class="form-control" name="name" value="${data ? escHtml(data.name) : ''}" required>
+    <div class="invalid-feedback"></div></div>`;
+  if (meta.hasBrand)
+    html += `<div class="mb-3"><label class="form-label">${T.brandLbl} <span class="text-danger">*</span></label>
+      <select class="form-select" name="brand" required></select>
+      <div class="invalid-feedback"></div></div>`;
+  if (meta.hasCategory)
+    html += `<div class="mb-3"><label class="form-label">${T.categoryLbl} <span class="text-danger">*</span></label>
+      <select class="form-select" name="category" required></select>
+      <div class="invalid-feedback"></div></div>`;
+  return html;
+}
+
+function initLookupSelects($container, $modal, data) {
+  const meta = LOOKUP_META[currentType];
+  const S = '— ' + T.select + ' —';
+  if (meta.hasBrand) {
+    initSelect2($container.find('[name=brand]'), 'brands', null, S);
+    if (data && data.brand_id) setSelect2Value($container.find('[name=brand]'), data.brand_id, data.brand_name);
+  }
+  if (meta.hasCategory) {
+    initSelect2($container.find('[name=category]'), 'categories', null, S);
+    if (data && data.category_id) setSelect2Value($container.find('[name=category]'), data.category_id, data.category_name);
+  }
+}
+
+function openCreateModal() {
+  const meta = LOOKUP_META[currentType];
+  document.getElementById('createModalTitle').innerHTML = `<i class="bi bi-plus-circle me-2 text-primary"></i>${meta.label}`;
+  document.getElementById('createFormBody').innerHTML = buildFormFields(null);
+  clearFormErrors(document.getElementById('createForm'));
+  initLookupSelects($('#createFormBody'), $('#createModal'), null);
+  createModal.show();
+}
+document.getElementById('createForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('createSubmitBtn');
+  clearFormErrors(this);
+  setButtonLoading(btn, true);
+  ajaxPost(`/inventory/lookups/${currentType}/create/`, new FormData(this))
+    .then(data => { if (data.success) { createModal.hide(); showToast(data.message, 'success'); loadLookup(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+function openEditModal(pk) {
+  const meta = LOOKUP_META[currentType];
+  document.getElementById('editModalTitle').innerHTML = `<i class="bi bi-pencil me-2 text-primary"></i>${meta.label}`;
+  document.getElementById('editLoader').classList.remove('d-none');
+  document.getElementById('editContent').classList.add('d-none');
+  document.getElementById('editItemId').value = pk;
+  clearFormErrors(document.getElementById('editForm'));
+  editModal.show();
+  ajaxGet(`/inventory/lookups/${currentType}/${pk}/`)
+    .then(data => {
+      if (!data.success) { showToast(data.message, 'danger'); editModal.hide(); return; }
+      document.getElementById('editContent').innerHTML = buildFormFields(data.item);
+      initLookupSelects($('#editContent'), $('#editModal'), data.item);
+      document.getElementById('editLoader').classList.add('d-none');
+      document.getElementById('editContent').classList.remove('d-none');
+    })
+    .catch(() => { showToast('{% trans "Failed to load item." %}', 'danger'); editModal.hide(); });
+}
+document.getElementById('editForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const pk  = document.getElementById('editItemId').value;
+  const btn = document.getElementById('editSubmitBtn');
+  clearFormErrors(this);
+  setButtonLoading(btn, true);
+  ajaxPost(`/inventory/lookups/${currentType}/${pk}/edit/`, new FormData(this))
+    .then(data => { if (data.success) { editModal.hide(); showToast(data.message, 'success'); loadLookup(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+function openDeleteModal(pk, name) {
+  deleteTargetPk = pk;
+  document.getElementById('deleteItemName').textContent = name;
+  deleteModal.show();
+}
+document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+  if (!deleteTargetPk) return;
+  const btn = this;
+  setButtonLoading(btn, true);
+  ajaxPost(`/inventory/lookups/${currentType}/${deleteTargetPk}/delete/`, new FormData())
+    .then(data => { if (data.success) { deleteModal.hide(); showToast(data.message, 'success'); loadLookup(); } else { showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => { setButtonLoading(btn, false); deleteTargetPk = null; });
+});
+
+document.addEventListener('DOMContentLoaded', () => switchLookup('brands'));
+</script>
+{% endblock %}

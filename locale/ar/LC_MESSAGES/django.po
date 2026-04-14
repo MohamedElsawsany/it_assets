@@ -1,0 +1,287 @@
+# Arabic translations for IT Asset Management
+# Copyright (C) 2024
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: ar\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 ? 4 : 5;\n"
+
+# App
+msgid "IT Asset Management"
+msgstr "إدارة أصول تقنية المعلومات"
+
+msgid "IT Assets"
+msgstr "أصول IT"
+
+msgid "Management System"
+msgstr "نظام الإدارة"
+
+# Navigation
+msgid "Dashboard"
+msgstr "لوحة التحكم"
+
+msgid "Users"
+msgstr "المستخدمون"
+
+msgid "Devices"
+msgstr "الأجهزة"
+
+msgid "Accessories"
+msgstr "الملحقات"
+
+msgid "Assignments"
+msgstr "التعيينات"
+
+msgid "Employees"
+msgstr "الموظفون"
+
+msgid "Locations"
+msgstr "المواقع"
+
+msgid "Maintenance"
+msgstr "الصيانة"
+
+msgid "Reports"
+msgstr "التقارير"
+
+msgid "Logout"
+msgstr "تسجيل الخروج"
+
+msgid "Home"
+msgstr "الرئيسية"
+
+msgid "Toggle sidebar"
+msgstr "إظهار/إخفاء القائمة"
+
+# Auth
+msgid "Sign In"
+msgstr "تسجيل الدخول"
+
+msgid "Sign in to your account"
+msgstr "تسجيل الدخول إلى حسابك"
+
+msgid "Email Address"
+msgstr "البريد الإلكتروني"
+
+msgid "Password"
+msgstr "كلمة المرور"
+
+msgid "Enter your email"
+msgstr "أدخل بريدك الإلكتروني"
+
+msgid "Enter your password"
+msgstr "أدخل كلمة المرور"
+
+# Dashboard
+msgid "Total Users"
+msgstr "إجمالي المستخدمين"
+
+msgid "Active Users"
+msgstr "المستخدمون النشطون"
+
+msgid "Total Devices"
+msgstr "إجمالي الأجهزة"
+
+msgid "Assigned Devices"
+msgstr "الأجهزة المعيّنة"
+
+msgid "Open Maintenance"
+msgstr "الصيانة المفتوحة"
+
+msgid "Total Employees"
+msgstr "إجمالي الموظفين"
+
+msgid "Welcome back, %(name)s"
+msgstr "مرحبًا بعودتك، %(name)s"
+
+msgid "Go to Users"
+msgstr "الذهاب إلى المستخدمين"
+
+msgid "Coming Soon"
+msgstr "قريبًا"
+
+msgid "Manage system users and their roles."
+msgstr "إدارة مستخدمي النظام وأدوارهم."
+
+msgid "Track and manage IT devices inventory."
+msgstr "تتبع وإدارة مخزون أجهزة تقنية المعلومات."
+
+msgid "Monitor open maintenance records."
+msgstr "مراقبة سجلات الصيانة المفتوحة."
+
+# Users page
+msgid "Add User"
+msgstr "إضافة مستخدم"
+
+msgid "Manage system users and access roles."
+msgstr "إدارة مستخدمي النظام وأدوار الوصول."
+
+msgid "Search by name or email…"
+msgstr "البحث بالاسم أو البريد الإلكتروني…"
+
+msgid "All Roles"
+msgstr "جميع الأدوار"
+
+msgid "All Status"
+msgstr "جميع الحالات"
+
+msgid "Active"
+msgstr "نشط"
+
+msgid "Inactive"
+msgstr "غير نشط"
+
+msgid "Reset"
+msgstr "إعادة ضبط"
+
+msgid "Loading…"
+msgstr "جارٍ التحميل…"
+
+msgid "User"
+msgstr "المستخدم"
+
+msgid "Role"
+msgstr "الدور"
+
+msgid "Site"
+msgstr "الموقع"
+
+msgid "Status"
+msgstr "الحالة"
+
+msgid "Created"
+msgstr "تاريخ الإنشاء"
+
+msgid "Actions"
+msgstr "الإجراءات"
+
+msgid "No users found."
+msgstr "لم يتم العثور على مستخدمين."
+
+msgid "records"
+msgstr "سجل"
+
+# User form
+msgid "Add New User"
+msgstr "إضافة مستخدم جديد"
+
+msgid "Edit User"
+msgstr "تعديل المستخدم"
+
+msgid "First Name"
+msgstr "الاسم الأول"
+
+msgid "Last Name"
+msgstr "اسم العائلة"
+
+msgid "Select role"
+msgstr "اختر الدور"
+
+msgid "No site"
+msgstr "بدون موقع"
+
+msgid "— No site —"
+msgstr "— بدون موقع —"
+
+msgid "Create User"
+msgstr "إنشاء المستخدم"
+
+msgid "Save Changes"
+msgstr "حفظ التغييرات"
+
+msgid "Saving…"
+msgstr "جارٍ الحفظ…"
+
+msgid "Cancel"
+msgstr "إلغاء"
+
+# Delete modal
+msgid "Delete User"
+msgstr "حذف المستخدم"
+
+msgid "Are you sure you want to delete"
+msgstr "هل أنت متأكد أنك تريد حذف"
+
+msgid "This action cannot be undone."
+msgstr "لا يمكن التراجع عن هذا الإجراء."
+
+msgid "Delete"
+msgstr "حذف"
+
+msgid "Deleting…"
+msgstr "جارٍ الحذف…"
+
+# Reset password modal
+msgid "Reset Password"
+msgstr "إعادة تعيين كلمة المرور"
+
+msgid "Set a new password for"
+msgstr "تعيين كلمة مرور جديدة لـ"
+
+msgid "New Password"
+msgstr "كلمة المرور الجديدة"
+
+msgid "Confirm Password"
+msgstr "تأكيد كلمة المرور"
+
+msgid "Confirm New Password"
+msgstr "تأكيد كلمة المرور الجديدة"
+
+msgid "Resetting…"
+msgstr "جارٍ الإعادة…"
+
+# Action labels
+msgid "Edit"
+msgstr "تعديل"
+
+# Messages
+msgid "User created successfully."
+msgstr "تم إنشاء المستخدم بنجاح."
+
+msgid "User updated successfully."
+msgstr "تم تحديث المستخدم بنجاح."
+
+msgid "User deleted successfully."
+msgstr "تم حذف المستخدم بنجاح."
+
+msgid "Password reset successfully."
+msgstr "تم إعادة تعيين كلمة المرور بنجاح."
+
+msgid "Permission denied."
+msgstr "ليس لديك صلاحية لتنفيذ هذا الإجراء."
+
+msgid "You cannot delete your own account."
+msgstr "لا يمكنك حذف حسابك الخاص."
+
+msgid "You cannot change your own status."
+msgstr "لا يمكنك تغيير حالتك الخاصة."
+
+msgid "User activated."
+msgstr "تم تفعيل المستخدم."
+
+msgid "User deactivated."
+msgstr "تم تعطيل المستخدم."
+
+msgid "Failed to load users."
+msgstr "فشل تحميل المستخدمين."
+
+msgid "Failed to load user."
+msgstr "فشل تحميل بيانات المستخدم."
+
+msgid "An error occurred."
+msgstr "حدث خطأ."
+
+msgid "Passwords don't match."
+msgstr "كلمتا المرور غير متطابقتين."
+
+# Form labels
+msgid "— Select role —"
+msgstr "— اختر الدور —"
+
+# Language names
+msgid "English"
+msgstr "الإنجليزية"
+
+msgid "Arabic"
+msgstr "العربية"

@@ -1,0 +1,593 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Locations" %} — {% trans "IT Asset Management" %}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">{% trans "Locations" %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div>
+      <h4 class="page-title">{% trans "Locations" %}</h4>
+      <p class="page-subtitle">{% trans "Manage governorates and sites." %}</p>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <ul class="nav nav-tabs mb-3" id="locationTabs">
+    <li class="nav-item">
+      <button class="nav-link active" id="tab-gov" onclick="switchTab('governorates')">
+        <i class="bi bi-map me-1"></i>{% trans "Governorates" %}
+        <span class="badge bg-secondary ms-1" id="govCount">0</span>
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="tab-sites" onclick="switchTab('sites')">
+        <i class="bi bi-building me-1"></i>{% trans "Sites" %}
+        <span class="badge bg-secondary ms-1" id="sitesCount">0</span>
+      </button>
+    </li>
+  </ul>
+
+  <!-- ── GOVERNORATES PANEL ── -->
+  <div id="panel-governorates">
+    <div class="card card-app mb-3">
+      <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-6">
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input type="text" class="form-control" id="govSearch"
+                     placeholder="{% trans 'Search governorates…' %}"
+                     oninput="debounce(loadGovernorates, 400)()">
+            </div>
+          </div>
+          {% if rbac.locations_create %}
+          <div class="col-md-auto ms-auto">
+            <button class="btn btn-primary d-flex align-items-center gap-2" onclick="openCreateModal('governorate')">
+              <i class="bi bi-plus-lg"></i><span>{% trans "Add Governorate" %}</span>
+            </button>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-app">
+      <div class="card-body p-0">
+        <div id="govLoader" class="text-center py-5 d-none">
+          <div class="spinner-border text-primary" role="status"></div>
+        </div>
+        <div id="govTableWrapper" class="table-responsive">
+          <table class="table table-hover app-table mb-0">
+            <thead>
+              <tr>
+                <th style="width:50px">#</th>
+                <th>{% trans "Name" %}</th>
+                <th>{% trans "Sites" %}</th>
+                <th>{% trans "Created" %}</th>
+                <th class="text-end" style="width:120px">{% trans "Actions" %}</th>
+              </tr>
+            </thead>
+            <tbody id="govTableBody"></tbody>
+          </table>
+        </div>
+        <div id="govEmpty" class="text-center py-5 d-none">
+          <i class="bi bi-map display-6 text-muted"></i>
+          <p class="mt-3 text-muted">{% trans "No governorates found." %}</p>
+        </div>
+        <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
+          <span class="text-muted small" id="govRecordCount"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SITES PANEL ── -->
+  <div id="panel-sites" class="d-none">
+    <div class="card card-app mb-3">
+      <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-5">
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input type="text" class="form-control" id="siteSearch"
+                     placeholder="{% trans 'Search sites…' %}"
+                     oninput="debounce(loadSites, 400)()">
+            </div>
+          </div>
+          <div class="col-md-3">
+            <select class="form-select" id="govFilter">
+              <option value="">{% trans "All Governorates" %}</option>
+            </select>
+          </div>
+          {% if rbac.locations_create %}
+          <div class="col-md-auto ms-auto">
+            <button class="btn btn-primary d-flex align-items-center gap-2" onclick="openCreateModal('site')">
+              <i class="bi bi-plus-lg"></i><span>{% trans "Add Site" %}</span>
+            </button>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-app">
+      <div class="card-body p-0">
+        <div id="siteLoader" class="text-center py-5 d-none">
+          <div class="spinner-border text-primary" role="status"></div>
+        </div>
+        <div id="siteTableWrapper" class="table-responsive">
+          <table class="table table-hover app-table mb-0">
+            <thead>
+              <tr>
+                <th style="width:50px">#</th>
+                <th>{% trans "Site Name" %}</th>
+                <th>{% trans "Governorate" %}</th>
+                <th>{% trans "Created" %}</th>
+                <th class="text-end" style="width:120px">{% trans "Actions" %}</th>
+              </tr>
+            </thead>
+            <tbody id="siteTableBody"></tbody>
+          </table>
+        </div>
+        <div id="siteEmpty" class="text-center py-5 d-none">
+          <i class="bi bi-building display-6 text-muted"></i>
+          <p class="mt-3 text-muted">{% trans "No sites found." %}</p>
+        </div>
+        <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
+          <span class="text-muted small" id="siteRecordCount"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page-container -->
+
+
+<!-- ===== CREATE MODAL ===== -->
+<div class="modal fade" id="createModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="createModalTitle"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="createForm" novalidate>
+        {% csrf_token %}
+        <div class="modal-body">
+          <!-- Governorate fields -->
+          <div id="govCreateFields">
+            <div class="mb-3">
+              <label class="form-label">{% trans "Name" %} <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="name" required>
+              <div class="invalid-feedback"></div>
+            </div>
+          </div>
+          <!-- Site fields -->
+          <div id="siteCreateFields" class="d-none">
+            <div class="mb-3">
+              <label class="form-label">{% trans "Site Name" %} <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="site_name" required>
+              <div class="invalid-feedback" id="site_name_feedback"></div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">{% trans "Governorate" %} <span class="text-danger">*</span></label>
+              <select class="form-select" name="governorate" required>
+                <option value=""></option>
+              </select>
+              <div class="invalid-feedback"></div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-primary" id="createSubmitBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Create" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EDIT MODAL ===== -->
+<div class="modal fade" id="editModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editModalTitle"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="editForm" novalidate>
+        {% csrf_token %}
+        <input type="hidden" id="editItemId">
+        <div class="modal-body">
+          <div id="editLoader" class="text-center py-4">
+            <div class="spinner-border text-primary"></div>
+          </div>
+          <div id="editContent" class="d-none">
+            <!-- Governorate fields -->
+            <div id="govEditFields">
+              <div class="mb-3">
+                <label class="form-label">{% trans "Name" %} <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="name" required>
+                <div class="invalid-feedback"></div>
+              </div>
+            </div>
+            <!-- Site fields -->
+            <div id="siteEditFields" class="d-none">
+              <div class="mb-3">
+                <label class="form-label">{% trans "Site Name" %} <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="site_name" required>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">{% trans "Governorate" %} <span class="text-danger">*</span></label>
+                <select class="form-select" name="governorate" required>
+                  <option value=""></option>
+                </select>
+                <div class="invalid-feedback"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-primary" id="editSubmitBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Save Changes" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DELETE MODAL ===== -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center pt-0 pb-4">
+        <div class="delete-icon-wrapper mb-3"><i class="bi bi-trash3 text-danger"></i></div>
+        <h5 class="fw-semibold" id="deleteModalTitle"></h5>
+        <p class="text-muted"><strong id="deleteItemName"></strong><br>
+          <small>{% trans "This action cannot be undone." %}</small>
+        </p>
+      </div>
+      <div class="modal-footer justify-content-center border-0 pt-0">
+        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+        <button type="button" class="btn btn-danger px-4" id="confirmDeleteBtn">
+          <span class="btn-text"><i class="bi bi-trash3 me-1"></i>{% trans "Delete" %}</span>
+          <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Deleting…" %}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+const CAN_EDIT   = {{ rbac.locations_edit|yesno:"true,false" }};
+const CAN_DELETE = {{ rbac.locations_delete|yesno:"true,false" }};
+
+const URL_GOV_DATA    = '{% url "governorates-data" %}';
+const URL_GOV_CREATE  = '{% url "governorate-create" %}';
+const URL_SITE_DATA   = '{% url "sites-data" %}';
+const URL_SITE_CREATE = '{% url "site-create" %}';
+const govDetailUrl    = pk => `/locations/governorates/${pk}/`;
+const govEditUrl      = pk => `/locations/governorates/${pk}/edit/`;
+const govDeleteUrl    = pk => `/locations/governorates/${pk}/delete/`;
+const siteDetailUrl   = pk => `/locations/sites/${pk}/`;
+const siteEditUrl     = pk => `/locations/sites/${pk}/edit/`;
+const siteDeleteUrl   = pk => `/locations/sites/${pk}/delete/`;
+
+const T = {
+  records:    '{% trans "records" %}',
+  addGov:     '{% trans "Add Governorate" %}',
+  addSite:    '{% trans "Add Site" %}',
+  editGov:    '{% trans "Edit Governorate" %}',
+  editSite:   '{% trans "Edit Site" %}',
+  deleteGov:  '{% trans "Delete Governorate" %}',
+  deleteSite: '{% trans "Delete Site" %}',
+};
+
+let currentTab   = 'governorates';
+let deleteTarget = { url: null, reload: null };
+let editTarget   = { type: null };
+
+const createModal = new bootstrap.Modal('#createModal');
+const editModal   = new bootstrap.Modal('#editModal');
+const deleteModal = new bootstrap.Modal('#deleteModal');
+
+/* ── Tab switching ── */
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('panel-governorates').classList.toggle('d-none', tab !== 'governorates');
+  document.getElementById('panel-sites').classList.toggle('d-none', tab !== 'sites');
+  document.getElementById('tab-gov').classList.toggle('active', tab === 'governorates');
+  document.getElementById('tab-sites').classList.toggle('active', tab === 'sites');
+  if (tab === 'governorates') loadGovernorates();
+  else loadSites();
+}
+
+const _timers = {};
+function debounce(fn, ms) {
+  return function() { clearTimeout(_timers[fn]); _timers[fn] = setTimeout(fn, ms); };
+}
+
+/* ── GOVERNORATES ── */
+function loadGovernorates() {
+  const search = document.getElementById('govSearch').value.trim();
+  const params = new URLSearchParams();
+  if (search) params.set('search', search);
+  document.getElementById('govLoader').classList.remove('d-none');
+  document.getElementById('govTableWrapper').classList.add('d-none');
+  ajaxGet(`${URL_GOV_DATA}?${params}`)
+    .then(data => {
+      renderTable(data.items, 'govTableBody', 'govEmpty', 'govTableWrapper', renderGovRow);
+      document.getElementById('govRecordCount').textContent = `${data.total} ${T.records}`;
+      document.getElementById('govCount').textContent = data.total;
+    })
+    .catch(() => showToast('{% trans "Failed to load governorates." %}', 'danger'))
+    .finally(() => { document.getElementById('govLoader').classList.add('d-none'); document.getElementById('govTableWrapper').classList.remove('d-none'); });
+}
+
+function renderGovRow(g, i) {
+  return `<tr>
+    <td class="text-muted small">${i + 1}</td>
+    <td class="fw-medium">${escHtml(g.name)}</td>
+    <td><span class="badge bg-primary-subtle text-primary rounded-pill">${g.sites_count ?? 0}</span></td>
+    <td class="text-muted small">${g.created_date}</td>
+    <td class="text-end">
+      <div class="d-flex gap-1 justify-content-end">
+        ${CAN_EDIT ? `<button class="btn btn-sm btn-icon btn-outline-primary" onclick="openEditModal('governorate',${g.id})" title="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></button>` : ''}
+        ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDeleteModal('governorate',${g.id},'${escHtml(g.name)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
+      </div>
+    </td>
+  </tr>`;
+}
+
+/* ── SITES ── */
+function loadSites() {
+  const search = document.getElementById('siteSearch').value.trim();
+  const govId  = document.getElementById('govFilter').value;
+  const params = new URLSearchParams();
+  if (search) params.set('search', search);
+  if (govId)  params.set('governorate', govId);
+  document.getElementById('siteLoader').classList.remove('d-none');
+  document.getElementById('siteTableWrapper').classList.add('d-none');
+  ajaxGet(`${URL_SITE_DATA}?${params}`)
+    .then(data => {
+      renderTable(data.items, 'siteTableBody', 'siteEmpty', 'siteTableWrapper', renderSiteRow);
+      document.getElementById('siteRecordCount').textContent = `${data.total} ${T.records}`;
+      document.getElementById('sitesCount').textContent = data.total;
+    })
+    .catch(() => showToast('{% trans "Failed to load sites." %}', 'danger'))
+    .finally(() => { document.getElementById('siteLoader').classList.add('d-none'); document.getElementById('siteTableWrapper').classList.remove('d-none'); });
+}
+
+function renderSiteRow(s, i) {
+  return `<tr>
+    <td class="text-muted small">${i + 1}</td>
+    <td class="fw-medium">${escHtml(s.name)}</td>
+    <td>${escHtml(s.governorate_name)}</td>
+    <td class="text-muted small">${s.created_date}</td>
+    <td class="text-end">
+      <div class="d-flex gap-1 justify-content-end">
+        ${CAN_EDIT ? `<button class="btn btn-sm btn-icon btn-outline-primary" onclick="openEditModal('site',${s.id})" title="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></button>` : ''}
+        ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDeleteModal('site',${s.id},'${escHtml(s.name)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
+      </div>
+    </td>
+  </tr>`;
+}
+
+function renderTable(items, tbodyId, emptyId, wrapperId, rowFn) {
+  const tbody = document.getElementById(tbodyId);
+  const empty = document.getElementById(emptyId);
+  if (!items.length) {
+    tbody.innerHTML = '';
+    empty.classList.remove('d-none');
+    document.getElementById(wrapperId).classList.add('d-none');
+    return;
+  }
+  empty.classList.add('d-none');
+  document.getElementById(wrapperId).classList.remove('d-none');
+  tbody.innerHTML = items.map((item, i) => rowFn(item, i)).join('');
+}
+
+/* ── Helpers: toggle which form section is visible ── */
+function showCreateFields(type) {
+  const isGov = type === 'governorate';
+  document.getElementById('govCreateFields').classList.toggle('d-none', !isGov);
+  document.getElementById('siteCreateFields').classList.toggle('d-none', isGov);
+  // The name field inside govCreateFields vs siteCreateFields
+  // When site: disable gov name input so it doesn't appear in FormData
+  document.getElementById('govCreateFields').querySelectorAll('input,select').forEach(el => el.disabled = !isGov);
+  document.getElementById('siteCreateFields').querySelectorAll('input,select').forEach(el => el.disabled = isGov);
+}
+
+function showEditFields(type) {
+  const isGov = type === 'governorate';
+  document.getElementById('govEditFields').classList.toggle('d-none', !isGov);
+  document.getElementById('siteEditFields').classList.toggle('d-none', isGov);
+  document.getElementById('govEditFields').querySelectorAll('input,select').forEach(el => el.disabled = !isGov);
+  document.getElementById('siteEditFields').querySelectorAll('input,select').forEach(el => el.disabled = isGov);
+}
+
+/* ── CREATE ── */
+function openCreateModal(type) {
+  const isGov = type === 'governorate';
+  document.getElementById('createModalTitle').innerHTML =
+    `<i class="bi bi-plus-circle me-2 text-primary"></i>${isGov ? T.addGov : T.addSite}`;
+  document.getElementById('createForm').dataset.type = type;
+  showCreateFields(type);
+  clearFormErrors(document.getElementById('createForm'));
+  // Reset text inputs
+  document.getElementById('createForm').querySelectorAll('input[type=text]').forEach(el => el.value = '');
+  // Reset site governorate Select2
+  if (!isGov) {
+    $('#siteCreateFields [name=governorate]').val(null).trigger('change');
+  }
+  createModal.show();
+}
+
+document.getElementById('createForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const type = this.dataset.type;
+  const isGov = type === 'governorate';
+  clearFormErrors(this);
+  const btn = document.getElementById('createSubmitBtn');
+  setButtonLoading(btn, true);
+  // Build FormData manually to handle the name field correctly
+  const fd = new FormData();
+  fd.set('csrfmiddlewaretoken', this.querySelector('[name=csrfmiddlewaretoken]').value);
+  if (isGov) {
+    fd.set('name', document.getElementById('govCreateFields').querySelector('[name=name]').value);
+  } else {
+    fd.set('name', document.getElementById('siteCreateFields').querySelector('[name=site_name]').value);
+    fd.set('governorate', document.getElementById('siteCreateFields').querySelector('[name=governorate]').value);
+  }
+  const url = isGov ? URL_GOV_CREATE : URL_SITE_CREATE;
+  ajaxPost(url, fd)
+    .then(data => {
+      if (data.success) {
+        createModal.hide();
+        showToast(data.message, 'success');
+        isGov ? loadGovernorates() : loadSites();
+      } else {
+        // Remap 'name' errors to the correct field
+        const errors = {};
+        Object.entries(data.errors || {}).forEach(([k, v]) => {
+          errors[isGov ? k : (k === 'name' ? 'site_name' : k)] = v;
+        });
+        showFormErrors(this, errors);
+        if (data.message) showToast(data.message, 'danger');
+      }
+    })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+/* ── EDIT ── */
+function openEditModal(type, pk) {
+  const isGov = type === 'governorate';
+  editTarget.type = type;
+  document.getElementById('editModalTitle').innerHTML =
+    `<i class="bi bi-pencil me-2 text-primary"></i>${isGov ? T.editGov : T.editSite}`;
+  document.getElementById('editLoader').classList.remove('d-none');
+  document.getElementById('editContent').classList.add('d-none');
+  document.getElementById('editItemId').value = pk;
+  clearFormErrors(document.getElementById('editForm'));
+  editModal.show();
+
+  const url = isGov ? govDetailUrl(pk) : siteDetailUrl(pk);
+  ajaxGet(url)
+    .then(data => {
+      if (!data.success) { showToast(data.message, 'danger'); editModal.hide(); return; }
+      const item = data.item;
+      showEditFields(type);
+      if (isGov) {
+        document.getElementById('govEditFields').querySelector('[name=name]').value = item.name;
+      } else {
+        document.getElementById('siteEditFields').querySelector('[name=site_name]').value = item.name;
+        setSelect2Value($('#siteEditFields [name=governorate]'), item.governorate_id, item.governorate_name);
+      }
+      document.getElementById('editLoader').classList.add('d-none');
+      document.getElementById('editContent').classList.remove('d-none');
+    })
+    .catch(() => { showToast('{% trans "Failed to load item." %}', 'danger'); editModal.hide(); });
+}
+
+document.getElementById('editForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const type  = editTarget.type;
+  const isGov = type === 'governorate';
+  const pk    = document.getElementById('editItemId').value;
+  clearFormErrors(this);
+  const btn = document.getElementById('editSubmitBtn');
+  setButtonLoading(btn, true);
+  const fd = new FormData();
+  fd.set('csrfmiddlewaretoken', this.querySelector('[name=csrfmiddlewaretoken]').value);
+  if (isGov) {
+    fd.set('name', document.getElementById('govEditFields').querySelector('[name=name]').value);
+  } else {
+    fd.set('name', document.getElementById('siteEditFields').querySelector('[name=site_name]').value);
+    fd.set('governorate', document.getElementById('siteEditFields').querySelector('[name=governorate]').value);
+  }
+  const url = isGov ? govEditUrl(pk) : siteEditUrl(pk);
+  ajaxPost(url, fd)
+    .then(data => {
+      if (data.success) {
+        editModal.hide();
+        showToast(data.message, 'success');
+        isGov ? loadGovernorates() : loadSites();
+      } else {
+        const errors = {};
+        Object.entries(data.errors || {}).forEach(([k, v]) => {
+          errors[isGov ? k : (k === 'name' ? 'site_name' : k)] = v;
+        });
+        showFormErrors(this, errors);
+        if (data.message) showToast(data.message, 'danger');
+      }
+    })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+/* ── DELETE ── */
+function openDeleteModal(type, pk, name) {
+  const isGov = type === 'governorate';
+  document.getElementById('deleteModalTitle').textContent = isGov ? T.deleteGov : T.deleteSite;
+  document.getElementById('deleteItemName').textContent   = name;
+  deleteTarget.url    = isGov ? govDeleteUrl(pk) : siteDeleteUrl(pk);
+  deleteTarget.reload = isGov ? loadGovernorates : loadSites;
+  deleteModal.show();
+}
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+  if (!deleteTarget.url) return;
+  const btn = this;
+  setButtonLoading(btn, true);
+  ajaxPost(deleteTarget.url, new FormData())
+    .then(data => {
+      if (data.success) { deleteModal.hide(); showToast(data.message, 'success'); deleteTarget.reload(); }
+      else { showToast(data.message, 'danger'); }
+    })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => { setButtonLoading(btn, false); deleteTarget.url = null; });
+});
+
+/* ── Init ── */
+document.addEventListener('DOMContentLoaded', () => {
+  // Filter bar
+  initSelect2($('#govFilter'), 'governorates', null, '{% trans "All Governorates" %}');
+  $('#govFilter').on('change', loadSites);
+
+  // Create modal — site governorate select
+  initSelect2($('#siteCreateFields [name=governorate]'), 'governorates', null, '— {% trans "Select" %} —');
+
+  // Edit modal — site governorate select
+  initSelect2($('#siteEditFields [name=governorate]'), 'governorates', null, '— {% trans "Select" %} —');
+
+  // Pre-set disabled states
+  showCreateFields('governorate');
+  showEditFields('governorate');
+
+  loadGovernorates();
+  loadSites();
+});
+</script>
+{% endblock %}

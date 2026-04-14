@@ -1,0 +1,717 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Users" %} — {% trans "IT Asset Management" %}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">{% trans "Users" %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div>
+      <h4 class="page-title">{% trans "Users" %}</h4>
+      <p class="page-subtitle">{% trans "Manage system users and access roles." %}</p>
+    </div>
+    {% if rbac.users_create %}
+    <div>
+      <button class="btn btn-primary d-flex align-items-center gap-2" onclick="openCreateModal()">
+        <i class="bi bi-plus-lg"></i>
+        <span>{% trans "Add User" %}</span>
+      </button>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Filter bar -->
+  <div class="card card-app mb-3">
+    <div class="card-body py-3">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-5">
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" id="searchInput"
+                   placeholder="{% trans 'Search by name or email…' %}"
+                   oninput="debounceLoad()">
+          </div>
+        </div>
+        <div class="col-md-3">
+          <select class="form-select" id="roleFilter" onchange="loadUsers()">
+            <option value="">{% trans "All Roles" %}</option>
+            {% for value, label in role_choices %}
+            <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <select class="form-select" id="statusFilter" onchange="loadUsers()">
+            <option value="">{% trans "All Status" %}</option>
+            <option value="active">{% trans "Active" %}</option>
+            <option value="inactive">{% trans "Inactive" %}</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button class="btn btn-outline-secondary w-100" onclick="resetFilters()">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Reset" %}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Users table card -->
+  <div class="card card-app">
+    <div class="card-body p-0">
+
+      <!-- Loading indicator -->
+      <div id="tableLoader" class="text-center py-5 d-none">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">{% trans "Loading…" %}</span>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div id="tableWrapper" class="table-responsive">
+        <table class="table table-hover app-table mb-0">
+          <thead>
+            <tr>
+              <th style="width:50px">#</th>
+              <th>{% trans "User" %}</th>
+              <th>{% trans "Role" %}</th>
+              <th>{% trans "Site" %}</th>
+              <th>{% trans "Status" %}</th>
+              <th>{% trans "Created" %}</th>
+              <th class="text-end" style="width:130px">{% trans "Actions" %}</th>
+            </tr>
+          </thead>
+          <tbody id="usersTableBody">
+            <!-- filled by JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Empty state -->
+      <div id="emptyState" class="text-center py-5 d-none">
+        <i class="bi bi-people display-6 text-muted"></i>
+        <p class="mt-3 text-muted">{% trans "No users found." %}</p>
+      </div>
+
+      <!-- Table footer / count -->
+      <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
+        <span class="text-muted small" id="recordCount"></span>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /page-container -->
+
+
+<!-- ===== CREATE USER MODAL ===== -->
+<div class="modal fade" id="createUserModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-person-plus me-2 text-primary"></i>{% trans "Add New User" %}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="createUserForm" novalidate>
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">{% trans "First Name" %} <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="first_name" required>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Last Name" %} <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="last_name" required>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Email Address" %} <span class="text-danger">*</span></label>
+              <input type="email" class="form-control" name="email" required>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Role" %} <span class="text-danger">*</span></label>
+              <select class="form-select" name="role" required>
+                <option value="">— {% trans "Select role" %} —</option>
+                {% for value, label in role_choices %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Site" %}</label>
+              <select class="form-select" name="site">
+                <option value="">— {% trans "No site" %} —</option>
+                {% for site in sites %}
+                <option value="{{ site.pk }}">{{ site.name }}</option>
+                {% endfor %}
+              </select>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6 d-flex align-items-end">
+              <div class="form-check form-switch mb-1">
+                <input class="form-check-input" type="checkbox" name="is_active" id="createIsActive" checked>
+                <label class="form-check-label fw-medium" for="createIsActive">
+                  {% trans "Active" %}
+                </label>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Password" %} <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <input type="password" class="form-control" name="password" required minlength="8"
+                       autocomplete="new-password">
+                <button class="btn btn-outline-secondary" type="button"
+                        onclick="togglePasswordField(this)">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+              <div class="invalid-feedback d-block" id="createPasswordError"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Confirm Password" %} <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <input type="password" class="form-control" name="confirm_password" required
+                       autocomplete="new-password">
+                <button class="btn btn-outline-secondary" type="button"
+                        onclick="togglePasswordField(this)">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+              <div class="invalid-feedback d-block" id="createConfirmPasswordError"></div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            {% trans "Cancel" %}
+          </button>
+          <button type="submit" class="btn btn-primary" id="createSubmitBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Create User" %}</span>
+            <span class="btn-loading d-none">
+              <span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}
+            </span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== EDIT USER MODAL ===== -->
+<div class="modal fade" id="editUserModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-pencil me-2 text-primary"></i>{% trans "Edit User" %}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="editUserForm" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="user_id" id="editUserId">
+        <div class="modal-body">
+          <div id="editModalLoader" class="text-center py-4">
+            <div class="spinner-border text-primary"></div>
+          </div>
+          <div id="editModalContent" class="d-none">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">{% trans "First Name" %} <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="first_name" required>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{% trans "Last Name" %} <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="last_name" required>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{% trans "Email Address" %} <span class="text-danger">*</span></label>
+                <input type="email" class="form-control" name="email" required>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{% trans "Role" %} <span class="text-danger">*</span></label>
+                <select class="form-select" name="role" required>
+                  <option value="">— {% trans "Select role" %} —</option>
+                  {% for value, label in role_choices %}
+                  <option value="{{ value }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{% trans "Site" %}</label>
+                <select class="form-select" name="site">
+                  <option value="">— {% trans "No site" %} —</option>
+                  {% for site in sites %}
+                  <option value="{{ site.pk }}">{{ site.name }}</option>
+                  {% endfor %}
+                </select>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6 d-flex align-items-end">
+                <div class="form-check form-switch mb-1">
+                  <input class="form-check-input" type="checkbox" name="is_active" id="editIsActive">
+                  <label class="form-check-label fw-medium" for="editIsActive">
+                    {% trans "Active" %}
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            {% trans "Cancel" %}
+          </button>
+          <button type="submit" class="btn btn-primary" id="editSubmitBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Save Changes" %}</span>
+            <span class="btn-loading d-none">
+              <span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}
+            </span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== DELETE USER MODAL ===== -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center pt-0 pb-4">
+        <div class="delete-icon-wrapper mb-3">
+          <i class="bi bi-trash3 text-danger"></i>
+        </div>
+        <h5 class="fw-semibold">{% trans "Delete User" %}</h5>
+        <p class="text-muted">
+          {% trans "Are you sure you want to delete" %}
+          <strong id="deleteUserName"></strong>?<br>
+          <small>{% trans "This action cannot be undone." %}</small>
+        </p>
+      </div>
+      <div class="modal-footer justify-content-center border-0 pt-0">
+        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
+          {% trans "Cancel" %}
+        </button>
+        <button type="button" class="btn btn-danger px-4" id="confirmDeleteBtn">
+          <span class="btn-text"><i class="bi bi-trash3 me-1"></i>{% trans "Delete" %}</span>
+          <span class="btn-loading d-none">
+            <span class="spinner-border spinner-border-sm me-1"></span>{% trans "Deleting…" %}
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== RESET PASSWORD MODAL ===== -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-key me-2 text-warning"></i>{% trans "Reset Password" %}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="resetPasswordForm" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="user_id" id="resetUserId">
+        <div class="modal-body">
+          <p class="text-muted mb-3">
+            {% trans "Set a new password for" %} <strong id="resetUserName"></strong>.
+          </p>
+          <div class="mb-3">
+            <label class="form-label">{% trans "New Password" %} <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <input type="password" class="form-control" name="new_password" required minlength="8"
+                     autocomplete="new-password">
+              <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordField(this)">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+            <div class="invalid-feedback d-block" id="resetNewPasswordError"></div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{% trans "Confirm New Password" %} <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <input type="password" class="form-control" name="confirm_password" required
+                     autocomplete="new-password">
+              <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordField(this)">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+            <div class="invalid-feedback d-block" id="resetConfirmPasswordError"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            {% trans "Cancel" %}
+          </button>
+          <button type="submit" class="btn btn-warning" id="resetSubmitBtn">
+            <span class="btn-text"><i class="bi bi-key me-1"></i>{% trans "Reset Password" %}</span>
+            <span class="btn-loading d-none">
+              <span class="spinner-border spinner-border-sm me-1"></span>{% trans "Resetting…" %}
+            </span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+/* ── Permissions exposed to JS ── */
+const CAN_EDIT           = {{ rbac.users_edit|yesno:"true,false" }};
+const CAN_DELETE         = {{ rbac.users_delete|yesno:"true,false" }};
+const CAN_ACTIVATE       = {{ rbac.users_activate|yesno:"true,false" }};
+const CAN_RESET_PASSWORD = {{ rbac.users_reset_password|yesno:"true,false" }};
+
+/* ── URL helpers ── */
+const URL_USERS_DATA = '{% url "users-data" %}';
+const URL_USER_CREATE = '{% url "user-create" %}';
+const userDetailUrl     = id => `/accounts/users/${id}/`;
+const userEditUrl        = id => `/accounts/users/${id}/edit/`;
+const userDeleteUrl      = id => `/accounts/users/${id}/delete/`;
+const userToggleUrl      = id => `/accounts/users/${id}/toggle/`;
+const userResetPassUrl   = id => `/accounts/users/${id}/reset-password/`;
+
+/* ── Translations for JS ── */
+const T = {
+  noUsers:   '{% trans "No users found." %}',
+  records:   '{% trans "records" %}',
+  active:    '{% trans "Active" %}',
+  inactive:  '{% trans "Inactive" %}',
+};
+
+/* ── State ── */
+let deleteTargetId = null;
+let debounceTimer  = null;
+
+/* ── Bootstrap modal instances ── */
+const createModal        = new bootstrap.Modal('#createUserModal');
+const editModal          = new bootstrap.Modal('#editUserModal');
+const deleteModal        = new bootstrap.Modal('#deleteUserModal');
+const resetPasswordModal = new bootstrap.Modal('#resetPasswordModal');
+
+/* ================================================================
+   LOAD USERS
+================================================================ */
+function loadUsers() {
+  const search = document.getElementById('searchInput').value.trim();
+  const role   = document.getElementById('roleFilter').value;
+  const status = document.getElementById('statusFilter').value;
+
+  const params = new URLSearchParams();
+  if (search) params.set('search', search);
+  if (role)   params.set('role', role);
+  if (status) params.set('status', status);
+
+  showTableLoader(true);
+
+  ajaxGet(`${URL_USERS_DATA}?${params}`)
+    .then(data => {
+      renderUsersTable(data.users);
+      document.getElementById('recordCount').textContent =
+        `${data.total} ${T.records}`;
+    })
+    .catch(() => showToast('{% trans "Failed to load users." %}', 'danger'))
+    .finally(() => showTableLoader(false));
+}
+
+function debounceLoad() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(loadUsers, 400);
+}
+
+function resetFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('roleFilter').value  = '';
+  document.getElementById('statusFilter').value = '';
+  loadUsers();
+}
+
+function showTableLoader(show) {
+  document.getElementById('tableLoader').classList.toggle('d-none', !show);
+  document.getElementById('tableWrapper').classList.toggle('d-none', show);
+}
+
+/* ================================================================
+   RENDER TABLE
+================================================================ */
+function renderUsersTable(users) {
+  const tbody = document.getElementById('usersTableBody');
+  const empty = document.getElementById('emptyState');
+
+  if (!users.length) {
+    tbody.innerHTML = '';
+    empty.classList.remove('d-none');
+    document.getElementById('tableWrapper').classList.add('d-none');
+    return;
+  }
+
+  empty.classList.add('d-none');
+  document.getElementById('tableWrapper').classList.remove('d-none');
+
+  tbody.innerHTML = users.map((u, i) => `
+    <tr>
+      <td class="text-muted small">${i + 1}</td>
+      <td>
+        <div class="d-flex align-items-center gap-2">
+          <div class="user-avatar user-avatar-sm user-avatar-table">
+            ${u.first_name.charAt(0)}${u.last_name.charAt(0)}
+          </div>
+          <div>
+            <div class="fw-medium">${escHtml(u.full_name)}</div>
+            <div class="text-muted small">${escHtml(u.email)}</div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <span class="badge bg-${u.role_color} rounded-pill">${escHtml(u.role_display)}</span>
+      </td>
+      <td>
+        ${u.site_name
+          ? `<span class="d-flex align-items-center gap-1"><i class="bi bi-geo-alt text-muted small"></i>${escHtml(u.site_name)}</span>`
+          : `<span class="text-muted small">—</span>`}
+      </td>
+      <td>
+        ${CAN_ACTIVATE
+          ? `<div class="form-check form-switch mb-0">
+               <input class="form-check-input" type="checkbox" role="switch"
+                      ${u.is_active ? 'checked' : ''}
+                      onchange="toggleUserStatus(${u.id}, this)"
+                      title="${u.is_active ? T.active : T.inactive}">
+             </div>`
+          : `<span class="badge ${u.is_active ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'} rounded-pill">
+               ${u.is_active ? T.active : T.inactive}
+             </span>`}
+      </td>
+      <td class="text-muted small">${u.created_date}</td>
+      <td class="text-end">
+        <div class="d-flex gap-1 justify-content-end">
+          ${CAN_EDIT
+            ? `<button class="btn btn-sm btn-icon btn-outline-primary" onclick="openEditModal(${u.id})"
+                       title="{% trans 'Edit' %}">
+                 <i class="bi bi-pencil"></i>
+               </button>`
+            : ''}
+          ${CAN_RESET_PASSWORD
+            ? `<button class="btn btn-sm btn-icon btn-outline-warning" onclick="openResetPasswordModal(${u.id}, '${escHtml(u.full_name)}')"
+                       title="{% trans 'Reset Password' %}">
+                 <i class="bi bi-key"></i>
+               </button>`
+            : ''}
+          ${CAN_DELETE
+            ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDeleteModal(${u.id}, '${escHtml(u.full_name)}')"
+                       title="{% trans 'Delete' %}">
+                 <i class="bi bi-trash3"></i>
+               </button>`
+            : ''}
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+/* ================================================================
+   CREATE USER
+================================================================ */
+function openCreateModal() {
+  const form = document.getElementById('createUserForm');
+  form.reset();
+  clearFormErrors(form);
+  document.getElementById('createIsActive').checked = true;
+  createModal.show();
+}
+
+document.getElementById('createUserForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const btn  = document.getElementById('createSubmitBtn');
+  const form = this;
+  clearFormErrors(form);
+  setButtonLoading(btn, true);
+
+  ajaxPost(URL_USER_CREATE, new FormData(form))
+    .then(data => {
+      if (data.success) {
+        createModal.hide();
+        showToast(data.message, 'success');
+        loadUsers();
+      } else {
+        showFormErrors(form, data.errors || {});
+        if (data.message) showToast(data.message, 'danger');
+      }
+    })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+/* ================================================================
+   EDIT USER
+================================================================ */
+function openEditModal(userId) {
+  const loader  = document.getElementById('editModalLoader');
+  const content = document.getElementById('editModalContent');
+  const form    = document.getElementById('editUserForm');
+
+  clearFormErrors(form);
+  loader.classList.remove('d-none');
+  content.classList.add('d-none');
+  editModal.show();
+
+  ajaxGet(userDetailUrl(userId))
+    .then(data => {
+      if (!data.success) { showToast(data.message, 'danger'); editModal.hide(); return; }
+      const u = data.user;
+      form.querySelector('[name=user_id]').value    = u.id;
+      form.querySelector('[name=first_name]').value = u.first_name;
+      form.querySelector('[name=last_name]').value  = u.last_name;
+      form.querySelector('[name=email]').value      = u.email;
+      form.querySelector('[name=role]').value       = u.role;
+      form.querySelector('[name=site]').value       = u.site_id || '';
+      form.querySelector('[name=is_active]').checked = u.is_active;
+      loader.classList.add('d-none');
+      content.classList.remove('d-none');
+    })
+    .catch(() => { showToast('{% trans "Failed to load user." %}', 'danger'); editModal.hide(); });
+}
+
+document.getElementById('editUserForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const btn    = document.getElementById('editSubmitBtn');
+  const form   = this;
+  const userId = form.querySelector('[name=user_id]').value;
+  clearFormErrors(form);
+  setButtonLoading(btn, true);
+
+  ajaxPost(userEditUrl(userId), new FormData(form))
+    .then(data => {
+      if (data.success) {
+        editModal.hide();
+        showToast(data.message, 'success');
+        loadUsers();
+      } else {
+        showFormErrors(form, data.errors || {});
+        if (data.message) showToast(data.message, 'danger');
+      }
+    })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+/* ================================================================
+   TOGGLE STATUS
+================================================================ */
+function toggleUserStatus(userId, checkbox) {
+  const originalState = !checkbox.checked; // before toggle
+  checkbox.disabled = true;
+
+  ajaxPost(userToggleUrl(userId), new FormData())
+    .then(data => {
+      if (data.success) {
+        showToast(data.message, 'success');
+        checkbox.checked = data.is_active;
+      } else {
+        checkbox.checked = originalState;
+        showToast(data.message, 'danger');
+      }
+    })
+    .catch(() => { checkbox.checked = originalState; showToast('{% trans "An error occurred." %}', 'danger'); })
+    .finally(() => { checkbox.disabled = false; });
+}
+
+/* ================================================================
+   DELETE USER
+================================================================ */
+function openDeleteModal(userId, userName) {
+  deleteTargetId = userId;
+  document.getElementById('deleteUserName').textContent = userName;
+  deleteModal.show();
+}
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+  if (!deleteTargetId) return;
+  const btn = this;
+  setButtonLoading(btn, true);
+
+  ajaxPost(userDeleteUrl(deleteTargetId), new FormData())
+    .then(data => {
+      if (data.success) {
+        deleteModal.hide();
+        showToast(data.message, 'success');
+        loadUsers();
+      } else {
+        showToast(data.message, 'danger');
+      }
+    })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => { setButtonLoading(btn, false); deleteTargetId = null; });
+});
+
+/* ================================================================
+   RESET PASSWORD
+================================================================ */
+function openResetPasswordModal(userId, userName) {
+  const form = document.getElementById('resetPasswordForm');
+  form.reset();
+  clearFormErrors(form);
+  document.getElementById('resetUserId').value      = userId;
+  document.getElementById('resetUserName').textContent = userName;
+  resetPasswordModal.show();
+}
+
+document.getElementById('resetPasswordForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const btn    = document.getElementById('resetSubmitBtn');
+  const form   = this;
+  const userId = document.getElementById('resetUserId').value;
+  clearFormErrors(form);
+  setButtonLoading(btn, true);
+
+  ajaxPost(userResetPassUrl(userId), new FormData(form))
+    .then(data => {
+      if (data.success) {
+        resetPasswordModal.hide();
+        showToast(data.message, 'success');
+      } else {
+        showFormErrors(form, data.errors || {});
+        if (data.message) showToast(data.message, 'danger');
+      }
+    })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+/* ================================================================
+   INIT
+================================================================ */
+document.addEventListener('DOMContentLoaded', loadUsers);
+</script>
+{% endblock %}

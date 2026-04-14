@@ -1,0 +1,422 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Accessories" %} — {% trans "IT Asset Management" %}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">{% trans "Accessories" %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+  <div class="page-header">
+    <div>
+      <h4 class="page-title">{% trans "Accessories" %}</h4>
+      <p class="page-subtitle">{% trans "Manage all accessories and peripherals." %}</p>
+    </div>
+    {% if rbac.accessories_create %}
+    <div>
+      <button class="btn btn-primary d-flex align-items-center gap-2" onclick="openCreateModal()">
+        <i class="bi bi-plus-lg"></i><span>{% trans "Add Accessory" %}</span>
+      </button>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Filter bar -->
+  <div class="card card-app mb-3">
+    <div class="card-body py-3">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-4">
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" id="searchInput"
+                   placeholder="{% trans 'Search by serial or type…' %}"
+                   oninput="debounceLoad()">
+          </div>
+        </div>
+        <div class="col-md-2">
+          <select class="form-select" id="typeFilter">
+            <option value="">{% trans "All Types" %}</option>
+          </select>
+        </div>
+        {% if rbac.sees_all_sites %}
+        <div class="col-md-2">
+          <select class="form-select" id="siteFilter">
+            <option value="">{% trans "All Sites" %}</option>
+          </select>
+        </div>
+        {% endif %}
+        <div class="col-md-2">
+          <select class="form-select" id="flagFilter">
+            <option value="">{% trans "All Flags" %}</option>
+          </select>
+        </div>
+        <div class="col-md-auto">
+          <button class="btn btn-outline-secondary" onclick="resetFilters()">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Reset" %}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="card card-app">
+    <div class="card-body p-0">
+      <div id="tableLoader" class="text-center py-5 d-none">
+        <div class="spinner-border text-primary" role="status"></div>
+      </div>
+      <div id="tableWrapper" class="table-responsive">
+        <table class="table table-hover app-table mb-0">
+          <thead>
+            <tr>
+              <th style="width:50px">#</th>
+              <th>{% trans "Type" %}</th>
+              <th>{% trans "Serial Number" %}</th>
+              <th>{% trans "Brand" %}</th>
+              <th>{% trans "Linked Device" %}</th>
+              <th>{% trans "Site" %}</th>
+              <th>{% trans "Flag" %}</th>
+              <th>{% trans "Created" %}</th>
+              <th class="text-end" style="width:120px">{% trans "Actions" %}</th>
+            </tr>
+          </thead>
+          <tbody id="accessoriesTableBody"></tbody>
+        </table>
+      </div>
+      <div id="emptyState" class="text-center py-5 d-none">
+        <i class="bi bi-plug display-6 text-muted"></i>
+        <p class="mt-3 text-muted">{% trans "No accessories found." %}</p>
+      </div>
+      <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
+        <span class="text-muted small" id="recordCount"></span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ===== CREATE MODAL ===== -->
+<div class="modal fade" id="createModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-plug me-2 text-primary"></i>{% trans "Add Accessory" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="createForm" novalidate>
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Type" %} <span class="text-danger">*</span></label>
+              <select class="form-select" name="accessory_type" required><option value=""></option></select>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Serial Number" %}</label>
+              <input type="text" class="form-control" name="serial_number">
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Brand" %}</label>
+              <select class="form-select" name="brand"><option value=""></option></select>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Linked Device" %}</label>
+              <select class="form-select" name="device"><option value=""></option></select>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Site" %} <span class="text-danger">*</span></label>
+              <select class="form-select" name="site" required><option value=""></option></select>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Flag" %} <span class="text-danger">*</span></label>
+              <select class="form-select" name="flag" required><option value=""></option></select>
+              <div class="invalid-feedback"></div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-primary" id="createSubmitBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Create" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== EDIT MODAL ===== -->
+<div class="modal fade" id="editModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil me-2 text-primary"></i>{% trans "Edit Accessory" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="editForm" novalidate>
+        {% csrf_token %}
+        <input type="hidden" id="editAccessoryId">
+        <div class="modal-body">
+          <div id="editLoader" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+          <div id="editContent" class="d-none">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">{% trans "Type" %} <span class="text-danger">*</span></label>
+                <select class="form-select" name="accessory_type" required><option value=""></option></select>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{% trans "Serial Number" %}</label>
+                <input type="text" class="form-control" name="serial_number">
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{% trans "Brand" %}</label>
+                <select class="form-select" name="brand"><option value=""></option></select>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{% trans "Linked Device" %}</label>
+                <select class="form-select" name="device"><option value=""></option></select>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{% trans "Site" %} <span class="text-danger">*</span></label>
+                <select class="form-select" name="site" required><option value=""></option></select>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{% trans "Flag" %} <span class="text-danger">*</span></label>
+                <select class="form-select" name="flag" required><option value=""></option></select>
+                <div class="invalid-feedback"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-primary" id="editSubmitBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Save Changes" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== DELETE MODAL ===== -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center pt-0 pb-4">
+        <div class="delete-icon-wrapper mb-3"><i class="bi bi-trash3 text-danger"></i></div>
+        <h5 class="fw-semibold">{% trans "Delete Accessory" %}</h5>
+        <p class="text-muted"><strong id="deleteAccessoryLabel"></strong><br>
+          <small>{% trans "This action cannot be undone." %}</small></p>
+      </div>
+      <div class="modal-footer justify-content-center border-0 pt-0">
+        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+        <button type="button" class="btn btn-danger px-4" id="confirmDeleteBtn">
+          <span class="btn-text"><i class="bi bi-trash3 me-1"></i>{% trans "Delete" %}</span>
+          <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Deleting…" %}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+const CAN_EDIT   = {{ rbac.accessories_edit|yesno:"true,false" }};
+const CAN_DELETE = {{ rbac.accessories_delete|yesno:"true,false" }};
+
+const URL_DATA   = '{% url "accessories-data" %}';
+const URL_CREATE = '{% url "accessory-create" %}';
+const detailUrl  = pk => `/inventory/accessories/${pk}/`;
+const editUrl    = pk => `/inventory/accessories/${pk}/edit/`;
+const deleteUrl  = pk => `/inventory/accessories/${pk}/delete/`;
+
+const T = { records: '{% trans "records" %}' };
+
+let deleteTargetId = null;
+let debounceTimer  = null;
+
+const createModal = new bootstrap.Modal('#createModal');
+const editModal   = new bootstrap.Modal('#editModal');
+const deleteModal = new bootstrap.Modal('#deleteModal');
+
+function loadAccessories() {
+  const search = document.getElementById('searchInput').value.trim();
+  const type   = document.getElementById('typeFilter').value;
+  const siteEl = document.getElementById('siteFilter');
+  const site   = siteEl ? siteEl.value : '';
+  const flag   = document.getElementById('flagFilter').value;
+  const params = new URLSearchParams();
+  if (search) params.set('search', search);
+  if (type)   params.set('type', type);
+  if (site)   params.set('site', site);
+  if (flag)   params.set('flag', flag);
+  document.getElementById('tableLoader').classList.remove('d-none');
+  document.getElementById('tableWrapper').classList.add('d-none');
+  ajaxGet(`${URL_DATA}?${params}`)
+    .then(data => {
+      renderTable(data.items);
+      document.getElementById('recordCount').textContent = `${data.total} ${T.records}`;
+    })
+    .catch(() => showToast('{% trans "Failed to load accessories." %}', 'danger'))
+    .finally(() => { document.getElementById('tableLoader').classList.add('d-none'); document.getElementById('tableWrapper').classList.remove('d-none'); });
+}
+
+function debounceLoad() { clearTimeout(debounceTimer); debounceTimer = setTimeout(loadAccessories, 400); }
+
+function resetFilters() {
+  document.getElementById('searchInput').value = '';
+  $('#typeFilter').val(null).trigger('change');
+  $('#siteFilter').val(null).trigger('change');
+  $('#flagFilter').val(null).trigger('change');
+  loadAccessories();
+}
+
+function renderTable(items) {
+  const tbody = document.getElementById('accessoriesTableBody');
+  const empty = document.getElementById('emptyState');
+  if (!items.length) {
+    tbody.innerHTML = '';
+    empty.classList.remove('d-none');
+    document.getElementById('tableWrapper').classList.add('d-none');
+    return;
+  }
+  empty.classList.add('d-none');
+  document.getElementById('tableWrapper').classList.remove('d-none');
+  tbody.innerHTML = items.map((a, i) => `
+    <tr>
+      <td class="text-muted small">${i + 1}</td>
+      <td class="fw-medium">${escHtml(a.type_name)}</td>
+      <td class="font-monospace small">${a.serial_number ? escHtml(a.serial_number) : '<span class="text-muted">—</span>'}</td>
+      <td>${a.brand_name ? escHtml(a.brand_name) : '<span class="text-muted">—</span>'}</td>
+      <td>${a.device_serial ? `<span class="font-monospace small">${escHtml(a.device_serial)}</span>` : '<span class="text-muted">—</span>'}</td>
+      <td><span class="d-flex align-items-center gap-1"><i class="bi bi-geo-alt text-muted small"></i>${escHtml(a.site_name)}</span></td>
+      <td><span class="badge bg-secondary-subtle text-secondary rounded-pill">${escHtml(a.flag_name)}</span></td>
+      <td class="text-muted small">${a.created_date}</td>
+      <td class="text-end">
+        <div class="d-flex gap-1 justify-content-end">
+          ${CAN_EDIT ? `<button class="btn btn-sm btn-icon btn-outline-primary" onclick="openEditModal(${a.id})" title="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></button>` : ''}
+          ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDeleteModal(${a.id},'${escHtml(a.type_name)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openCreateModal() {
+  document.getElementById('createForm').reset();
+  resetFormSelects(document.getElementById('createForm'));
+  clearFormErrors(document.getElementById('createForm'));
+  createModal.show();
+}
+document.getElementById('createForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('createSubmitBtn');
+  clearFormErrors(this); setButtonLoading(btn, true);
+  ajaxPost(URL_CREATE, new FormData(this))
+    .then(data => { if (data.success) { createModal.hide(); showToast(data.message, 'success'); loadAccessories(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+function openEditModal(pk) {
+  document.getElementById('editLoader').classList.remove('d-none');
+  document.getElementById('editContent').classList.add('d-none');
+  document.getElementById('editAccessoryId').value = pk;
+  clearFormErrors(document.getElementById('editForm'));
+  editModal.show();
+  ajaxGet(detailUrl(pk))
+    .then(data => {
+      if (!data.success) { showToast(data.message, 'danger'); editModal.hide(); return; }
+      const a = data.item;
+      document.getElementById('editForm').querySelector('[name=serial_number]').value = a.serial_number || '';
+      setSelect2Value($('#editForm [name=accessory_type]'), a.accessory_type_id, a.type_name);
+      if (a.brand_id)  setSelect2Value($('#editForm [name=brand]'),  a.brand_id,  a.brand_name);
+      else             $('#editForm [name=brand]').val(null).trigger('change');
+      if (a.device_id) setSelect2Value($('#editForm [name=device]'), a.device_id, a.device_serial);
+      else             $('#editForm [name=device]').val(null).trigger('change');
+      setSelect2Value($('#editForm [name=site]'), a.site_id, a.site_name);
+      setSelect2Value($('#editForm [name=flag]'), a.flag_id, a.flag_name);
+      document.getElementById('editLoader').classList.add('d-none');
+      document.getElementById('editContent').classList.remove('d-none');
+    })
+    .catch(() => { showToast('{% trans "Failed to load accessory." %}', 'danger'); editModal.hide(); });
+}
+document.getElementById('editForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const pk  = document.getElementById('editAccessoryId').value;
+  const btn = document.getElementById('editSubmitBtn');
+  clearFormErrors(this); setButtonLoading(btn, true);
+  ajaxPost(editUrl(pk), new FormData(this))
+    .then(data => { if (data.success) { editModal.hide(); showToast(data.message, 'success'); loadAccessories(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+function openDeleteModal(pk, label) {
+  deleteTargetId = pk;
+  document.getElementById('deleteAccessoryLabel').textContent = label;
+  deleteModal.show();
+}
+document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+  if (!deleteTargetId) return;
+  const btn = this;
+  setButtonLoading(btn, true);
+  ajaxPost(deleteUrl(deleteTargetId), new FormData())
+    .then(data => { if (data.success) { deleteModal.hide(); showToast(data.message, 'success'); loadAccessories(); } else { showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => { setButtonLoading(btn, false); deleteTargetId = null; });
+});
+
+/* ── Init ── */
+document.addEventListener('DOMContentLoaded', () => {
+  const S = '— {% trans "Select" %} —';
+
+  // Filter bar
+  initSelect2($('#typeFilter'), 'accessory-types', null, '{% trans "All Types" %}');
+  initSelect2($('#siteFilter'), 'sites',           null, '{% trans "All Sites" %}');
+  initSelect2($('#flagFilter'), 'flags',           null, '{% trans "All Flags" %}');
+  $('#typeFilter, #siteFilter, #flagFilter').on('change', loadAccessories);
+
+  // Create modal
+  initSelect2($('#createForm [name=accessory_type]'), 'accessory-types', null, S);
+  initSelect2($('#createForm [name=brand]'),          'brands',          null, '—');
+  initSelect2($('#createForm [name=device]'),         'devices',         null, '—');
+  initSelect2($('#createForm [name=site]'),           'sites',           null, S);
+  initSelect2($('#createForm [name=flag]'),           'flags',           null, S);
+
+  // Edit modal
+  initSelect2($('#editForm [name=accessory_type]'), 'accessory-types', null, S);
+  initSelect2($('#editForm [name=brand]'),          'brands',          null, '—');
+  initSelect2($('#editForm [name=device]'),         'devices',         null, '—');
+  initSelect2($('#editForm [name=site]'),           'sites',           null, S);
+  initSelect2($('#editForm [name=flag]'),           'flags',           null, S);
+
+  loadAccessories();
+});
+</script>
+{% endblock %}

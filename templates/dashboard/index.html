@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% load i18n humanize %}
+
+{% block title %}{% trans "Dashboard" %} — {% trans "IT Asset Management" %}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">{% trans "Dashboard" %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div>
+      <h4 class="page-title">{% trans "Dashboard" %}</h4>
+      <p class="page-subtitle">
+        {% blocktrans with name=request.user.first_name %}Welcome back, {{ name }}{% endblocktrans %}
+      </p>
+    </div>
+  </div>
+
+  <!-- Stats row -->
+  <div class="row g-4 mb-4">
+
+    <!-- Total Users -->
+    <div class="col-xl-2 col-lg-4 col-md-6">
+      <div class="stat-card stat-card-blue">
+        <div class="stat-icon">
+          <i class="bi bi-people-fill"></i>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value">{{ stats.total_users|intcomma }}</div>
+          <div class="stat-label">{% trans "Total Users" %}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Users -->
+    <div class="col-xl-2 col-lg-4 col-md-6">
+      <div class="stat-card stat-card-green">
+        <div class="stat-icon">
+          <i class="bi bi-person-check-fill"></i>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value">{{ stats.active_users|intcomma }}</div>
+          <div class="stat-label">{% trans "Active Users" %}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Total Devices -->
+    <div class="col-xl-2 col-lg-4 col-md-6">
+      <div class="stat-card stat-card-indigo">
+        <div class="stat-icon">
+          <i class="bi bi-laptop-fill"></i>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value">{{ stats.total_devices|intcomma }}</div>
+          <div class="stat-label">{% trans "Total Devices" %}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assigned Devices -->
+    <div class="col-xl-2 col-lg-4 col-md-6">
+      <div class="stat-card stat-card-orange">
+        <div class="stat-icon">
+          <i class="bi bi-link-45deg"></i>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value">{{ stats.assigned_devices|intcomma }}</div>
+          <div class="stat-label">{% trans "Assigned Devices" %}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Open Maintenance -->
+    <div class="col-xl-2 col-lg-4 col-md-6">
+      <div class="stat-card stat-card-red">
+        <div class="stat-icon">
+          <i class="bi bi-tools"></i>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value">{{ stats.open_maintenance|intcomma }}</div>
+          <div class="stat-label">{% trans "Open Maintenance" %}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Total Employees -->
+    <div class="col-xl-2 col-lg-4 col-md-6">
+      <div class="stat-card stat-card-teal">
+        <div class="stat-icon">
+          <i class="bi bi-person-badge-fill"></i>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value">{{ stats.total_employees|intcomma }}</div>
+          <div class="stat-label">{% trans "Total Employees" %}</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /stats row -->
+
+  <!-- Quick links row -->
+  <div class="row g-4">
+
+    {% if rbac.users_view %}
+    <div class="col-lg-4 col-md-6">
+      <div class="quick-card">
+        <div class="quick-card-header">
+          <i class="bi bi-people text-primary"></i>
+          <h6 class="mb-0">{% trans "Users" %}</h6>
+        </div>
+        <p class="quick-card-text text-muted small">
+          {% trans "Manage system users and their roles." %}
+        </p>
+        <a href="{% url 'users-list' %}" class="btn btn-sm btn-primary">
+          {% trans "Go to Users" %} <i class="bi bi-arrow-end"></i>
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if rbac.devices_view %}
+    <div class="col-lg-4 col-md-6">
+      <div class="quick-card">
+        <div class="quick-card-header">
+          <i class="bi bi-laptop text-indigo"></i>
+          <h6 class="mb-0">{% trans "Devices" %}</h6>
+        </div>
+        <p class="quick-card-text text-muted small">
+          {% trans "Track and manage IT devices inventory." %}
+        </p>
+        <a href="#" class="btn btn-sm btn-outline-secondary disabled">
+          {% trans "Coming Soon" %}
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if rbac.maintenance_view %}
+    <div class="col-lg-4 col-md-6">
+      <div class="quick-card">
+        <div class="quick-card-header">
+          <i class="bi bi-tools text-warning"></i>
+          <h6 class="mb-0">{% trans "Maintenance" %}</h6>
+        </div>
+        <p class="quick-card-text text-muted small">
+          {% trans "Monitor open maintenance records." %}
+        </p>
+        <a href="#" class="btn btn-sm btn-outline-secondary disabled">
+          {% trans "Coming Soon" %}
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+</div><!-- /page-container -->
+{% endblock %}

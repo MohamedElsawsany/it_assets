@@ -1,0 +1,128 @@
+{% load i18n %}
+<aside class="sidebar" id="sidebar">
+
+  <!-- Brand -->
+  <div class="sidebar-brand">
+    <div class="sidebar-brand-icon">
+      <i class="bi bi-hdd-stack-fill"></i>
+    </div>
+    <div class="sidebar-brand-text">
+      <span class="sidebar-brand-title">{% trans "IT Assets" %}</span>
+      <span class="sidebar-brand-sub">{% trans "Management System" %}</span>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="sidebar-nav">
+    <ul class="sidebar-menu">
+
+      <li class="sidebar-item">
+        <a href="{% url 'dashboard' %}"
+           class="sidebar-link {% if '/dashboard' in request.path or request.path == '/' %}active{% endif %}">
+          <i class="bi bi-speedometer2 sidebar-icon"></i>
+          <span>{% trans "Dashboard" %}</span>
+        </a>
+      </li>
+
+      {% if rbac.users_view %}
+      <li class="sidebar-item">
+        <a href="{% url 'users-list' %}"
+           class="sidebar-link {% if '/accounts/users' in request.path %}active{% endif %}">
+          <i class="bi bi-people sidebar-icon"></i>
+          <span>{% trans "Users" %}</span>
+        </a>
+      </li>
+      {% endif %}
+
+      {% if rbac.devices_view %}
+      <li class="sidebar-item">
+        <a href="{% url 'devices-index' %}"
+           class="sidebar-link {% if '/inventory/devices' in request.path %}active{% endif %}">
+          <i class="bi bi-laptop sidebar-icon"></i>
+          <span>{% trans "Devices" %}</span>
+        </a>
+      </li>
+      {% endif %}
+
+      {% if rbac.accessories_view %}
+      <li class="sidebar-item">
+        <a href="{% url 'accessories-index' %}"
+           class="sidebar-link {% if '/inventory/accessories' in request.path %}active{% endif %}">
+          <i class="bi bi-plug sidebar-icon"></i>
+          <span>{% trans "Accessories" %}</span>
+        </a>
+      </li>
+      {% endif %}
+
+      {% if rbac.assignments_view %}
+      <li class="sidebar-item">
+        <a href="{% url 'assignments-index' %}"
+           class="sidebar-link {% if '/assignments' in request.path and '/transfers' not in request.path %}active{% endif %}">
+          <i class="bi bi-link-45deg sidebar-icon"></i>
+          <span>{% trans "Assignments" %}</span>
+        </a>
+      </li>
+      {% endif %}
+
+      {% if rbac.transfers_view %}
+      <li class="sidebar-item">
+        <a href="{% url 'transfers-index' %}"
+           class="sidebar-link {% if '/assignments/transfers' in request.path %}active{% endif %}">
+          <i class="bi bi-arrow-left-right sidebar-icon"></i>
+          <span>{% trans "Transfers" %}</span>
+        </a>
+      </li>
+      {% endif %}
+
+      {% if rbac.employees_view %}
+      <li class="sidebar-item">
+        <a href="{% url 'employees-index' %}"
+           class="sidebar-link {% if '/employees' in request.path %}active{% endif %}">
+          <i class="bi bi-person-badge sidebar-icon"></i>
+          <span>{% trans "Employees" %}</span>
+        </a>
+      </li>
+      {% endif %}
+
+      {% if rbac.locations_view %}
+      <li class="sidebar-item">
+        <a href="{% url 'locations-index' %}"
+           class="sidebar-link {% if '/locations' in request.path %}active{% endif %}">
+          <i class="bi bi-geo-alt sidebar-icon"></i>
+          <span>{% trans "Locations" %}</span>
+        </a>
+      </li>
+      {% endif %}
+
+      {% if rbac.lookups_view %}
+      <li class="sidebar-item">
+        <a href="{% url 'lookups-index' %}"
+           class="sidebar-link {% if '/inventory/lookups' in request.path %}active{% endif %}">
+          <i class="bi bi-list-ul sidebar-icon"></i>
+          <span>{% trans "Lookups" %}</span>
+        </a>
+      </li>
+      {% endif %}
+
+      {% if rbac.maintenance_view %}
+      <li class="sidebar-item">
+        <a href="{% url 'maintenance-index' %}"
+           class="sidebar-link {% if '/maintenance' in request.path %}active{% endif %}">
+          <i class="bi bi-tools sidebar-icon"></i>
+          <span>{% trans "Maintenance" %}</span>
+        </a>
+      </li>
+      {% endif %}
+
+    </ul>
+  </nav>
+
+  <!-- Sidebar footer -->
+  <div class="sidebar-footer">
+    <a href="{% url 'logout' %}" class="sidebar-link sidebar-logout">
+      <i class="bi bi-box-arrow-left sidebar-icon"></i>
+      <span>{% trans "Logout" %}</span>
+    </a>
+  </div>
+
+</aside>

@@ -14,6 +14,10 @@ Template usage
       <td>{{ record.cost }}</td>
   {% endif %}
 
+  {% if rbac.sees_all_sites %}
+      <select name="site">...</select>   {# branch selector shown only to global roles #}
+  {% endif %}
+
   <span class="badge bg-{{ rbac.role_color }}">{{ rbac.role_display }}</span>
 
 Register in settings.py:
@@ -22,7 +26,7 @@ Register in settings.py:
     ]
 """
 
-from .permissions import has_permission, Perms
+from .permissions import has_permission, sees_all_sites, Perms
 
 
 def user_permissions(request):
@@ -88,10 +92,10 @@ def user_permissions(request):
         'assignments_export': hp(Perms.ASSIGNMENTS_EXPORT),
 
         # ── Transfers ─────────────────────────────────────────────────────────
-        'transfers_view':   hp(Perms.TRANSFERS_VIEW),
-        'transfers_create': hp(Perms.TRANSFERS_CREATE),
+        'transfers_view':    hp(Perms.TRANSFERS_VIEW),
+        'transfers_create':  hp(Perms.TRANSFERS_CREATE),
         'transfers_approve': hp(Perms.TRANSFERS_APPROVE),
-        'transfers_delete': hp(Perms.TRANSFERS_DELETE),
+        'transfers_delete':  hp(Perms.TRANSFERS_DELETE),
 
         # ── Maintenance ───────────────────────────────────────────────────────
         'maintenance_view':      hp(Perms.MAINTENANCE_VIEW),
@@ -101,6 +105,11 @@ def user_permissions(request):
         'maintenance_close':     hp(Perms.MAINTENANCE_CLOSE),
         'maintenance_view_cost': hp(Perms.MAINTENANCE_VIEW_COST),
         'maintenance_export':    hp(Perms.MAINTENANCE_EXPORT),
+
+        # ── Site scope ────────────────────────────────────────────────────────
+        # True  → user can see all branches (show branch selector in UI)
+        # False → user is locked to their own branch only
+        'sees_all_sites': sees_all_sites(request.user),
     }
 
     # ── Role metadata ─────────────────────────────────────────────────────────

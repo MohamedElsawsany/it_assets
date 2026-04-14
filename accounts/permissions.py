@@ -2,10 +2,12 @@
 accounts/permissions.py
 ───────────────────────
 42 permissions across 8 roles covering every model and action in the system.
+Site-scoped access control via ROLE_SITE_SCOPE + get_site_filter().
 
 Quick reference
 ───────────────
   from accounts.permissions import has_permission, permission_required, Perms
+  from accounts.permissions import get_site_filter, sees_all_sites
 
   # guard a view
   @permission_required(Perms.DEVICES_CREATE)
@@ -15,8 +17,15 @@ Quick reference
   if has_permission(request.user, Perms.MAINTENANCE_VIEW_COST):
       ...
 
+  # site-scoped queryset — works on any model with a direct `site` FK
+  devices = Device.objects.filter(**get_site_filter(request.user))
+
+  # site-scoped queryset — model with indirect site (via related field)
+  assignments = DeviceAssignment.objects.filter(**get_site_filter(request.user, prefix='device__'))
+
   # templates — injected automatically by context_processors.py
   {% if rbac.devices_create %} ... {% endif %}
+  {% if rbac.sees_all_sites %} ... {% endif %}
 """
 
 from functools import wraps
@@ -37,9 +46,9 @@ class Perms:
     USERS_CREATE             = 'users.create'
     USERS_EDIT               = 'users.edit'
     USERS_DELETE             = 'users.delete'
-    USERS_ASSIGN_ROLE        = 'users.assign_role'         # change another user's role
-    USERS_RESET_PASSWORD     = 'users.reset_password'      # force-reset a user's password
-    USERS_ACTIVATE           = 'users.activate'            # activate / deactivate accounts
+    USERS_ASSIGN_ROLE        = 'users.assign_role'
+    USERS_RESET_PASSWORD     = 'users.reset_password'
+    USERS_ACTIVATE           = 'users.activate'
 
     # ── Locations — Governorates + Sites (4) ─────────────────────────────────
     LOCATIONS_VIEW           = 'locations.view'
@@ -52,10 +61,9 @@ class Perms:
     EMPLOYEES_CREATE         = 'employees.create'
     EMPLOYEES_EDIT           = 'employees.edit'
     EMPLOYEES_DELETE         = 'employees.delete'
-    EMPLOYEES_TRANSFER       = 'employees.transfer'        # move employee to another site/dept
+    EMPLOYEES_TRANSFER       = 'employees.transfer'
 
-    # ── Lookup tables — Brand, Category, Model, CPU, GPU, OS, Flag,
-    #                    AccessoryType  (4) ─────────────────────────────────────
+    # ── Lookup tables (4) ─────────────────────────────────────────────────────
     LOOKUPS_VIEW             = 'lookups.view'
     LOOKUPS_CREATE           = 'lookups.create'
     LOOKUPS_EDIT             = 'lookups.edit'
@@ -66,32 +74,32 @@ class Perms:
     DEVICES_CREATE           = 'devices.create'
     DEVICES_EDIT             = 'devices.edit'
     DEVICES_DELETE           = 'devices.delete'
-    DEVICES_VIEW_SPECS       = 'devices.view_specs'        # CPU/GPU/RAM/storage/OS fields
-    DEVICES_RETIRE           = 'devices.retire'            # set flag → Retired
-    DEVICES_CHANGE_FLAG      = 'devices.change_flag'       # set flag to any value
-    DEVICES_TOGGLE_MAINTENANCE = 'devices.toggle_maintenance'  # set/clear maintenance_mode
-    DEVICES_EXPORT           = 'devices.export'            # download CSV / PDF list
-    DEVICES_VIEW_HISTORY     = 'devices.view_history'      # DeliveredDeviceHistory
+    DEVICES_VIEW_SPECS       = 'devices.view_specs'
+    DEVICES_RETIRE           = 'devices.retire'
+    DEVICES_CHANGE_FLAG      = 'devices.change_flag'
+    DEVICES_TOGGLE_MAINTENANCE = 'devices.toggle_maintenance'
+    DEVICES_EXPORT           = 'devices.export'
+    DEVICES_VIEW_HISTORY     = 'devices.view_history'
 
     # ── Accessories (5) ───────────────────────────────────────────────────────
     ACCESSORIES_VIEW         = 'accessories.view'
     ACCESSORIES_CREATE       = 'accessories.create'
     ACCESSORIES_EDIT         = 'accessories.edit'
     ACCESSORIES_DELETE       = 'accessories.delete'
-    ACCESSORIES_LINK_DEVICE  = 'accessories.link_device'   # attach/detach from a device
+    ACCESSORIES_LINK_DEVICE  = 'accessories.link_device'
 
     # ── Assignments (6) ───────────────────────────────────────────────────────
     ASSIGNMENTS_VIEW         = 'assignments.view'
-    ASSIGNMENTS_CREATE       = 'assignments.create'        # assign device to employee
-    ASSIGNMENTS_EDIT         = 'assignments.edit'          # edit notes on an assignment
+    ASSIGNMENTS_CREATE       = 'assignments.create'
+    ASSIGNMENTS_EDIT         = 'assignments.edit'
     ASSIGNMENTS_DELETE       = 'assignments.delete'
-    ASSIGNMENTS_RETURN       = 'assignments.return'        # record device returned
-    ASSIGNMENTS_EXPORT       = 'assignments.export'        # download assignment report
+    ASSIGNMENTS_RETURN       = 'assignments.return'
+    ASSIGNMENTS_EXPORT       = 'assignments.export'
 
     # ── Transfers (4) ─────────────────────────────────────────────────────────
     TRANSFERS_VIEW           = 'transfers.view'
-    TRANSFERS_CREATE         = 'transfers.create'          # initiate a site transfer
-    TRANSFERS_APPROVE        = 'transfers.approve'         # approve a pending transfer
+    TRANSFERS_CREATE         = 'transfers.create'
+    TRANSFERS_APPROVE        = 'transfers.approve'
     TRANSFERS_DELETE         = 'transfers.delete'
 
     # ── Maintenance (7) ───────────────────────────────────────────────────────
@@ -99,9 +107,9 @@ class Perms:
     MAINTENANCE_CREATE       = 'maintenance.create'
     MAINTENANCE_EDIT         = 'maintenance.edit'
     MAINTENANCE_DELETE       = 'maintenance.delete'
-    MAINTENANCE_CLOSE        = 'maintenance.close'         # set returned_date + resolution
-    MAINTENANCE_VIEW_COST    = 'maintenance.view_cost'     # sensitive financial field
-    MAINTENANCE_EXPORT       = 'maintenance.export'        # download maintenance report
+    MAINTENANCE_CLOSE        = 'maintenance.close'
+    MAINTENANCE_VIEW_COST    = 'maintenance.view_cost'
+    MAINTENANCE_EXPORT       = 'maintenance.export'
 
     ALL = [
         USERS_VIEW, USERS_CREATE, USERS_EDIT, USERS_DELETE,
@@ -136,16 +144,14 @@ class Perms:
 # ROLE → PERMISSION MAPPING
 # ══════════════════════════════════════════════════════════════════════════════
 
-P = Perms  # alias for readable set literals below
+P = Perms
 
 ROLE_PERMISSIONS = {
 
     # ── 1. Super Admin ────────────────────────────────────────────────────────
-    # None = skip the set check → always True
     'super_admin': None,
 
     # ── 2. IT Admin ───────────────────────────────────────────────────────────
-    # Full CRUD on everything. Cannot assign roles (that's super_admin only).
     'it_admin': {
         P.USERS_VIEW, P.USERS_CREATE, P.USERS_EDIT,
         P.USERS_DELETE, P.USERS_RESET_PASSWORD, P.USERS_ACTIVATE,
@@ -176,8 +182,6 @@ ROLE_PERMISSIONS = {
     },
 
     # ── 3. IT Supervisor ──────────────────────────────────────────────────────
-    # Oversight role: approves, closes, exports, views costs.
-    # Can manage day-to-day assignments and maintenance but cannot add/delete devices.
     'it_supervisor': {
         P.USERS_VIEW,
 
@@ -203,8 +207,6 @@ ROLE_PERMISSIONS = {
     },
 
     # ── 4. Inventory Manager ──────────────────────────────────────────────────
-    # Owns the asset registry: full CRUD on devices, accessories, and all
-    # lookup tables. Views assignments and maintenance but doesn't manage them.
     'inventory_manager': {
         P.LOCATIONS_VIEW,
 
@@ -227,8 +229,6 @@ ROLE_PERMISSIONS = {
     },
 
     # ── 5. Site Manager ───────────────────────────────────────────────────────
-    # Manages everything at their physical site: assigns and returns devices,
-    # transfers devices, manages local employees. Cannot add or delete devices.
     'site_manager': {
         P.LOCATIONS_VIEW,
 
@@ -250,8 +250,6 @@ ROLE_PERMISSIONS = {
     },
 
     # ── 6. Maintenance Technician ─────────────────────────────────────────────
-    # Creates and manages maintenance records. Can toggle maintenance mode on
-    # devices and see full hardware specs. No assignment or user access.
     'maintenance_tech': {
         P.LOCATIONS_VIEW,
 
@@ -267,13 +265,9 @@ ROLE_PERMISSIONS = {
 
         P.MAINTENANCE_VIEW, P.MAINTENANCE_CREATE, P.MAINTENANCE_EDIT,
         P.MAINTENANCE_CLOSE, P.MAINTENANCE_EXPORT,
-        # NOTE: MAINTENANCE_VIEW_COST is intentionally excluded —
-        # financial data is restricted to supervisor / admin roles.
     },
 
     # ── 7. Auditor ────────────────────────────────────────────────────────────
-    # Read-only on EVERYTHING, including costs, specs, and user list.
-    # Cannot modify anything. Designed for compliance / audit use.
     'auditor': {
         P.USERS_VIEW,
 
@@ -296,7 +290,6 @@ ROLE_PERMISSIONS = {
     },
 
     # ── 8. Viewer ─────────────────────────────────────────────────────────────
-    # Basic read-only. No costs, no hardware specs, no user list.
     'viewer': {
         P.LOCATIONS_VIEW,
         P.EMPLOYEES_VIEW,
@@ -308,6 +301,98 @@ ROLE_PERMISSIONS = {
         P.MAINTENANCE_VIEW,
     },
 }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SITE SCOPE
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# 'all'  → user sees records from every branch
+# 'own'  → user sees records from their assigned site only
+#
+# Special cases (always override the role scope):
+#   - user.site is NULL  → sees all branches regardless of role
+#   - unauthenticated    → sees nothing
+#
+# To change a role's scope, just swap 'own' ↔ 'all' below.
+# ─────────────────────────────────────────────────────────────────────────────
+
+ROLE_SITE_SCOPE = {
+    'super_admin':       'all',
+    'it_admin':          'all',
+    'it_supervisor':     'all',
+    'auditor':           'all',
+    'inventory_manager': 'all',
+    'site_manager':      'own',
+    'maintenance_tech':  'own',
+    'viewer':            'own',
+}
+
+
+def get_site_filter(user, prefix=''):
+    """
+    Returns a dict to unpack into a queryset .filter() call.
+
+    Parameters
+    ──────────
+    user    : the request.user
+    prefix  : dot-path to the `site` field when it's not direct on the model.
+              e.g. 'device__'  →  filters on  device__site=...
+                   'employee__' →  filters on  employee__site=...
+
+    Examples
+    ────────
+    # Model has a direct `site` FK  (Device, Accessory, Employee …)
+    Device.objects.filter(**get_site_filter(request.user))
+
+    # Model reaches site via a related field  (DeviceAssignment, MaintenanceRecord …)
+    DeviceAssignment.objects.filter(**get_site_filter(request.user, prefix='device__'))
+    MaintenanceRecord.objects.filter(**get_site_filter(request.user, prefix='device__'))
+
+    Return values
+    ─────────────
+    {}                          → no filter applied  (sees all)
+    {'site': <Site obj>}        → filtered to user's site
+    {'site_id': None}           → safety fallback for unauthenticated users
+                                  (returns empty queryset)
+    """
+    if not user or not user.is_authenticated:
+        # Safety: unauthenticated callers should never reach a view,
+        # but if they do, return nothing.
+        return {f'{prefix}site_id': None}
+
+    # NULL site → global access regardless of role
+    if not user.site_id:
+        return {}
+
+    role  = getattr(user, 'role', 'viewer')
+    scope = ROLE_SITE_SCOPE.get(role, 'own')
+
+    if scope == 'all':
+        return {}
+
+    return {f'{prefix}site': user.site}
+
+
+def sees_all_sites(user):
+    """
+    Returns True if the user can see records from all branches.
+
+    Use this in views / templates to decide whether to show a
+    branch selector / filter dropdown.
+
+    Template usage (via context_processors):
+        {% if rbac.sees_all_sites %}
+            <select name="site">...</select>
+        {% endif %}
+    """
+    if not user or not user.is_authenticated:
+        return False
+    if not user.site_id:
+        return True
+    role  = getattr(user, 'role', 'viewer')
+    scope = ROLE_SITE_SCOPE.get(role, 'own')
+    return scope == 'all'
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -336,7 +421,7 @@ def has_permission(user, perm):
     if role == 'super_admin':
         return True
     role_perms = ROLE_PERMISSIONS.get(role)
-    if role_perms is None:          # None sentinel → full access
+    if role_perms is None:
         return True
     return perm in role_perms
 
