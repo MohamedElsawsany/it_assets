@@ -129,24 +129,12 @@ class OperatingSystem(models.Model):
         return self.name
 
 
-class Flag(models.Model):
-    """
-    Seed values: Available | Assigned | Under Maintenance | Retired | Lost | Transferred
-    """
-    name         = models.CharField(max_length=255, unique=True)
-    created_by   = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
-        related_name='created_flags', db_column='Created_By',
-    )
-    created_date = models.DateTimeField(auto_now_add=True)
-    updated_date = models.DateTimeField(auto_now=True, null=True, blank=True)
-    deleted_date = models.DateTimeField(null=True, blank=True)
-
-    class Meta:
-        db_table = 'Flags'
-
-    def __str__(self):
-        return self.name
+class DeviceFlag(models.TextChoices):
+    AVAILABLE         = 'available',          'Available'
+    ASSIGNED          = 'assigned',           'Assigned'
+    LOST              = 'lost',               'Lost'
+    RETIRED           = 'retired',            'Retired'
+    UNDER_MAINTENANCE = 'under_maintenance',  'Under Maintenance'
 
 
 # ── Core device ───────────────────────────────────────────────────────────────
@@ -157,7 +145,7 @@ class Device(models.Model):
     brand         = models.ForeignKey(Brand,          on_delete=models.PROTECT, related_name='devices')
     device_model  = models.ForeignKey(DeviceModel,    on_delete=models.PROTECT, related_name='devices')
     site          = models.ForeignKey('locations.Site', on_delete=models.PROTECT, related_name='devices')
-    flag          = models.ForeignKey(Flag,            on_delete=models.PROTECT, related_name='devices')
+    flag          = models.CharField(max_length=20, choices=DeviceFlag.choices, default=DeviceFlag.AVAILABLE)
 
     # ── Compute specs (desktops / laptops) ────────────────────────────────────
     cpu              = models.ForeignKey(CPU, on_delete=models.SET_NULL, null=True, blank=True, related_name='devices')
@@ -197,7 +185,7 @@ class Device(models.Model):
 
     @property
     def is_available(self):
-        return self.flag.name == 'Available'
+        return self.flag == DeviceFlag.AVAILABLE
 
     @property
     def current_assignment(self):
@@ -249,7 +237,7 @@ class Accessory(models.Model):
     brand          = models.ForeignKey(Brand,  on_delete=models.PROTECT, null=True, blank=True, related_name='accessories')
     device         = models.ForeignKey(Device, on_delete=models.SET_NULL, null=True, blank=True, related_name='accessories')
     site           = models.ForeignKey('locations.Site', on_delete=models.PROTECT, related_name='accessories')
-    flag           = models.ForeignKey(Flag,   on_delete=models.PROTECT, related_name='accessories')
+    flag           = models.CharField(max_length=20, choices=DeviceFlag.choices, default=DeviceFlag.AVAILABLE)
     created_by     = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         related_name='created_accessories',

@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from .models import (
     Accessory, AccessoryType, Brand, CPU, Device,
-    DeviceCategory, DeviceModel, DeviceSpec, Flag, GPU, OperatingSystem,
+    DeviceCategory, DeviceModel, DeviceSpec, GPU, OperatingSystem,
 )
 
 
@@ -144,24 +144,6 @@ class OperatingSystemAdmin(LookupAdmin):
 
     def has_view_permission(self, request, obj=None):
         return request.user.has_perm('inventory.view_operatingsystem')
-
-
-@admin.register(Flag)
-class FlagAdmin(LookupAdmin):
-    list_display  = ('name', 'created_by', 'created_date')
-    search_fields = ('name',)
-
-    def has_add_permission(self, request):
-        return request.user.has_perm('inventory.add_flag')
-
-    def has_change_permission(self, request, obj=None):
-        return request.user.has_perm('inventory.change_flag')
-
-    def has_delete_permission(self, request, obj=None):
-        return request.user.has_perm('inventory.delete_flag')
-
-    def has_view_permission(self, request, obj=None):
-        return request.user.has_perm('inventory.view_flag')
 
 
 # ── Device ─────────────────────────────────────────────────────────────────────

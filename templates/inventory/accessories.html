@@ -51,6 +51,9 @@
         <div class="col-md-2">
           <select class="form-select" id="flagFilter">
             <option value="">{% trans "All Flags" %}</option>
+            {% for value, label in flag_choices %}
+            <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
           </select>
         </div>
         <div class="col-md-auto">
@@ -138,7 +141,12 @@
             </div>
             <div class="col-md-6">
               <label class="form-label">{% trans "Flag" %} <span class="text-danger">*</span></label>
-              <select class="form-select" name="flag" required><option value=""></option></select>
+              <select class="form-select" name="flag" required>
+                <option value="">—</option>
+                {% for value, label in flag_choices %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
               <div class="invalid-feedback"></div>
             </div>
           </div>
@@ -198,7 +206,12 @@
               </div>
               <div class="col-md-6">
                 <label class="form-label">{% trans "Flag" %} <span class="text-danger">*</span></label>
-                <select class="form-select" name="flag" required><option value=""></option></select>
+                <select class="form-select" name="flag" required>
+                  <option value="">—</option>
+                  {% for value, label in flag_choices %}
+                  <option value="{{ value }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
                 <div class="invalid-feedback"></div>
               </div>
             </div>
@@ -291,8 +304,9 @@ function debounceLoad() { clearTimeout(debounceTimer); debounceTimer = setTimeou
 function resetFilters() {
   document.getElementById('searchInput').value = '';
   $('#typeFilter').val(null).trigger('change');
-  $('#siteFilter').val(null).trigger('change');
-  $('#flagFilter').val(null).trigger('change');
+  const siteF = document.getElementById('siteFilter');
+  if (siteF) { try { $('#siteFilter').val(null).trigger('change'); } catch(e) { siteF.value = ''; } }
+  document.getElementById('flagFilter').value = '';
   loadAccessories();
 }
 
@@ -360,7 +374,7 @@ function openEditModal(pk) {
       if (a.device_id) setSelect2Value($('#editForm [name=device]'), a.device_id, a.device_serial);
       else             $('#editForm [name=device]').val(null).trigger('change');
       setSelect2Value($('#editForm [name=site]'), a.site_id, a.site_name);
-      setSelect2Value($('#editForm [name=flag]'), a.flag_id, a.flag_name);
+      document.getElementById('editForm').querySelector('[name=flag]').value = a.flag || '';
       document.getElementById('editLoader').classList.add('d-none');
       document.getElementById('editContent').classList.remove('d-none');
     })
@@ -399,22 +413,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // Filter bar
   initSelect2($('#typeFilter'), 'accessory-types', null, '{% trans "All Types" %}');
   initSelect2($('#siteFilter'), 'sites',           null, '{% trans "All Sites" %}');
-  initSelect2($('#flagFilter'), 'flags',           null, '{% trans "All Flags" %}');
-  $('#typeFilter, #siteFilter, #flagFilter').on('change', loadAccessories);
+  $('#typeFilter, #siteFilter').on('change', loadAccessories);
+  document.getElementById('flagFilter').addEventListener('change', loadAccessories);
 
   // Create modal
   initSelect2($('#createForm [name=accessory_type]'), 'accessory-types', null, S);
   initSelect2($('#createForm [name=brand]'),          'brands',          null, '—');
   initSelect2($('#createForm [name=device]'),         'devices',         null, '—');
   initSelect2($('#createForm [name=site]'),           'sites',           null, S);
-  initSelect2($('#createForm [name=flag]'),           'flags',           null, S);
 
   // Edit modal
   initSelect2($('#editForm [name=accessory_type]'), 'accessory-types', null, S);
   initSelect2($('#editForm [name=brand]'),          'brands',          null, '—');
   initSelect2($('#editForm [name=device]'),         'devices',         null, '—');
   initSelect2($('#editForm [name=site]'),           'sites',           null, S);
-  initSelect2($('#editForm [name=flag]'),           'flags',           null, S);
 
   loadAccessories();
 });

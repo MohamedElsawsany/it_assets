@@ -6,7 +6,7 @@ from django.views.decorators.http import require_http_methods
 from django.db.models import Q
 
 from accounts.permissions import permission_required, has_permission, Perms
-from inventory.models import Device
+from inventory.models import Device, DeviceFlag
 from employees.models import Employee
 from locations.models import Site
 from .models import DeviceAssignment, DeviceTransfer
@@ -83,6 +83,8 @@ def assignment_create(request):
         obj = form.save(commit=False)
         obj.assigned_by = request.user
         obj.save()
+        obj.device.flag = DeviceFlag.ASSIGNED
+        obj.device.save(update_fields=['flag'])
         return JsonResponse({'success': True, 'message': _('Assignment created successfully.')})
     errors = {f: [str(e) for e in v] for f, v in form.errors.items()}
     return JsonResponse({'success': False, 'errors': errors})
@@ -116,6 +118,8 @@ def assignment_return(request, pk):
         if form.cleaned_data.get('notes'):
             a.notes = (a.notes or '') + '\n[Return] ' + form.cleaned_data['notes']
         a.save()
+        a.device.flag = DeviceFlag.AVAILABLE
+        a.device.save(update_fields=['flag'])
         return JsonResponse({'success': True, 'message': _('Device returned successfully.')})
     errors = {f: [str(e) for e in v] for f, v in form.errors.items()}
     return JsonResponse({'success': False, 'errors': errors})

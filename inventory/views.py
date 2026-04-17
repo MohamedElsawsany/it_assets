@@ -9,9 +9,9 @@ from django.db.models import Q
 from accounts.permissions import permission_required, has_permission, Perms
 from locations.models import Site
 from .models import (Brand, DeviceCategory, DeviceModel, CPU, GPU,
-                     OperatingSystem, Flag, AccessoryType, Device, Accessory)
+                     OperatingSystem, DeviceFlag, AccessoryType, Device, Accessory)
 from .forms import (BrandForm, DeviceCategoryForm, DeviceModelForm, CPUForm, GPUForm,
-                    OperatingSystemForm, FlagForm, AccessoryTypeForm,
+                    OperatingSystemForm, AccessoryTypeForm,
                     DeviceForm, ChangeFlagForm, AccessoryForm)
 
 
@@ -43,7 +43,6 @@ LOOKUP_REGISTRY = {
     'cpus':            (CPU,             CPUForm,             'name,brand',    _serialize_with_brand),
     'gpus':            (GPU,             GPUForm,             'name,brand',    _serialize_with_brand),
     'os':              (OperatingSystem, OperatingSystemForm, 'name',          _serialize_base),
-    'flags':           (Flag,            FlagForm,            'name',          _serialize_base),
     'accessory-types': (AccessoryType,   AccessoryTypeForm,   'name',          _serialize_base),
 }
 
@@ -143,7 +142,7 @@ def devices_index(request):
         'categories': DeviceCategory.objects.filter(deleted_date__isnull=True).order_by('name'),
         'brands':     Brand.objects.filter(deleted_date__isnull=True).order_by('name'),
         'models':     DeviceModel.objects.filter(deleted_date__isnull=True).select_related('brand').order_by('name'),
-        'flags':      Flag.objects.filter(deleted_date__isnull=True).order_by('name'),
+        'flag_choices': DeviceFlag.choices,
         'cpus':       CPU.objects.filter(deleted_date__isnull=True).order_by('name'),
         'gpus':       GPU.objects.filter(deleted_date__isnull=True).order_by('name'),
         'os_list':    OperatingSystem.objects.filter(deleted_date__isnull=True).order_by('name'),
@@ -161,7 +160,7 @@ def devices_data(request):
     show_specs = has_permission(request.user, Perms.DEVICES_VIEW_SPECS)
 
     qs = Device.objects.filter(deleted_date__isnull=True).select_related(
-        'category', 'brand', 'device_model', 'site', 'flag'
+        'category', 'brand', 'device_model', 'site'
     )
     if search:
         qs = qs.filter(
@@ -171,7 +170,7 @@ def devices_data(request):
         )
     if cat_id:  qs = qs.filter(category_id=cat_id)
     if site_id: qs = qs.filter(site_id=site_id)
-    if flag_id: qs = qs.filter(flag_id=flag_id)
+    if flag_id: qs = qs.filter(flag=flag_id)
 
     items = []
     for d in qs.order_by('-created_date'):
@@ -182,7 +181,7 @@ def devices_data(request):
             'brand_id': d.brand_id, 'brand_name': d.brand.name,
             'model_id': d.device_model_id, 'model_name': d.device_model.name,
             'site_id': d.site_id, 'site_name': d.site.name,
-            'flag_id': d.flag_id, 'flag_name': d.flag.name,
+            'flag': d.flag, 'flag_name': d.get_flag_display(),
             'maintenance_mode': d.maintenance_mode,
             'created_date': d.created_date.strftime('%Y-%m-%d'),
         }
@@ -204,7 +203,7 @@ def device_detail(request, pk):
     if not has_permission(request.user, Perms.DEVICES_EDIT):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
     d = get_object_or_404(
-        Device.objects.select_related('category', 'brand', 'device_model', 'site', 'flag',
+        Device.objects.select_related('category', 'brand', 'device_model', 'site',
                                       'cpu', 'gpu', 'operating_system'),
         pk=pk, deleted_date__isnull=True,
     )
@@ -215,7 +214,7 @@ def device_detail(request, pk):
         'brand_id': d.brand_id,           'brand_name': d.brand.name,
         'device_model_id': d.device_model_id, 'model_name': d.device_model.name,
         'site_id': d.site_id,             'site_name': d.site.name,
-        'flag_id': d.flag_id,             'flag_name': d.flag.name,
+        'flag': d.flag,
     }
     if show_specs:
         item.update({
@@ -278,10 +277,7 @@ def device_retire(request, pk):
     if not has_permission(request.user, Perms.DEVICES_RETIRE):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
     device = get_object_or_404(Device, pk=pk, deleted_date__isnull=True)
-    retired_flag = Flag.objects.filter(name='Retired').first()
-    if not retired_flag:
-        return JsonResponse({'success': False, 'message': _('Retired flag not found.')})
-    device.flag = retired_flag
+    device.flag = DeviceFlag.RETIRED
     device.save()
     return JsonResponse({'success': True, 'message': _('Device retired successfully.')})
 
@@ -297,7 +293,8 @@ def device_change_flag(request, pk):
         device.flag = form.cleaned_data['flag']
         device.save()
         return JsonResponse({'success': True, 'message': _('Device flag updated.'),
-                             'flag_name': device.flag.name})
+                             'flag': device.flag,
+                             'flag_name': device.get_flag_display()})
     errors = {f: [str(e) for e in v] for f, v in form.errors.items()}
     return JsonResponse({'success': False, 'errors': errors})
 
@@ -309,6 +306,10 @@ def device_toggle_maintenance(request, pk):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
     device = get_object_or_404(Device, pk=pk, deleted_date__isnull=True)
     device.maintenance_mode = not device.maintenance_mode
+    if device.maintenance_mode:
+        device.flag = DeviceFlag.UNDER_MAINTENANCE
+    else:
+        device.flag = DeviceFlag.AVAILABLE
     device.save()
     return JsonResponse({
         'success': True,
@@ -323,11 +324,11 @@ def device_toggle_maintenance(request, pk):
 @permission_required(Perms.ACCESSORIES_VIEW)
 def accessories_index(request):
     return render(request, 'inventory/accessories.html', {
-        'types':   AccessoryType.objects.filter(deleted_date__isnull=True).order_by('name'),
-        'brands':  Brand.objects.filter(deleted_date__isnull=True).order_by('name'),
-        'sites':   Site.objects.filter(deleted_date__isnull=True).order_by('name'),
-        'flags':   Flag.objects.filter(deleted_date__isnull=True).order_by('name'),
-        'devices': Device.objects.filter(deleted_date__isnull=True).order_by('serial_number'),
+        'types':       AccessoryType.objects.filter(deleted_date__isnull=True).order_by('name'),
+        'brands':      Brand.objects.filter(deleted_date__isnull=True).order_by('name'),
+        'sites':       Site.objects.filter(deleted_date__isnull=True).order_by('name'),
+        'flag_choices': DeviceFlag.choices,
+        'devices':     Device.objects.filter(deleted_date__isnull=True).order_by('serial_number'),
     })
 
 
@@ -339,7 +340,7 @@ def accessories_data(request):
     site_id = request.GET.get('site', '').strip()
     flag_id = request.GET.get('flag', '').strip()
     qs = Accessory.objects.filter(deleted_date__isnull=True).select_related(
-        'accessory_type', 'brand', 'device', 'site', 'flag'
+        'accessory_type', 'brand', 'device', 'site'
     )
     if search:
         qs = qs.filter(
@@ -348,7 +349,7 @@ def accessories_data(request):
         )
     if type_id: qs = qs.filter(accessory_type_id=type_id)
     if site_id: qs = qs.filter(site_id=site_id)
-    if flag_id: qs = qs.filter(flag_id=flag_id)
+    if flag_id: qs = qs.filter(flag=flag_id)
     items = [
         {'id': a.pk,
          'type_id': a.accessory_type_id, 'type_name': a.accessory_type.name,
@@ -356,7 +357,7 @@ def accessories_data(request):
          'brand_id': a.brand_id or '', 'brand_name': a.brand.name if a.brand else '',
          'device_id': a.device_id or '', 'device_serial': a.device.serial_number if a.device else '',
          'site_id': a.site_id, 'site_name': a.site.name,
-         'flag_id': a.flag_id, 'flag_name': a.flag.name,
+         'flag': a.flag, 'flag_name': a.get_flag_display(),
          'created_date': a.created_date.strftime('%Y-%m-%d')}
         for a in qs.order_by('-created_date')
     ]
@@ -368,7 +369,7 @@ def accessory_detail(request, pk):
     if not has_permission(request.user, Perms.ACCESSORIES_EDIT):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
     a = get_object_or_404(
-        Accessory.objects.select_related('accessory_type', 'brand', 'device', 'site', 'flag'),
+        Accessory.objects.select_related('accessory_type', 'brand', 'device', 'site'),
         pk=pk, deleted_date__isnull=True,
     )
     return JsonResponse({'success': True, 'item': {
@@ -378,7 +379,7 @@ def accessory_detail(request, pk):
         'brand_id': a.brand_id or '',   'brand_name': a.brand.name if a.brand else '',
         'device_id': a.device_id or '', 'device_serial': a.device.serial_number if a.device else '',
         'site_id': a.site_id,           'site_name': a.site.name,
-        'flag_id': a.flag_id,           'flag_name': a.flag.name,
+        'flag': a.flag,
     }})
 
 

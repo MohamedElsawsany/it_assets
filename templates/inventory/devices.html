@@ -51,6 +51,9 @@
         <div class="col-md-2">
           <select class="form-select" id="flagFilter">
             <option value="">{% trans "All Flags" %}</option>
+            {% for value, label in flag_choices %}
+            <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
           </select>
         </div>
         <div class="col-md-auto">
@@ -138,7 +141,12 @@
             </div>
             <div class="col-md-4">
               <label class="form-label">{% trans "Flag" %} <span class="text-danger">*</span></label>
-              <select class="form-select" name="flag" required><option value=""></option></select>
+              <select class="form-select" name="flag" required>
+                <option value="">—</option>
+                {% for value, label in flag_choices %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
               <div class="invalid-feedback"></div>
             </div>
             {% if show_specs %}
@@ -236,7 +244,12 @@
               </div>
               <div class="col-md-4">
                 <label class="form-label">{% trans "Flag" %} <span class="text-danger">*</span></label>
-                <select class="form-select" name="flag" required><option value=""></option></select>
+                <select class="form-select" name="flag" required>
+                  <option value="">—</option>
+                  {% for value, label in flag_choices %}
+                  <option value="{{ value }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
                 <div class="invalid-feedback"></div>
               </div>
               {% if show_specs %}
@@ -288,7 +301,12 @@
         <input type="hidden" id="changeFlagDeviceId">
         <div class="modal-body">
           <label class="form-label">{% trans "New Flag" %} <span class="text-danger">*</span></label>
-          <select class="form-select" name="flag" required><option value=""></option></select>
+          <select class="form-select" name="flag" required>
+            <option value="">—</option>
+            {% for value, label in flag_choices %}
+            <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
           <div class="invalid-feedback"></div>
         </div>
         <div class="modal-footer">
@@ -388,8 +406,9 @@ function debounceLoad() { clearTimeout(debounceTimer); debounceTimer = setTimeou
 function resetFilters() {
   document.getElementById('searchInput').value = '';
   $('#catFilter').val(null).trigger('change');
-  $('#siteFilter').val(null).trigger('change');
-  $('#flagFilter').val(null).trigger('change');
+  const siteF = document.getElementById('siteFilter');
+  if (siteF) { try { $('#siteFilter').val(null).trigger('change'); } catch(e) { siteF.value = ''; } }
+  document.getElementById('flagFilter').value = '';
   loadDevices();
 }
 
@@ -471,7 +490,7 @@ function openEditModal(pk) {
       setSelect2Value($('#editForm [name=brand]'),        d.brand_id,        d.brand_name);
       setSelect2Value($('#editForm [name=device_model]'), d.device_model_id, d.model_name);
       setSelect2Value($('#editForm [name=site]'),         d.site_id,         d.site_name);
-      setSelect2Value($('#editForm [name=flag]'),         d.flag_id,         d.flag_name);
+      f.querySelector('[name=flag]').value = d.flag || '';
       if (SHOW_SPECS) {
         const setNum = (n, v) => { const el = f.querySelector(`[name=${n}]`); if (el) el.value = v || ''; };
         setNum('ram_size_gb', d.ram_size_gb); setNum('hdd_storage_gb', d.hdd_storage_gb);
@@ -500,7 +519,7 @@ document.getElementById('editForm').addEventListener('submit', function(e) {
 /* Change Flag */
 function openChangeFlagModal(pk) {
   document.getElementById('changeFlagDeviceId').value = pk;
-  $('#changeFlagForm [name=flag]').val(null).trigger('change');
+  document.getElementById('changeFlagForm').querySelector('[name=flag]').value = '';
   clearFormErrors(document.getElementById('changeFlagForm'));
   changeFlagModal.show();
 }
@@ -548,15 +567,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Filter bar
   initSelect2($('#catFilter'),  'categories', null, '{% trans "All Categories" %}');
   initSelect2($('#siteFilter'), 'sites',      null, '{% trans "All Sites" %}');
-  initSelect2($('#flagFilter'), 'flags',      null, '{% trans "All Flags" %}');
-  $('#catFilter, #siteFilter, #flagFilter').on('change', loadDevices);
+  $('#catFilter, #siteFilter').on('change', loadDevices);
+  document.getElementById('flagFilter').addEventListener('change', loadDevices);
 
   // Create modal
   initSelect2($('#createForm [name=category]'),    'categories',    null, S);
   initSelect2($('#createForm [name=brand]'),       'brands',        null, S);
   initSelect2($('#createForm [name=device_model]'),'device-models', null, S);
   initSelect2($('#createForm [name=site]'),        'sites',         null, S);
-  initSelect2($('#createForm [name=flag]'),        'flags',         null, S);
   if (SHOW_SPECS) {
     initSelect2($('#createForm [name=cpu]'),              'cpus', null, '—');
     initSelect2($('#createForm [name=gpu]'),              'gpus', null, '—');
@@ -568,15 +586,11 @@ document.addEventListener('DOMContentLoaded', () => {
   initSelect2($('#editForm [name=brand]'),       'brands',        null, S);
   initSelect2($('#editForm [name=device_model]'),'device-models', null, S);
   initSelect2($('#editForm [name=site]'),        'sites',         null, S);
-  initSelect2($('#editForm [name=flag]'),        'flags',         null, S);
   if (SHOW_SPECS) {
     initSelect2($('#editForm [name=cpu]'),              'cpus', null, '—');
     initSelect2($('#editForm [name=gpu]'),              'gpus', null, '—');
     initSelect2($('#editForm [name=operating_system]'), 'os',   null, '—');
   }
-
-  // Change flag modal
-  initSelect2($('#changeFlagForm [name=flag]'), 'flags', null, S);
 
   loadDevices();
 });

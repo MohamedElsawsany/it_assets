@@ -1,7 +1,7 @@
 from django import forms
 from django.utils.translation import gettext_lazy as _
 from .models import (Brand, DeviceCategory, DeviceModel, CPU, GPU,
-                     OperatingSystem, Flag, AccessoryType, Device, Accessory)
+                     OperatingSystem, DeviceFlag, AccessoryType, Device, Accessory)
 
 
 # ── Lookup helpers ────────────────────────────────────────────────────────────
@@ -21,7 +21,6 @@ def _name_form(model_class):
 BrandForm          = _name_form(Brand)
 DeviceCategoryForm = _name_form(DeviceCategory)
 OperatingSystemForm= _name_form(OperatingSystem)
-FlagForm           = _name_form(Flag)
 AccessoryTypeForm  = _name_form(AccessoryType)
 
 
@@ -104,8 +103,8 @@ class DeviceForm(forms.ModelForm):
 
 
 class ChangeFlagForm(forms.Form):
-    flag = forms.ModelChoiceField(
-        queryset=Flag.objects.all(),
+    flag = forms.ChoiceField(
+        choices=DeviceFlag.choices,
         widget=forms.Select(attrs={'class': 'form-select'}),
         label=_('New Flag'),
     )

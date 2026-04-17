@@ -8,7 +8,6 @@ function getCsrfToken() {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
   if (parts.length === 2) return parts.pop().split(';').shift();
-  // fallback: read from DOM hidden input
   const el = document.querySelector('[name=csrfmiddlewaretoken]');
   return el ? el.value : '';
 }
@@ -25,7 +24,6 @@ function ajaxGet(url) {
 }
 
 function ajaxPost(url, formData) {
-  // FormData already handles multipart; add CSRF token
   if (formData instanceof FormData) {
     if (!formData.has('csrfmiddlewaretoken')) {
       formData.set('csrfmiddlewaretoken', getCsrfToken());
@@ -95,14 +93,12 @@ function showFormErrors(form, errors) {
                              ?.querySelector('.invalid-feedback, .d-block.invalid-feedback');
       if (feedback) feedback.textContent = messages.join(' ');
 
-      // For input-group wrappers, look for the sibling .invalid-feedback after the wrapper
       const wrapper = input.closest('.input-group');
       if (wrapper) {
         const next = wrapper.nextElementSibling;
         if (next && next.classList.contains('invalid-feedback')) {
           next.textContent = messages.join(' ');
         }
-        // Also named id pattern like createPasswordError
         const namedEl = document.getElementById(`create${capitalize(field)}Error`)
                       || document.getElementById(`edit${capitalize(field)}Error`)
                       || document.getElementById(`reset${capitalize(camelize(field))}Error`);
@@ -160,13 +156,11 @@ function closeSidebar() {
   document.getElementById('sidebarOverlay').classList.remove('show');
 }
 
-// Close sidebar when overlay is clicked
 document.addEventListener('DOMContentLoaded', () => {
   const overlay = document.getElementById('sidebarOverlay');
   if (overlay) overlay.addEventListener('click', closeSidebar);
 });
 
-// Close sidebar on large screen resize
 window.addEventListener('resize', () => {
   if (window.innerWidth >= 992) closeSidebar();
 });
@@ -195,17 +189,37 @@ function camelize(str) {
 
 /**
  * Initialise Select2 with AJAX on a jQuery element.
- * @param {jQuery} $el        - the <select> wrapped in jQuery
- * @param {string} entity     - the entity slug passed to /select2/<entity>/
- * @param {function|object}   extraParams - extra query-string params (function for dynamic)
+ *
+ * Guards:
+ *  - Skips silently if jQuery is missing
+ *  - Skips silently if Select2 plugin is not loaded
+ *  - Skips silently if $el is empty (element not in DOM)
+ *
+ * @param {jQuery} $el          - the <select> wrapped in jQuery
+ * @param {string} entity       - entity slug for /select2/<entity>/
+ * @param {function|object}     extraParams - extra query params (or null)
  * @param {string} placeholder
  */
 function initSelect2($el, entity, extraParams, placeholder) {
+  /* ── Safety guards ── */
+  if (!window.jQuery) return;                  // jQuery not loaded
+  if (typeof $.fn.select2 === 'undefined') {   // Select2 plugin not loaded
+    console.warn('Select2 is not loaded – skipping initSelect2 for', entity);
+    return;
+  }
+  if (!$el || !$el.length) return;             // element not in DOM
+
+  /* ── Already initialised? Destroy first to avoid duplicate init ── */
+  if ($el.data('select2')) {
+    $el.select2('destroy');
+  }
+
   const $modal = $el.closest('.modal');
-  $el.select2({
+
+  /* ── Build options object (avoid passing undefined values) ── */
+  const opts = {
     theme: 'bootstrap-5',
     dir: window.APP_DIR || 'ltr',
-    language: (window.APP_LANG === 'ar') ? 'ar' : undefined,
     dropdownParent: $modal.length ? $modal : $('body'),
     placeholder: placeholder || '—',
     allowClear: true,
@@ -214,38 +228,60 @@ function initSelect2($el, entity, extraParams, placeholder) {
       url: '/select2/' + entity + '/',
       dataType: 'json',
       delay: 250,
-      data: function(params) {
-        const extra = (typeof extraParams === 'function') ? extraParams() : (extraParams || {});
+      data: function (params) {
+        const extra = (typeof extraParams === 'function')
+          ? extraParams()
+          : (extraParams || {});
         return Object.assign({ q: params.term || '', page: params.page || 1 }, extra);
       },
-      processResults: function(data) {
+      processResults: function (data) {
         return { results: data.results, pagination: data.pagination };
       },
       cache: true,
     },
-  });
+  };
+
+  /* Only set language when actually needed; avoids "undefined language" warnings */
+  if (window.APP_LANG === 'ar') {
+    opts.language = 'ar';
+  }
+
+  try {
+    $el.select2(opts);
+  } catch (err) {
+    console.error('Select2 init error for entity "' + entity + '":', err);
+  }
 }
 
 /**
  * Pre-select a value in an already-initialised Select2 element.
- * Creates the <option> if it doesn't exist yet (needed for AJAX-loaded selects).
+ * Creates the <option> if it doesn't exist yet (needed for AJAX selects).
  */
 function setSelect2Value($el, id, text) {
-  if (!id && id !== 0) { $el.val(null).trigger('change'); return; }
+  if (!window.jQuery || typeof $.fn.select2 === 'undefined') return;
+  if (!$el || !$el.length) return;
+
+  if (!id && id !== 0) {
+    $el.val(null).trigger('change');
+    return;
+  }
+
   const sid = String(id);
   if ($el.find('option[value="' + sid + '"]').length === 0) {
-    $el.append(new Option(String(text), sid, false, false));
+    $el.append(new Option(String(text || ''), sid, false, false));
   }
   $el.val(sid).trigger('change');
 }
 
 /**
- * After form.reset(), sync all Select2 widgets in the form so their
- * visible UI reflects the now-empty underlying <select> values.
+ * After form.reset(), sync all Select2 widgets so their visible UI
+ * reflects the now-empty underlying <select> values.
  */
 function resetFormSelects(form) {
-  if (!window.jQuery) return;
-  $(form).find('select').each(function() {
-    if ($(this).data('select2')) $(this).val(null).trigger('change');
+  if (!window.jQuery || typeof $.fn.select2 === 'undefined') return;
+  $(form).find('select').each(function () {
+    if ($(this).data('select2')) {
+      $(this).val(null).trigger('change');
+    }
   });
 }

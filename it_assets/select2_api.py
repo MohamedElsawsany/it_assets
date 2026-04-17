@@ -16,7 +16,7 @@ from django.db.models import Q
 from django.http import JsonResponse
 
 from inventory.models import (Brand, DeviceCategory, DeviceModel, CPU, GPU,
-                               OperatingSystem, Flag, AccessoryType, Device)
+                               OperatingSystem, AccessoryType, Device)
 from locations.models import Governorate, Site
 from employees.models import Department, Employee
 
@@ -41,7 +41,6 @@ def select2_data(request, entity):
         'cpus':            _cpus,
         'gpus':            _gpus,
         'os':              _os,
-        'flags':           _flags,
         'accessory-types': _accessory_types,
         'sites':           _sites,
         'governorates':    _governorates,
@@ -117,12 +116,6 @@ def _os(q, start, end, request):
     return _simple(qs.order_by('name'), start, end)
 
 
-def _flags(q, start, end, request):
-    qs = Flag.objects.filter(deleted_date__isnull=True)
-    if q: qs = qs.filter(name__icontains=q)
-    return _simple(qs.order_by('name'), start, end)
-
-
 def _accessory_types(q, start, end, request):
     qs = AccessoryType.objects.filter(deleted_date__isnull=True)
     if q: qs = qs.filter(name__icontains=q)
@@ -138,7 +131,7 @@ def _sites(q, start, end, request):
         qs = qs.filter(governorate_id=gov_id)
     qs = qs.order_by('governorate__name', 'name')
     total = qs.count()
-    items = [{'id': o.pk, 'text': f'{o.name} — {o.governorate.name}'} for o in qs[start:end]]
+    items = [{'id': o.pk, 'text': f'{o.name} — {o.governorate.name if o.governorate else ""}'} for o in qs[start:end]]
     return items, total
 
 
@@ -172,7 +165,7 @@ def _employees(q, start, end, request):
         )
     qs = qs.order_by('first_name', 'last_name')
     total = qs.count()
-    items = [{'id': o.pk, 'text': f'{o.full_name} ({o.site.name})'} for o in qs[start:end]]
+    items = [{'id': o.pk, 'text': f'{o.full_name} ({o.site.name if o.site else ""})'} for o in qs[start:end]]
     return items, total
 
 

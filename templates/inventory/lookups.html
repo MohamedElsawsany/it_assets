@@ -38,9 +38,6 @@
       <button class="nav-link" onclick="switchLookup('os')">{% trans "OS" %}</button>
     </li>
     <li class="nav-item">
-      <button class="nav-link" onclick="switchLookup('flags')">{% trans "Flags" %}</button>
-    </li>
-    <li class="nav-item">
       <button class="nav-link" onclick="switchLookup('accessory-types')">{% trans "Accessory Types" %}</button>
     </li>
   </ul>
@@ -186,7 +183,6 @@ const LOOKUP_META = {
   'cpus':            { label: '{% trans "CPUs" %}',           cols: ['{% trans "Name" %}', '{% trans "Brand" %}'], hasBrand: true, hasCategory: false },
   'gpus':            { label: '{% trans "GPUs" %}',           cols: ['{% trans "Name" %}', '{% trans "Brand" %}'], hasBrand: true, hasCategory: false },
   'os':              { label: '{% trans "Operating Systems" %}', cols: ['{% trans "Name" %}'], hasBrand: false, hasCategory: false },
-  'flags':           { label: '{% trans "Flags" %}',          cols: ['{% trans "Name" %}'], hasBrand: false, hasCategory: false },
   'accessory-types': { label: '{% trans "Accessory Types" %}', cols: ['{% trans "Name" %}'], hasBrand: false, hasCategory: false },
 };
 
@@ -207,7 +203,7 @@ function switchLookup(type) {
   const meta = LOOKUP_META[type];
   // Update tabs
   document.querySelectorAll('#lookupTabs .nav-link').forEach((btn, i) => {
-    const types = ['brands','categories','models','cpus','gpus','os','flags','accessory-types'];
+    const types = ['brands','categories','models','cpus','gpus','os','accessory-types'];
     btn.classList.toggle('active', types[i] === type);
   });
   // Update add button
