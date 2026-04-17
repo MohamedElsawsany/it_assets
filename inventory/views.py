@@ -309,7 +309,9 @@ def device_toggle_maintenance(request, pk):
     if device.maintenance_mode:
         device.flag = DeviceFlag.UNDER_MAINTENANCE
     else:
-        device.flag = DeviceFlag.AVAILABLE
+        # Restore to assigned if device still has an active assignment
+        has_active = device.assignments.filter(returned_date__isnull=True).exists()
+        device.flag = DeviceFlag.ASSIGNED if has_active else DeviceFlag.AVAILABLE
     device.save()
     return JsonResponse({
         'success': True,

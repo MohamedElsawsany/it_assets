@@ -539,7 +539,7 @@ function toggleMaintenance(pk, checkbox) {
   const original = !checkbox.checked;
   checkbox.disabled = true;
   ajaxPost(deviceToggleMaintUrl(pk), new FormData())
-    .then(data => { if (data.success) { showToast(data.message, 'success'); checkbox.checked = data.maintenance_mode; } else { checkbox.checked = original; showToast(data.message, 'danger'); } })
+    .then(data => { if (data.success) { showToast(data.message, 'success'); loadDevices(); } else { checkbox.checked = original; showToast(data.message, 'danger'); } })
     .catch(() => { checkbox.checked = original; showToast('{% trans "An error occurred." %}', 'danger'); })
     .finally(() => { checkbox.disabled = false; });
 }

@@ -80,6 +80,11 @@ def assignment_create(request):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
     form = AssignmentForm(request.POST)
     if form.is_valid():
+        device = form.cleaned_data['device']
+        if DeviceAssignment.objects.filter(device=device, returned_date__isnull=True).exists():
+            return JsonResponse({'success': False, 'errors': {
+                'device': [_('This device is already assigned and has not been returned yet.')]
+            }})
         obj = form.save(commit=False)
         obj.assigned_by = request.user
         obj.save()
