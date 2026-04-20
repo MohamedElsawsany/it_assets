@@ -17,6 +17,7 @@ Custom permissions:
 
 from django.conf import settings
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
 # ── Lookup tables ─────────────────────────────────────────────────────────────
@@ -130,11 +131,11 @@ class OperatingSystem(models.Model):
 
 
 class DeviceFlag(models.TextChoices):
-    AVAILABLE         = 'available',          'Available'
-    ASSIGNED          = 'assigned',           'Assigned'
-    LOST              = 'lost',               'Lost'
-    RETIRED           = 'retired',            'Retired'
-    UNDER_MAINTENANCE = 'under_maintenance',  'Under Maintenance'
+    AVAILABLE         = 'available',         _('Available')
+    ASSIGNED          = 'assigned',          _('Assigned')
+    LOST              = 'lost',              _('Lost')
+    RETIRED           = 'retired',           _('Retired')
+    UNDER_MAINTENANCE = 'under_maintenance', _('Under Maintenance')
 
 
 # ── Core device ───────────────────────────────────────────────────────────────

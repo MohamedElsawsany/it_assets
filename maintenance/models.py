@@ -17,13 +17,14 @@ Custom:
 from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
 class MaintenanceRecord(models.Model):
 
     class MaintenanceType(models.TextChoices):
-        INTERNAL = 'Internal', 'Internal'
-        EXTERNAL = 'External', 'External (Vendor)'
+        INTERNAL = 'Internal', _('Internal')
+        EXTERNAL = 'External', _('External (Vendor)')
 
     device            = models.ForeignKey('inventory.Device', on_delete=models.PROTECT, related_name='maintenance_records')
     issue_description = models.TextField()

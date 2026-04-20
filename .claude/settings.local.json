@@ -6,7 +6,12 @@
       "Bash(python -c ':*)",
       "Bash(python manage.py showmigrations --list)",
       "Bash(python manage.py shell -c ':*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(awk '{print $NF}')",
+      "Bash(grep -r \"from django.utils.translation\\\\|from django.utils import\\\\|_\\(\" /g/it_assets/accounts/*.py /g/it_assets/assignments/*.py /g/it_assets/dashboard/*.py /g/it_assets/employees/*.py /g/it_assets/inventory/*.py /g/it_assets/locations/*.py /g/it_assets/maintenance/*.py)",
+      "Bash(grep -rn \"gettext\\\\|_\\('\\\\\\\\|_\\(\\\\\"\" G:/it_assets/inventory/views.py G:/it_assets/assignments/views.py G:/it_assets/employees/views.py G:/it_assets/locations/views.py G:/it_assets/maintenance/views.py G:/it_assets/accounts/views.py)",
+      "Bash(where msgfmt:*)",
+      "Bash(pip show:*)"
     ]
   }
 }

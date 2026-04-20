@@ -45,6 +45,12 @@ msgstr "الصيانة"
 msgid "Reports"
 msgstr "التقارير"
 
+msgid "Lookups"
+msgstr "بيانات الجداول المرجعية"
+
+msgid "Lookup Tables"
+msgstr "الجداول المرجعية"
+
 msgid "Logout"
 msgstr "تسجيل الخروج"
 
@@ -72,6 +78,9 @@ msgstr "أدخل بريدك الإلكتروني"
 
 msgid "Enter your password"
 msgstr "أدخل كلمة المرور"
+
+msgid "Email is required"
+msgstr "البريد الإلكتروني مطلوب"
 
 # Dashboard
 msgid "Total Users"
@@ -235,7 +244,76 @@ msgstr "جارٍ الإعادة…"
 msgid "Edit"
 msgstr "تعديل"
 
-# Messages
+msgid "Return"
+msgstr "إرجاع"
+
+msgid "Close"
+msgstr "إغلاق"
+
+msgid "Select"
+msgstr "اختر"
+
+msgid "Add"
+msgstr "إضافة"
+
+msgid "Assign"
+msgstr "تعيين"
+
+msgid "Yes"
+msgstr "نعم"
+
+msgid "No"
+msgstr "لا"
+
+# Role names
+msgid "Super Administrator"
+msgstr "مدير عام"
+
+msgid "IT Admin"
+msgstr "مدير تقنية المعلومات"
+
+msgid "IT Supervisor"
+msgstr "مشرف تقنية المعلومات"
+
+msgid "Inventory Manager"
+msgstr "مدير المخزون"
+
+msgid "Site Manager"
+msgstr "مدير الموقع"
+
+msgid "Maintenance Technician"
+msgstr "فني الصيانة"
+
+msgid "Auditor"
+msgstr "مراجع الحسابات"
+
+msgid "Viewer"
+msgstr "مشاهد"
+
+# Device flag labels
+msgid "Available"
+msgstr "متاح"
+
+msgid "Assigned"
+msgstr "معيّن"
+
+msgid "Lost"
+msgstr "مفقود"
+
+msgid "Retired"
+msgstr "متقاعد"
+
+msgid "Under Maintenance"
+msgstr "تحت الصيانة"
+
+# Maintenance type labels
+msgid "Internal"
+msgstr "داخلي"
+
+msgid "External (Vendor)"
+msgstr "خارجي (مورد)"
+
+# Messages — accounts
 msgid "User created successfully."
 msgstr "تم إنشاء المستخدم بنجاح."
 
@@ -275,9 +353,602 @@ msgstr "حدث خطأ."
 msgid "Passwords don't match."
 msgstr "كلمتا المرور غير متطابقتين."
 
-# Form labels
+# Messages — inventory
+msgid "Item created successfully."
+msgstr "تم إنشاء العنصر بنجاح."
+
+msgid "Item updated successfully."
+msgstr "تم تحديث العنصر بنجاح."
+
+msgid "Item deleted successfully."
+msgstr "تم حذف العنصر بنجاح."
+
+msgid "Device created successfully."
+msgstr "تم إنشاء الجهاز بنجاح."
+
+msgid "Device updated successfully."
+msgstr "تم تحديث الجهاز بنجاح."
+
+msgid "Device deleted successfully."
+msgstr "تم حذف الجهاز بنجاح."
+
+msgid "Device retired successfully."
+msgstr "تم إتقاعد الجهاز بنجاح."
+
+msgid "Device flag updated."
+msgstr "تم تحديث حالة الجهاز."
+
+msgid "Maintenance mode enabled."
+msgstr "تم تفعيل وضع الصيانة."
+
+msgid "Maintenance mode disabled."
+msgstr "تم تعطيل وضع الصيانة."
+
+msgid "Accessory created successfully."
+msgstr "تم إنشاء الملحق بنجاح."
+
+msgid "Accessory updated successfully."
+msgstr "تم تحديث الملحق بنجاح."
+
+msgid "Accessory deleted successfully."
+msgstr "تم حذف الملحق بنجاح."
+
+msgid "Failed to load devices."
+msgstr "فشل تحميل الأجهزة."
+
+msgid "Failed to load device."
+msgstr "فشل تحميل بيانات الجهاز."
+
+msgid "Failed to load accessories."
+msgstr "فشل تحميل الملحقات."
+
+msgid "Failed to load accessory."
+msgstr "فشل تحميل بيانات الملحق."
+
+msgid "Failed to load items."
+msgstr "فشل تحميل العناصر."
+
+msgid "Failed to load item."
+msgstr "فشل تحميل بيانات العنصر."
+
+# Messages — assignments
+msgid "Assignment created successfully."
+msgstr "تم إنشاء التعيين بنجاح."
+
+msgid "Assignment updated successfully."
+msgstr "تم تحديث التعيين بنجاح."
+
+msgid "Assignment is already returned."
+msgstr "تم إرجاع هذا التعيين مسبقًا."
+
+msgid "Device returned successfully."
+msgstr "تم استرداد الجهاز بنجاح."
+
+msgid "Assignment deleted successfully."
+msgstr "تم حذف التعيين بنجاح."
+
+msgid "This device is already assigned and has not been returned yet."
+msgstr "هذا الجهاز معيّن بالفعل ولم يتم إرجاعه بعد."
+
+msgid "Transfer recorded successfully."
+msgstr "تم تسجيل النقل بنجاح."
+
+msgid "Transfer deleted successfully."
+msgstr "تم حذف النقل بنجاح."
+
+msgid "Failed to load assignments."
+msgstr "فشل تحميل التعيينات."
+
+msgid "Failed to load assignment."
+msgstr "فشل تحميل بيانات التعيين."
+
+msgid "Failed to load transfers."
+msgstr "فشل تحميل عمليات النقل."
+
+# Messages — employees
+msgid "Department created successfully."
+msgstr "تم إنشاء القسم بنجاح."
+
+msgid "Department updated successfully."
+msgstr "تم تحديث القسم بنجاح."
+
+msgid "Cannot delete: department has active employees."
+msgstr "لا يمكن الحذف: القسم يحتوي على موظفين نشطين."
+
+msgid "Department deleted successfully."
+msgstr "تم حذف القسم بنجاح."
+
+msgid "Employee created successfully."
+msgstr "تم إنشاء الموظف بنجاح."
+
+msgid "Employee updated successfully."
+msgstr "تم تحديث بيانات الموظف بنجاح."
+
+msgid "Employee deleted successfully."
+msgstr "تم حذف الموظف بنجاح."
+
+msgid "Failed to load employees."
+msgstr "فشل تحميل الموظفين."
+
+msgid "Failed to load employee."
+msgstr "فشل تحميل بيانات الموظف."
+
+msgid "Failed to load departments."
+msgstr "فشل تحميل الأقسام."
+
+msgid "Failed to load department."
+msgstr "فشل تحميل بيانات القسم."
+
+# Messages — locations
+msgid "Governorate created successfully."
+msgstr "تم إنشاء المحافظة بنجاح."
+
+msgid "Governorate updated successfully."
+msgstr "تم تحديث المحافظة بنجاح."
+
+msgid "Cannot delete: governorate has active sites."
+msgstr "لا يمكن الحذف: المحافظة تحتوي على مواقع نشطة."
+
+msgid "Governorate deleted successfully."
+msgstr "تم حذف المحافظة بنجاح."
+
+msgid "Site created successfully."
+msgstr "تم إنشاء الموقع بنجاح."
+
+msgid "Site updated successfully."
+msgstr "تم تحديث الموقع بنجاح."
+
+msgid "Site deleted successfully."
+msgstr "تم حذف الموقع بنجاح."
+
+msgid "Failed to load governorates."
+msgstr "فشل تحميل المحافظات."
+
+msgid "Failed to load sites."
+msgstr "فشل تحميل المواقع."
+
+# Messages — maintenance
+msgid "Maintenance record created successfully."
+msgstr "تم إنشاء سجل الصيانة بنجاح."
+
+msgid "Maintenance record updated successfully."
+msgstr "تم تحديث سجل الصيانة بنجاح."
+
+msgid "Record is already closed."
+msgstr "السجل مغلق بالفعل."
+
+msgid "Maintenance record closed successfully."
+msgstr "تم إغلاق سجل الصيانة بنجاح."
+
+msgid "Maintenance record deleted successfully."
+msgstr "تم حذف سجل الصيانة بنجاح."
+
+msgid "Failed to load records."
+msgstr "فشل تحميل السجلات."
+
+msgid "Failed to load record."
+msgstr "فشل تحميل بيانات السجل."
+
+# Devices page
+msgid "Manage all hardware devices in the system."
+msgstr "إدارة جميع الأجهزة في النظام."
+
+msgid "Search by serial, brand, model…"
+msgstr "البحث بالرقم التسلسلي أو الماركة أو الموديل…"
+
+msgid "All Categories"
+msgstr "جميع الفئات"
+
+msgid "All Sites"
+msgstr "جميع المواقع"
+
+msgid "All Flags"
+msgstr "جميع الحالات"
+
+msgid "Serial Number"
+msgstr "الرقم التسلسلي"
+
+msgid "Category"
+msgstr "الفئة"
+
+msgid "Brand / Model"
+msgstr "الماركة / الموديل"
+
+msgid "Brand"
+msgstr "الماركة"
+
+msgid "Model"
+msgstr "الموديل"
+
+msgid "Flag"
+msgstr "الحالة"
+
+msgid "No devices found."
+msgstr "لم يتم العثور على أجهزة."
+
+msgid "Add Device"
+msgstr "إضافة جهاز"
+
+msgid "Create Device"
+msgstr "إنشاء جهاز"
+
+msgid "Edit Device"
+msgstr "تعديل الجهاز"
+
+msgid "Delete Device"
+msgstr "حذف الجهاز"
+
+msgid "Change Flag"
+msgstr "تغيير الحالة"
+
+msgid "New Flag"
+msgstr "الحالة الجديدة"
+
+msgid "Update Flag"
+msgstr "تحديث الحالة"
+
+msgid "Specifications (optional)"
+msgstr "المواصفات (اختياري)"
+
+msgid "CPU"
+msgstr "المعالج"
+
+msgid "GPU"
+msgstr "كرت الشاشة"
+
+msgid "Operating System"
+msgstr "نظام التشغيل"
+
+msgid "RAM (GB)"
+msgstr "الذاكرة العشوائية (جيجابايت)"
+
+msgid "HDD (GB)"
+msgstr "القرص الصلب (جيجابايت)"
+
+msgid "SSD (GB)"
+msgstr "القرص الصلب SSD (جيجابايت)"
+
+msgid "Screen (in)"
+msgstr "حجم الشاشة (بوصة)"
+
+msgid "Ports"
+msgstr "المنافذ"
+
+msgid "RAM"
+msgstr "الذاكرة"
+
+msgid "HDD"
+msgstr "القرص الصلب"
+
+msgid "SSD"
+msgstr "SSD"
+
+msgid "Screen"
+msgstr "الشاشة"
+
+msgid "OS"
+msgstr "نظام التشغيل"
+
+# Accessories page
+msgid "Manage all accessories and peripherals."
+msgstr "إدارة جميع الملحقات والأجهزة الطرفية."
+
+msgid "Search by serial or type…"
+msgstr "البحث بالرقم التسلسلي أو النوع…"
+
+msgid "All Types"
+msgstr "جميع الأنواع"
+
+msgid "Type"
+msgstr "النوع"
+
+msgid "Linked Device"
+msgstr "الجهاز المرتبط"
+
+msgid "No accessories found."
+msgstr "لم يتم العثور على ملحقات."
+
+msgid "Add Accessory"
+msgstr "إضافة ملحق"
+
+msgid "Edit Accessory"
+msgstr "تعديل الملحق"
+
+msgid "Delete Accessory"
+msgstr "حذف الملحق"
+
+msgid "Create"
+msgstr "إنشاء"
+
+# Assignments page
+msgid "Device Assignments"
+msgstr "تعيينات الأجهزة"
+
+msgid "Track which devices are assigned to which employees."
+msgstr "تتبع الأجهزة المعيّنة لكل موظف."
+
+msgid "Search by device serial or employee name…"
+msgstr "البحث بالرقم التسلسلي للجهاز أو اسم الموظف…"
+
+msgid "Returned"
+msgstr "تم الإرجاع"
+
+msgid "New Assignment"
+msgstr "تعيين جديد"
+
+msgid "Device"
+msgstr "الجهاز"
+
+msgid "Employee"
+msgstr "الموظف"
+
+msgid "Assigned Date"
+msgstr "تاريخ التعيين"
+
+msgid "Returned Date"
+msgstr "تاريخ الإرجاع"
+
+msgid "Notes"
+msgstr "ملاحظات"
+
+msgid "No assignments found."
+msgstr "لم يتم العثور على تعيينات."
+
+msgid "Edit Assignment"
+msgstr "تعديل التعيين"
+
+msgid "Return Device"
+msgstr "إرجاع الجهاز"
+
+msgid "Record the return of this device."
+msgstr "تسجيل إرجاع هذا الجهاز."
+
+msgid "Return Date"
+msgstr "تاريخ الإرجاع"
+
+msgid "Confirm Return"
+msgstr "تأكيد الإرجاع"
+
+msgid "Delete Assignment"
+msgstr "حذف التعيين"
+
+# Transfers page
+msgid "Device Transfers"
+msgstr "نقل الأجهزة"
+
+msgid "Track device movements between sites."
+msgstr "تتبع تنقلات الأجهزة بين المواقع."
+
+msgid "Search by device serial or site…"
+msgstr "البحث بالرقم التسلسلي للجهاز أو الموقع…"
+
+msgid "From Site"
+msgstr "من موقع"
+
+msgid "To Site"
+msgstr "إلى موقع"
+
+msgid "Transfer Date"
+msgstr "تاريخ النقل"
+
+msgid "Transferred By"
+msgstr "نُقل بواسطة"
+
+msgid "No transfers found."
+msgstr "لم يتم العثور على عمليات نقل."
+
+msgid "New Transfer"
+msgstr "نقل جديد"
+
+msgid "Record Transfer"
+msgstr "تسجيل النقل"
+
+msgid "Delete Transfer"
+msgstr "حذف عملية النقل"
+
+# Employees page
+msgid "Manage employees and departments."
+msgstr "إدارة الموظفين والأقسام."
+
+msgid "Departments"
+msgstr "الأقسام"
+
+msgid "Search by name or card ID…"
+msgstr "البحث بالاسم أو رقم البطاقة…"
+
+msgid "All Departments"
+msgstr "جميع الأقسام"
+
+msgid "Card ID"
+msgstr "رقم البطاقة"
+
+msgid "Department"
+msgstr "القسم"
+
+msgid "No employees found."
+msgstr "لم يتم العثور على موظفين."
+
+msgid "Add Employee"
+msgstr "إضافة موظف"
+
+msgid "Edit Employee"
+msgstr "تعديل الموظف"
+
+msgid "Delete Employee"
+msgstr "حذف الموظف"
+
+msgid "Department Name"
+msgstr "اسم القسم"
+
+msgid "No departments found."
+msgstr "لم يتم العثور على أقسام."
+
+msgid "Add Department"
+msgstr "إضافة قسم"
+
+msgid "Edit Department"
+msgstr "تعديل القسم"
+
+msgid "Delete Department"
+msgstr "حذف القسم"
+
+msgid "Search departments…"
+msgstr "البحث في الأقسام…"
+
+# Locations page
+msgid "Manage governorates and sites."
+msgstr "إدارة المحافظات والمواقع."
+
+msgid "Governorates"
+msgstr "المحافظات"
+
+msgid "Sites"
+msgstr "المواقع"
+
+msgid "Search governorates…"
+msgstr "البحث في المحافظات…"
+
+msgid "Add Governorate"
+msgstr "إضافة محافظة"
+
+msgid "No governorates found."
+msgstr "لم يتم العثور على محافظات."
+
+msgid "Search sites…"
+msgstr "البحث في المواقع…"
+
+msgid "All Governorates"
+msgstr "جميع المحافظات"
+
+msgid "Add Site"
+msgstr "إضافة موقع"
+
+msgid "Site Name"
+msgstr "اسم الموقع"
+
+msgid "Governorate"
+msgstr "المحافظة"
+
+msgid "No sites found."
+msgstr "لم يتم العثور على مواقع."
+
+msgid "Edit Governorate"
+msgstr "تعديل المحافظة"
+
+msgid "Edit Site"
+msgstr "تعديل الموقع"
+
+msgid "Delete Governorate"
+msgstr "حذف المحافظة"
+
+msgid "Delete Site"
+msgstr "حذف الموقع"
+
+# Maintenance page
+msgid "Maintenance Records"
+msgstr "سجلات الصيانة"
+
+msgid "Track device maintenance and repairs."
+msgstr "تتبع صيانة الأجهزة والإصلاحات."
+
+msgid "Search by serial, vendor, issue…"
+msgstr "البحث بالرقم التسلسلي أو المورد أو المشكلة…"
+
+msgid "Open"
+msgstr "مفتوح"
+
+msgid "Closed"
+msgstr "مغلق"
+
+msgid "New Record"
+msgstr "سجل جديد"
+
+msgid "Vendor"
+msgstr "المورد"
+
+msgid "Issue"
+msgstr "المشكلة"
+
+msgid "Sent Date"
+msgstr "تاريخ الإرسال"
+
+msgid "Cost"
+msgstr "التكلفة"
+
+msgid "No maintenance records found."
+msgstr "لم يتم العثور على سجلات صيانة."
+
+msgid "New Maintenance Record"
+msgstr "سجل صيانة جديد"
+
+msgid "Maintenance Type"
+msgstr "نوع الصيانة"
+
+msgid "Vendor Name"
+msgstr "اسم المورد"
+
+msgid "Issue Description"
+msgstr "وصف المشكلة"
+
+msgid "Close Maintenance Record"
+msgstr "إغلاق سجل الصيانة"
+
+msgid "Resolution Notes"
+msgstr "ملاحظات الحل"
+
+msgid "Close Record"
+msgstr "إغلاق السجل"
+
+msgid "Edit Maintenance Record"
+msgstr "تعديل سجل الصيانة"
+
+msgid "Delete Record"
+msgstr "حذف السجل"
+
+# Lookups page
+msgid "Manage reference data used across the system."
+msgstr "إدارة البيانات المرجعية المستخدمة في النظام."
+
+msgid "Brands"
+msgstr "الماركات"
+
+msgid "Categories"
+msgstr "الفئات"
+
+msgid "Models"
+msgstr "الموديلات"
+
+msgid "CPUs"
+msgstr "المعالجات"
+
+msgid "GPUs"
+msgstr "كروت الشاشة"
+
+msgid "Operating Systems"
+msgstr "أنظمة التشغيل"
+
+msgid "Accessory Types"
+msgstr "أنواع الملحقات"
+
+msgid "Search…"
+msgstr "بحث…"
+
+msgid "No items found."
+msgstr "لم يتم العثور على عناصر."
+
+msgid "Delete Item"
+msgstr "حذف العنصر"
+
+msgid "Name"
+msgstr "الاسم"
+
+# Common
 msgid "— Select role —"
 msgstr "— اختر الدور —"
+
+# Form labels
+msgid "— Select —"
+msgstr "— اختر —"
 
 # Language names
 msgid "English"

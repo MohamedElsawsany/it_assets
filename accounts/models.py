@@ -7,13 +7,14 @@ All permission logic lives in accounts/permissions.py.
 
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
 class UserManager(BaseUserManager):
 
     def create_user(self, email, password=None, **extra_fields):
         if not email:
-            raise ValueError('Email is required')
+            raise ValueError(_('Email is required'))
         email = self.normalize_email(email)
         user  = self.model(email=email, **extra_fields)
         user.set_password(password)
@@ -54,14 +55,14 @@ class User(AbstractBaseUser, PermissionsMixin):
     VIEWER            = 'viewer'
 
     ROLE_CHOICES = [
-        (SUPER_ADMIN,       'Super Administrator'),
-        (IT_ADMIN,          'IT Admin'),
-        (IT_SUPERVISOR,     'IT Supervisor'),
-        (INVENTORY_MANAGER, 'Inventory Manager'),
-        (SITE_MANAGER,      'Site Manager'),
-        (MAINTENANCE_TECH,  'Maintenance Technician'),
-        (AUDITOR,           'Auditor'),
-        (VIEWER,            'Viewer'),
+        (SUPER_ADMIN,       _('Super Administrator')),
+        (IT_ADMIN,          _('IT Admin')),
+        (IT_SUPERVISOR,     _('IT Supervisor')),
+        (INVENTORY_MANAGER, _('Inventory Manager')),
+        (SITE_MANAGER,      _('Site Manager')),
+        (MAINTENANCE_TECH,  _('Maintenance Technician')),
+        (AUDITOR,           _('Auditor')),
+        (VIEWER,            _('Viewer')),
     ]
 
     # Bootstrap / Tailwind colour token used in templates: {{ rbac.role_color }}
