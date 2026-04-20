@@ -119,10 +119,14 @@
 
   <!-- Sidebar footer -->
   <div class="sidebar-footer">
-    <a href="{% url 'logout' %}" class="sidebar-link sidebar-logout">
-      <i class="bi bi-box-arrow-left sidebar-icon"></i>
-      <span>{% trans "Logout" %}</span>
-    </a>
+    <div class="d-flex align-items-center gap-2 px-3 py-2">
+      <div class="user-avatar user-avatar-sm">
+        {{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}
+      </div>
+      <div>
+        <div class="fw-semibold small text-white">{{ request.user.full_name }}</div>
+      </div>
+    </div>
   </div>
 
 </aside>
