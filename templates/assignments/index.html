@@ -87,6 +87,39 @@
 </div>
 
 
+<!-- ===== VIEW MODAL ===== -->
+<div class="modal fade" id="viewModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-link-45deg me-2 text-secondary"></i>{% trans "Assignment Details" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="viewLoader" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+        <div id="viewContent" class="d-none">
+          <div class="row g-3">
+            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Device" %}</p><p class="fw-medium font-monospace mb-0" id="v-device"></p></div>
+            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Employee" %}</p><p class="fw-medium mb-0" id="v-employee"></p></div>
+            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Assigned Date" %}</p><p class="fw-medium mb-0" id="v-assigned-date"></p></div>
+            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Returned Date" %}</p><p class="fw-medium mb-0" id="v-returned-date"></p></div>
+            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Status" %}</p><p class="mb-0" id="v-status"></p></div>
+            <div class="col-12"><p class="text-muted small mb-1">{% trans "Notes" %}</p><p class="fw-medium mb-0" id="v-notes"></p></div>
+          </div>
+          <hr class="my-3">
+          <div class="row g-3 text-muted small">
+            <div class="col-md-4"><p class="mb-1">{% trans "Assigned by" %}</p><p class="fw-medium text-body mb-0" id="v-assigned-by"></p></div>
+            <div class="col-md-4"><p class="mb-1">{% trans "Created" %}</p><p class="fw-medium text-body mb-0" id="v-created-date"></p></div>
+            <div class="col-md-4"><p class="mb-1">{% trans "Last updated" %}</p><p class="fw-medium text-body mb-0" id="v-updated-date"></p></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Close" %}</button></div>
+    </div>
+  </div>
+</div>
+
+
 <!-- ===== CREATE MODAL ===== -->
 <div class="modal fade" id="createModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -270,6 +303,7 @@ const T = {
 let deleteTargetId = null;
 let debounceTimer  = null;
 
+const viewModal   = new bootstrap.Modal('#viewModal');
 const createModal = new bootstrap.Modal('#createModal');
 const editModal   = new bootstrap.Modal('#editModal');
 const returnModal = new bootstrap.Modal('#returnModal');
@@ -323,6 +357,7 @@ function renderTable(items) {
       </td>
       <td class="text-end">
         <div class="d-flex gap-1 justify-content-end">
+          <button class="btn btn-sm btn-icon btn-outline-secondary" onclick="openViewModal(${a.id})" title="{% trans 'View' %}"><i class="bi bi-eye"></i></button>
           ${CAN_EDIT ? `<button class="btn btn-sm btn-icon btn-outline-primary" onclick="openEditModal(${a.id})" title="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></button>` : ''}
           ${CAN_RETURN && a.is_active ? `<button class="btn btn-sm btn-icon btn-outline-success" onclick="openReturnModal(${a.id})" title="{% trans 'Return' %}"><i class="bi bi-box-arrow-in-left"></i></button>` : ''}
           ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDeleteModal(${a.id},'${escHtml(a.device_serial)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
@@ -330,6 +365,32 @@ function renderTable(items) {
       </td>
     </tr>
   `).join('');
+}
+
+/* View */
+function openViewModal(pk) {
+  document.getElementById('viewLoader').classList.remove('d-none');
+  document.getElementById('viewContent').classList.add('d-none');
+  viewModal.show();
+  ajaxGet(detailUrl(pk))
+    .then(data => {
+      if (!data.success) { showToast(data.message, 'danger'); viewModal.hide(); return; }
+      const a = data.item;
+      document.getElementById('v-device').textContent        = a.device_serial;
+      document.getElementById('v-employee').textContent      = a.employee_name;
+      document.getElementById('v-assigned-date').textContent = a.assigned_date ? a.assigned_date.replace('T',' ') : '—';
+      document.getElementById('v-returned-date').textContent = a.returned_date ? a.returned_date.replace('T',' ') : '—';
+      document.getElementById('v-status').innerHTML = a.is_active
+        ? `<span class="badge rounded-pill bg-success-subtle text-success">${T.active}</span>`
+        : `<span class="badge rounded-pill bg-secondary-subtle text-secondary">${T.returned}</span>`;
+      document.getElementById('v-notes').textContent         = a.notes || '—';
+      document.getElementById('v-assigned-by').textContent   = a.assigned_by;
+      document.getElementById('v-created-date').textContent  = a.created_date;
+      document.getElementById('v-updated-date').textContent  = a.updated_date || '—';
+      document.getElementById('viewLoader').classList.add('d-none');
+      document.getElementById('viewContent').classList.remove('d-none');
+    })
+    .catch(() => { showToast('{% trans "Failed to load assignment." %}', 'danger'); viewModal.hide(); });
 }
 
 /* Create */

@@ -81,6 +81,37 @@
 </div>
 
 
+<!-- ===== VIEW MODAL ===== -->
+<div class="modal fade" id="viewModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-arrow-left-right me-2 text-secondary"></i>{% trans "Transfer Details" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="viewLoader" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+        <div id="viewContent" class="d-none">
+          <div class="row g-3">
+            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Device" %}</p><p class="fw-medium font-monospace mb-0" id="v-device"></p></div>
+            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Transfer Date" %}</p><p class="fw-medium mb-0" id="v-date"></p></div>
+            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "From Site" %}</p><p class="fw-medium mb-0" id="v-from"></p></div>
+            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "To Site" %}</p><p class="fw-medium mb-0" id="v-to"></p></div>
+            <div class="col-12"><p class="text-muted small mb-1">{% trans "Notes" %}</p><p class="fw-medium mb-0" id="v-notes"></p></div>
+          </div>
+          <hr class="my-3">
+          <div class="row g-3 text-muted small">
+            <div class="col-md-6"><p class="mb-1">{% trans "Transferred by" %}</p><p class="fw-medium text-body mb-0" id="v-transferred-by"></p></div>
+            <div class="col-md-6"><p class="mb-1">{% trans "Record created" %}</p><p class="fw-medium text-body mb-0" id="v-created-date"></p></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Close" %}</button></div>
+    </div>
+  </div>
+</div>
+
+
 <!-- ===== CREATE MODAL ===== -->
 <div class="modal fade" id="createModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -166,6 +197,7 @@ const CAN_DELETE = {{ rbac.transfers_delete|yesno:"true,false" }};
 
 const URL_DATA   = '{% url "transfers-data" %}';
 const URL_CREATE = '{% url "transfer-create" %}';
+const detailUrl  = pk => `/assignments/transfers/${pk}/`;
 const deleteUrl  = pk => `/assignments/transfers/${pk}/delete/`;
 
 const T = { records: '{% trans "records" %}' };
@@ -173,6 +205,7 @@ const T = { records: '{% trans "records" %}' };
 let deleteTargetId = null;
 let debounceTimer  = null;
 
+const viewModal   = new bootstrap.Modal('#viewModal');
 const createModal = new bootstrap.Modal('#createModal');
 const deleteModal = new bootstrap.Modal('#deleteModal');
 
@@ -215,10 +248,34 @@ function renderTable(items) {
       <td>${escHtml(t.transferred_by)}</td>
       <td class="text-muted small">${t.notes ? escHtml(t.notes.substring(0, 50)) : '—'}</td>
       <td class="text-end">
-        ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDeleteModal(${t.id},'${escHtml(t.device_serial)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
+        <div class="d-flex gap-1 justify-content-end">
+          <button class="btn btn-sm btn-icon btn-outline-secondary" onclick="openViewModal(${t.id})" title="{% trans 'View' %}"><i class="bi bi-eye"></i></button>
+          ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDeleteModal(${t.id},'${escHtml(t.device_serial)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
+        </div>
       </td>
     </tr>
   `).join('');
+}
+
+function openViewModal(pk) {
+  document.getElementById('viewLoader').classList.remove('d-none');
+  document.getElementById('viewContent').classList.add('d-none');
+  viewModal.show();
+  ajaxGet(detailUrl(pk))
+    .then(data => {
+      if (!data.success) { showToast(data.message, 'danger'); viewModal.hide(); return; }
+      const t = data.item;
+      document.getElementById('v-device').textContent         = t.device_serial;
+      document.getElementById('v-date').textContent           = t.transfer_date;
+      document.getElementById('v-from').textContent           = t.from_site_name;
+      document.getElementById('v-to').textContent             = t.to_site_name;
+      document.getElementById('v-notes').textContent          = t.notes || '—';
+      document.getElementById('v-transferred-by').textContent = t.transferred_by;
+      document.getElementById('v-created-date').textContent   = t.created_date;
+      document.getElementById('viewLoader').classList.add('d-none');
+      document.getElementById('viewContent').classList.remove('d-none');
+    })
+    .catch(() => { showToast('{% trans "Failed to load transfer." %}', 'danger'); viewModal.hide(); });
 }
 
 function openCreateModal() {

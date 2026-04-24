@@ -27,6 +27,7 @@ class MaintenanceRecord(models.Model):
         EXTERNAL = 'External', _('External (Vendor)')
 
     device            = models.ForeignKey('inventory.Device', on_delete=models.PROTECT, related_name='maintenance_records')
+    previous_flag     = models.CharField(max_length=50, blank=True, default='', help_text='Device flag before entering maintenance; restored on close')
     issue_description = models.TextField()
     maintenance_type  = models.CharField(
         max_length=20,

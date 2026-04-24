@@ -98,6 +98,67 @@
 </div>
 
 
+<!-- ===== VIEW MODAL ===== -->
+<div class="modal fade" id="viewModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-tools me-2 text-secondary"></i>{% trans "Maintenance Record Details" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="viewLoader" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+        <div id="viewContent" class="d-none">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Device" %}</p>
+              <p class="fw-medium font-monospace mb-0" id="view-device"></p>
+            </div>
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Status" %}</p>
+              <p class="mb-0" id="view-status"></p>
+            </div>
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Type" %}</p>
+              <p class="fw-medium mb-0" id="view-type"></p>
+            </div>
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Vendor" %}</p>
+              <p class="fw-medium mb-0" id="view-vendor"></p>
+            </div>
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Sent Date" %}</p>
+              <p class="fw-medium mb-0" id="view-sent"></p>
+            </div>
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Returned Date" %}</p>
+              <p class="fw-medium mb-0" id="view-returned"></p>
+            </div>
+            <div class="col-12">
+              <p class="text-muted small mb-1">{% trans "Issue Description" %}</p>
+              <p class="fw-medium mb-0 white-space-pre-wrap" id="view-issue"></p>
+            </div>
+            <div class="col-12" id="view-notes-row">
+              <p class="text-muted small mb-1">{% trans "Resolution Notes" %}</p>
+              <p class="fw-medium mb-0 white-space-pre-wrap" id="view-notes"></p>
+            </div>
+            {% if rbac.maintenance_view_cost %}
+            <div class="col-md-4" id="view-cost-row">
+              <p class="text-muted small mb-1">{% trans "Cost" %}</p>
+              <p class="fw-medium mb-0" id="view-cost"></p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Close" %}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 <!-- ===== CREATE MODAL ===== -->
 <div class="modal fade" id="createModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -306,6 +367,7 @@ const T = {
 let deleteTargetId = null;
 let debounceTimer  = null;
 
+const viewModal   = new bootstrap.Modal('#viewModal');
 const createModal = new bootstrap.Modal('#createModal');
 const editModal   = new bootstrap.Modal('#editModal');
 const closeModal  = new bootstrap.Modal('#closeModal');
@@ -366,6 +428,7 @@ function renderTable(items, showCost) {
       </td>
       <td class="text-end">
         <div class="d-flex gap-1 justify-content-end">
+          <button class="btn btn-sm btn-icon btn-outline-secondary" onclick="openViewModal(${r.id})" title="{% trans 'View' %}"><i class="bi bi-eye"></i></button>
           ${CAN_EDIT ? `<button class="btn btn-sm btn-icon btn-outline-primary" onclick="openEditModal(${r.id})" title="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></button>` : ''}
           ${CAN_CLOSE && r.is_open ? `<button class="btn btn-sm btn-icon btn-outline-success" onclick="openCloseModal(${r.id})" title="{% trans 'Close' %}"><i class="bi bi-check-circle"></i></button>` : ''}
           ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDeleteModal(${r.id},'${escHtml(r.device_serial)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
@@ -380,6 +443,38 @@ function toggleVendor(val) {
 }
 function toggleVendorEdit(val) {
   document.getElementById('vendorFieldEdit').style.display = val === 'External' ? '' : 'none';
+}
+
+/* View */
+function openViewModal(pk) {
+  document.getElementById('viewLoader').classList.remove('d-none');
+  document.getElementById('viewContent').classList.add('d-none');
+  viewModal.show();
+  ajaxGet(detailUrl(pk))
+    .then(data => {
+      if (!data.success) { showToast(data.message, 'danger'); viewModal.hide(); return; }
+      const r = data.item;
+      document.getElementById('view-device').textContent   = r.device_serial;
+      document.getElementById('view-type').textContent     = r.maintenance_type_display;
+      document.getElementById('view-vendor').textContent   = r.vendor_name || '—';
+      document.getElementById('view-sent').textContent     = r.sent_date ? r.sent_date.replace('T', ' ') : '—';
+      document.getElementById('view-returned').textContent = r.returned_date ? r.returned_date.replace('T', ' ') : '—';
+      document.getElementById('view-issue').textContent    = r.issue_description;
+      document.getElementById('view-notes').textContent    = r.resolution_notes || '—';
+      const statusEl = document.getElementById('view-status');
+      if (r.is_open) {
+        statusEl.innerHTML = `<span class="badge rounded-pill bg-warning-subtle text-warning">${T.open}</span>`;
+      } else {
+        statusEl.innerHTML = `<span class="badge rounded-pill bg-success-subtle text-success">${T.closed}</span>`;
+      }
+      const costRow = document.getElementById('view-cost-row');
+      if (costRow && data.show_cost) {
+        document.getElementById('view-cost').textContent = r.cost !== undefined && r.cost !== '' ? r.cost : '—';
+      }
+      document.getElementById('viewLoader').classList.add('d-none');
+      document.getElementById('viewContent').classList.remove('d-none');
+    })
+    .catch(() => { showToast('{% trans "Failed to load record." %}', 'danger'); viewModal.hide(); });
 }
 
 /* Create */

@@ -150,6 +150,32 @@
 </div><!-- /page-container -->
 
 
+<!-- ===== VIEW MODAL ===== -->
+<div class="modal fade" id="viewModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="viewModalTitle"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="viewLoader" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+        <div id="viewContent" class="d-none">
+          <div class="row g-3" id="viewFields"></div>
+          <hr class="my-3">
+          <div class="row g-3 text-muted small">
+            <div class="col-md-4"><p class="mb-1">{% trans "Created by" %}</p><p class="fw-medium text-body mb-0" id="v-created-by"></p></div>
+            <div class="col-md-4"><p class="mb-1">{% trans "Created" %}</p><p class="fw-medium text-body mb-0" id="v-created-date"></p></div>
+            <div class="col-md-4"><p class="mb-1">{% trans "Last updated" %}</p><p class="fw-medium text-body mb-0" id="v-updated-date"></p></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Close" %}</button></div>
+    </div>
+  </div>
+</div>
+
+
 <!-- ===== CREATE MODAL ===== -->
 <div class="modal fade" id="createModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
@@ -308,6 +334,7 @@ let currentTab   = 'governorates';
 let deleteTarget = { url: null, reload: null };
 let editTarget   = { type: null };
 
+const viewModal   = new bootstrap.Modal('#viewModal');
 const createModal = new bootstrap.Modal('#createModal');
 const editModal   = new bootstrap.Modal('#editModal');
 const deleteModal = new bootstrap.Modal('#deleteModal');
@@ -353,6 +380,7 @@ function renderGovRow(g, i) {
     <td class="text-muted small">${g.created_date}</td>
     <td class="text-end">
       <div class="d-flex gap-1 justify-content-end">
+        <button class="btn btn-sm btn-icon btn-outline-secondary" onclick="openViewModal('governorate',${g.id})" title="{% trans 'View' %}"><i class="bi bi-eye"></i></button>
         ${CAN_EDIT ? `<button class="btn btn-sm btn-icon btn-outline-primary" onclick="openEditModal('governorate',${g.id})" title="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></button>` : ''}
         ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDeleteModal('governorate',${g.id},'${escHtml(g.name)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
       </div>
@@ -387,6 +415,7 @@ function renderSiteRow(s, i) {
     <td class="text-muted small">${s.created_date}</td>
     <td class="text-end">
       <div class="d-flex gap-1 justify-content-end">
+        <button class="btn btn-sm btn-icon btn-outline-secondary" onclick="openViewModal('site',${s.id})" title="{% trans 'View' %}"><i class="bi bi-eye"></i></button>
         ${CAN_EDIT ? `<button class="btn btn-sm btn-icon btn-outline-primary" onclick="openEditModal('site',${s.id})" title="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></button>` : ''}
         ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDeleteModal('site',${s.id},'${escHtml(s.name)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
       </div>
@@ -425,6 +454,33 @@ function showEditFields(type) {
   document.getElementById('siteEditFields').classList.toggle('d-none', isGov);
   document.getElementById('govEditFields').querySelectorAll('input,select').forEach(el => el.disabled = !isGov);
   document.getElementById('siteEditFields').querySelectorAll('input,select').forEach(el => el.disabled = isGov);
+}
+
+/* ── VIEW ── */
+function openViewModal(type, pk) {
+  const isGov = type === 'governorate';
+  document.getElementById('viewModalTitle').innerHTML =
+    `<i class="bi bi-eye me-2 text-secondary"></i>${isGov ? '{% trans "Governorate Details" %}' : '{% trans "Site Details" %}'}`;
+  document.getElementById('viewLoader').classList.remove('d-none');
+  document.getElementById('viewContent').classList.add('d-none');
+  viewModal.show();
+  const url = isGov ? govDetailUrl(pk) : siteDetailUrl(pk);
+  ajaxGet(url)
+    .then(data => {
+      if (!data.success) { showToast(data.message, 'danger'); viewModal.hide(); return; }
+      const item = data.item;
+      let fields = `<div class="col-12"><p class="text-muted small mb-1">{% trans "Name" %}</p><p class="fw-medium mb-0">${escHtml(item.name)}</p></div>`;
+      if (!isGov) {
+        fields += `<div class="col-12"><p class="text-muted small mb-1">{% trans "Governorate" %}</p><p class="fw-medium mb-0">${escHtml(item.governorate_name)}</p></div>`;
+      }
+      document.getElementById('viewFields').innerHTML = fields;
+      document.getElementById('v-created-by').textContent   = item.created_by;
+      document.getElementById('v-created-date').textContent = item.created_date;
+      document.getElementById('v-updated-date').textContent = item.updated_date || '—';
+      document.getElementById('viewLoader').classList.add('d-none');
+      document.getElementById('viewContent').classList.remove('d-none');
+    })
+    .catch(() => { showToast('{% trans "Failed to load item." %}', 'danger'); viewModal.hide(); });
 }
 
 /* ── CREATE ── */

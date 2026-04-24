@@ -81,11 +81,17 @@ def lookup_data(request, lookup_type):
 
 @login_required
 def lookup_item_detail(request, lookup_type, pk):
-    if not has_permission(request.user, Perms.LOOKUPS_EDIT):
+    if not has_permission(request.user, Perms.LOOKUPS_VIEW):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
     model, _, _, serialize = _get_lookup(lookup_type)
-    obj = get_object_or_404(model, pk=pk, deleted_date__isnull=True)
-    return JsonResponse({'success': True, 'item': serialize(obj)})
+    obj = get_object_or_404(model.objects.select_related('created_by'), pk=pk, deleted_date__isnull=True)
+    item = serialize(obj)
+    item.update({
+        'created_by': obj.created_by.full_name if obj.created_by else '',
+        'created_date': obj.created_date.strftime('%Y-%m-%d %H:%M'),
+        'updated_date': obj.updated_date.strftime('%Y-%m-%d %H:%M') if obj.updated_date else '',
+    })
+    return JsonResponse({'success': True, 'item': item})
 
 
 @login_required
@@ -126,6 +132,22 @@ def lookup_delete(request, lookup_type, pk):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
     model, __, __, __ = _get_lookup(lookup_type)
     obj = get_object_or_404(model, pk=pk, deleted_date__isnull=True)
+    # Block deletion if referenced by other records
+    related_checks = {
+        'brands':          [('devices', True), ('accessories', True), ('device_models', True), ('cpus', True), ('gpus', True)],
+        'categories':      [('devices', True), ('device_models', True)],
+        'models':          [('devices', True)],
+        'cpus':            [('devices', True)],
+        'gpus':            [('devices', True)],
+        'os':              [('devices', True)],
+        'accessory-types': [('accessories', True)],
+    }
+    for rel_name, use_soft_delete_filter in related_checks.get(lookup_type, []):
+        qs = getattr(obj, rel_name)
+        if use_soft_delete_filter:
+            qs = qs.filter(deleted_date__isnull=True)
+        if qs.exists():
+            return JsonResponse({'success': False, 'message': _('Cannot delete: item is used by existing records.')})
     obj.deleted_date = timezone.now()
     obj.save()
     return JsonResponse({'success': True, 'message': _('Item deleted successfully.')})
@@ -200,11 +222,11 @@ def devices_data(request):
 
 @login_required
 def device_detail(request, pk):
-    if not has_permission(request.user, Perms.DEVICES_EDIT):
+    if not has_permission(request.user, Perms.DEVICES_VIEW):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
     d = get_object_or_404(
         Device.objects.select_related('category', 'brand', 'device_model', 'site',
-                                      'cpu', 'gpu', 'operating_system'),
+                                      'cpu', 'gpu', 'operating_system', 'created_by'),
         pk=pk, deleted_date__isnull=True,
     )
     show_specs = has_permission(request.user, Perms.DEVICES_VIEW_SPECS)
@@ -214,7 +236,10 @@ def device_detail(request, pk):
         'brand_id': d.brand_id,           'brand_name': d.brand.name,
         'device_model_id': d.device_model_id, 'model_name': d.device_model.name,
         'site_id': d.site_id,             'site_name': d.site.name,
-        'flag': d.flag,
+        'flag': d.flag, 'flag_name': d.get_flag_display(),
+        'created_by': d.created_by.full_name,
+        'created_date': d.created_date.strftime('%Y-%m-%d %H:%M'),
+        'updated_date': d.updated_date.strftime('%Y-%m-%d %H:%M') if d.updated_date else '',
     }
     if show_specs:
         item.update({
@@ -266,6 +291,14 @@ def device_delete(request, pk):
     if not has_permission(request.user, Perms.DEVICES_DELETE):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
     device = get_object_or_404(Device, pk=pk, deleted_date__isnull=True)
+    if device.assignments.exists():
+        return JsonResponse({'success': False, 'message': _('Cannot delete device: it has assignment records.')})
+    if device.transfers.exists():
+        return JsonResponse({'success': False, 'message': _('Cannot delete device: it has transfer records.')})
+    if device.maintenance_records.exists():
+        return JsonResponse({'success': False, 'message': _('Cannot delete device: it has maintenance records.')})
+    if device.accessories.exists():
+        return JsonResponse({'success': False, 'message': _('Cannot delete device: it has linked accessories.')})
     device.deleted_date = timezone.now()
     device.save()
     return JsonResponse({'success': True, 'message': _('Device deleted successfully.')})
@@ -368,10 +401,10 @@ def accessories_data(request):
 
 @login_required
 def accessory_detail(request, pk):
-    if not has_permission(request.user, Perms.ACCESSORIES_EDIT):
+    if not has_permission(request.user, Perms.ACCESSORIES_VIEW):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
     a = get_object_or_404(
-        Accessory.objects.select_related('accessory_type', 'brand', 'device', 'site'),
+        Accessory.objects.select_related('accessory_type', 'brand', 'device', 'site', 'created_by'),
         pk=pk, deleted_date__isnull=True,
     )
     return JsonResponse({'success': True, 'item': {
@@ -381,7 +414,10 @@ def accessory_detail(request, pk):
         'brand_id': a.brand_id or '',   'brand_name': a.brand.name if a.brand else '',
         'device_id': a.device_id or '', 'device_serial': a.device.serial_number if a.device else '',
         'site_id': a.site_id,           'site_name': a.site.name,
-        'flag': a.flag,
+        'flag': a.flag, 'flag_name': a.get_flag_display(),
+        'created_by': a.created_by.full_name,
+        'created_date': a.created_date.strftime('%Y-%m-%d %H:%M'),
+        'updated_date': a.updated_date.strftime('%Y-%m-%d %H:%M') if a.updated_date else '',
     }})
 
 

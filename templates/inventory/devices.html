@@ -81,9 +81,8 @@
               <th>{% trans "Brand / Model" %}</th>
               <th>{% trans "Site" %}</th>
               <th>{% trans "Flag" %}</th>
-              <th>{% trans "Maintenance" %}</th>
               <th>{% trans "Created" %}</th>
-              <th class="text-end" style="width:160px">{% trans "Actions" %}</th>
+              <th class="text-end" style="width:180px">{% trans "Actions" %}</th>
             </tr>
           </thead>
           <tbody id="devicesTableBody"></tbody>
@@ -99,6 +98,93 @@
     </div>
   </div>
 
+</div>
+
+
+<!-- ===== VIEW MODAL ===== -->
+<div class="modal fade" id="viewModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-laptop me-2 text-secondary"></i>{% trans "Device Details" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="viewLoader" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+        <div id="viewContent" class="d-none">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Serial Number" %}</p>
+              <p class="fw-medium font-monospace mb-0" id="view-serial"></p>
+            </div>
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Category" %}</p>
+              <p class="fw-medium mb-0" id="view-category"></p>
+            </div>
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Brand" %}</p>
+              <p class="fw-medium mb-0" id="view-brand"></p>
+            </div>
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Model" %}</p>
+              <p class="fw-medium mb-0" id="view-model"></p>
+            </div>
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Site" %}</p>
+              <p class="fw-medium mb-0" id="view-site"></p>
+            </div>
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Flag" %}</p>
+              <p class="fw-medium mb-0" id="view-flag"></p>
+            </div>
+          </div>
+          {% if show_specs %}
+          <div id="viewSpecsSection" class="d-none">
+            <hr class="my-3">
+            <p class="fw-medium text-muted small mb-3">{% trans "Specifications" %}</p>
+            <div class="row g-3">
+              <div class="col-md-4">
+                <p class="text-muted small mb-1">{% trans "CPU" %}</p>
+                <p class="fw-medium mb-0" id="view-cpu"></p>
+              </div>
+              <div class="col-md-4">
+                <p class="text-muted small mb-1">{% trans "GPU" %}</p>
+                <p class="fw-medium mb-0" id="view-gpu"></p>
+              </div>
+              <div class="col-md-4">
+                <p class="text-muted small mb-1">{% trans "Operating System" %}</p>
+                <p class="fw-medium mb-0" id="view-os"></p>
+              </div>
+              <div class="col-md-3">
+                <p class="text-muted small mb-1">{% trans "RAM" %}</p>
+                <p class="fw-medium mb-0" id="view-ram"></p>
+              </div>
+              <div class="col-md-3">
+                <p class="text-muted small mb-1">{% trans "HDD" %}</p>
+                <p class="fw-medium mb-0" id="view-hdd"></p>
+              </div>
+              <div class="col-md-3">
+                <p class="text-muted small mb-1">{% trans "SSD" %}</p>
+                <p class="fw-medium mb-0" id="view-ssd"></p>
+              </div>
+              <div class="col-md-3">
+                <p class="text-muted small mb-1">{% trans "Screen" %}</p>
+                <p class="fw-medium mb-0" id="view-screen"></p>
+              </div>
+              <div class="col-md-3">
+                <p class="text-muted small mb-1">{% trans "Ports" %}</p>
+                <p class="fw-medium mb-0" id="view-ports"></p>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Close" %}</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 
@@ -351,19 +437,17 @@
 
 {% block extra_js %}
 <script>
-const CAN_EDIT         = {{ rbac.devices_edit|yesno:"true,false" }};
-const CAN_DELETE       = {{ rbac.devices_delete|yesno:"true,false" }};
-const CAN_CHANGE_FLAG  = {{ rbac.devices_change_flag|yesno:"true,false" }};
-const CAN_TOGGLE_MAINT = {{ rbac.devices_toggle_maintenance|yesno:"true,false" }};
-const SHOW_SPECS       = {{ show_specs|yesno:"true,false" }};
+const CAN_EDIT        = {{ rbac.devices_edit|yesno:"true,false" }};
+const CAN_DELETE      = {{ rbac.devices_delete|yesno:"true,false" }};
+const CAN_CHANGE_FLAG = {{ rbac.devices_change_flag|yesno:"true,false" }};
+const SHOW_SPECS      = {{ show_specs|yesno:"true,false" }};
 
-const URL_DEVICES_DATA   = '{% url "devices-data" %}';
-const URL_DEVICE_CREATE  = '{% url "device-create" %}';
-const deviceDetailUrl    = pk => `/inventory/devices/${pk}/`;
-const deviceEditUrl      = pk => `/inventory/devices/${pk}/edit/`;
-const deviceDeleteUrl    = pk => `/inventory/devices/${pk}/delete/`;
-const deviceChangeFlagUrl  = pk => `/inventory/devices/${pk}/change-flag/`;
-const deviceToggleMaintUrl = pk => `/inventory/devices/${pk}/toggle-maintenance/`;
+const URL_DEVICES_DATA  = '{% url "devices-data" %}';
+const URL_DEVICE_CREATE = '{% url "device-create" %}';
+const deviceDetailUrl   = pk => `/inventory/devices/${pk}/`;
+const deviceEditUrl     = pk => `/inventory/devices/${pk}/edit/`;
+const deviceDeleteUrl   = pk => `/inventory/devices/${pk}/delete/`;
+const deviceChangeFlagUrl = pk => `/inventory/devices/${pk}/change-flag/`;
 
 const T = {
   records: '{% trans "records" %}',
@@ -374,6 +458,7 @@ const T = {
 let deleteTargetId = null;
 let debounceTimer  = null;
 
+const viewModal       = new bootstrap.Modal('#viewModal');
 const createModal     = new bootstrap.Modal('#createModal');
 const editModal       = new bootstrap.Modal('#editModal');
 const changeFlagModal = new bootstrap.Modal('#changeFlagModal');
@@ -434,19 +519,10 @@ function renderDevicesTable(items) {
       </td>
       <td><span class="d-flex align-items-center gap-1"><i class="bi bi-geo-alt text-muted small"></i>${escHtml(d.site_name)}</span></td>
       <td><span class="badge bg-secondary-subtle text-secondary rounded-pill">${escHtml(d.flag_name)}</span></td>
-      <td>
-        ${CAN_TOGGLE_MAINT
-          ? `<div class="form-check form-switch mb-0">
-               <input class="form-check-input" type="checkbox" role="switch" ${d.maintenance_mode ? 'checked' : ''}
-                      onchange="toggleMaintenance(${d.id}, this)">
-             </div>`
-          : `<span class="badge ${d.maintenance_mode ? 'bg-warning-subtle text-warning' : 'bg-success-subtle text-success'} rounded-pill">
-               ${d.maintenance_mode ? T.yes : T.no}
-             </span>`}
-      </td>
       <td class="text-muted small">${d.created_date}</td>
       <td class="text-end">
         <div class="d-flex gap-1 justify-content-end">
+          <button class="btn btn-sm btn-icon btn-outline-secondary" onclick="openViewModal(${d.id})" title="{% trans 'View' %}"><i class="bi bi-eye"></i></button>
           ${CAN_EDIT ? `<button class="btn btn-sm btn-icon btn-outline-primary" onclick="openEditModal(${d.id})" title="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></button>` : ''}
           ${CAN_CHANGE_FLAG ? `<button class="btn btn-sm btn-icon btn-outline-warning" onclick="openChangeFlagModal(${d.id})" title="{% trans 'Change Flag' %}"><i class="bi bi-flag"></i></button>` : ''}
           ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDeleteModal(${d.id},'${escHtml(d.serial_number)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
@@ -534,14 +610,41 @@ document.getElementById('changeFlagForm').addEventListener('submit', function(e)
     .finally(() => setButtonLoading(btn, false));
 });
 
-/* Toggle maintenance */
-function toggleMaintenance(pk, checkbox) {
-  const original = !checkbox.checked;
-  checkbox.disabled = true;
-  ajaxPost(deviceToggleMaintUrl(pk), new FormData())
-    .then(data => { if (data.success) { showToast(data.message, 'success'); loadDevices(); } else { checkbox.checked = original; showToast(data.message, 'danger'); } })
-    .catch(() => { checkbox.checked = original; showToast('{% trans "An error occurred." %}', 'danger'); })
-    .finally(() => { checkbox.disabled = false; });
+/* View */
+function openViewModal(pk) {
+  document.getElementById('viewLoader').classList.remove('d-none');
+  document.getElementById('viewContent').classList.add('d-none');
+  viewModal.show();
+  ajaxGet(deviceDetailUrl(pk))
+    .then(data => {
+      if (!data.success) { showToast(data.message, 'danger'); viewModal.hide(); return; }
+      const d = data.item;
+      document.getElementById('view-serial').textContent      = d.serial_number;
+      document.getElementById('view-category').textContent    = d.category_name;
+      document.getElementById('view-brand').textContent       = d.brand_name;
+      document.getElementById('view-model').textContent       = d.model_name;
+      document.getElementById('view-site').textContent        = d.site_name;
+      document.getElementById('view-flag').textContent        = d.flag_name || d.flag;
+      const specsSection = document.getElementById('viewSpecsSection');
+      if (specsSection) {
+        if (d.cpu_name !== undefined) {
+          document.getElementById('view-cpu').textContent    = d.cpu_name  || '—';
+          document.getElementById('view-gpu').textContent    = d.gpu_name  || '—';
+          document.getElementById('view-ram').textContent    = d.ram_size_gb  ? d.ram_size_gb  + ' GB' : '—';
+          document.getElementById('view-hdd').textContent    = d.hdd_storage_gb ? d.hdd_storage_gb + ' GB' : '—';
+          document.getElementById('view-ssd').textContent    = d.ssd_storage_gb ? d.ssd_storage_gb + ' GB' : '—';
+          document.getElementById('view-os').textContent     = d.os_name   || '—';
+          document.getElementById('view-screen').textContent = d.screen_size_inch ? d.screen_size_inch + '"' : '—';
+          document.getElementById('view-ports').textContent  = d.ports_number || '—';
+          specsSection.classList.remove('d-none');
+        } else {
+          specsSection.classList.add('d-none');
+        }
+      }
+      document.getElementById('viewLoader').classList.add('d-none');
+      document.getElementById('viewContent').classList.remove('d-none');
+    })
+    .catch(() => { showToast('{% trans "Failed to load device." %}', 'danger'); viewModal.hide(); });
 }
 
 /* Delete */

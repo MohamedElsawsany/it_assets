@@ -41,10 +41,15 @@ def governorates_data(request):
 
 @login_required
 def governorate_detail(request, pk):
-    if not has_permission(request.user, Perms.LOCATIONS_EDIT):
+    if not has_permission(request.user, Perms.LOCATIONS_VIEW):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
-    gov = get_object_or_404(Governorate, pk=pk, deleted_date__isnull=True)
-    return JsonResponse({'success': True, 'item': {'id': gov.pk, 'name': gov.name}})
+    gov = get_object_or_404(Governorate.objects.select_related('created_by'), pk=pk, deleted_date__isnull=True)
+    return JsonResponse({'success': True, 'item': {
+        'id': gov.pk, 'name': gov.name,
+        'created_by': gov.created_by.full_name,
+        'created_date': gov.created_date.strftime('%Y-%m-%d %H:%M'),
+        'updated_date': gov.updated_date.strftime('%Y-%m-%d %H:%M') if gov.updated_date else '',
+    }})
 
 
 @login_required
@@ -113,13 +118,16 @@ def sites_data(request):
 
 @login_required
 def site_detail(request, pk):
-    if not has_permission(request.user, Perms.LOCATIONS_EDIT):
+    if not has_permission(request.user, Perms.LOCATIONS_VIEW):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
-    site = get_object_or_404(Site.objects.select_related('governorate'),
+    site = get_object_or_404(Site.objects.select_related('governorate', 'created_by'),
                              pk=pk, deleted_date__isnull=True)
     return JsonResponse({'success': True, 'item': {
         'id': site.pk, 'name': site.name,
         'governorate_id': site.governorate_id, 'governorate_name': site.governorate.name,
+        'created_by': site.created_by.full_name,
+        'created_date': site.created_date.strftime('%Y-%m-%d %H:%M'),
+        'updated_date': site.updated_date.strftime('%Y-%m-%d %H:%M') if site.updated_date else '',
     }})
 
 
@@ -158,6 +166,16 @@ def site_delete(request, pk):
     if not has_permission(request.user, Perms.LOCATIONS_DELETE):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
     site = get_object_or_404(Site, pk=pk, deleted_date__isnull=True)
+    if site.devices.filter(deleted_date__isnull=True).exists():
+        return JsonResponse({'success': False, 'message': _('Cannot delete: site has devices.')})
+    if site.accessories.filter(deleted_date__isnull=True).exists():
+        return JsonResponse({'success': False, 'message': _('Cannot delete: site has accessories.')})
+    if site.employees.filter(deleted_date__isnull=True).exists():
+        return JsonResponse({'success': False, 'message': _('Cannot delete: site has employees.')})
+    if site.users.filter(deleted_date__isnull=True).exists():
+        return JsonResponse({'success': False, 'message': _('Cannot delete: site has users.')})
+    if site.outgoing_transfers.exists() or site.incoming_transfers.exists():
+        return JsonResponse({'success': False, 'message': _('Cannot delete: site has transfer records.')})
     site.deleted_date = timezone.now()
     site.save()
     return JsonResponse({'success': True, 'message': _('Site deleted successfully.')})

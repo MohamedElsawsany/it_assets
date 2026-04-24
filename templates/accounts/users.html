@@ -110,6 +110,38 @@
 </div><!-- /page-container -->
 
 
+<!-- ===== VIEW USER MODAL ===== -->
+<div class="modal fade" id="viewUserModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-person-badge me-2 text-secondary"></i>{% trans "User Details" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="viewUserLoader" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+        <div id="viewUserContent" class="d-none">
+          <div class="row g-3">
+            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Full Name" %}</p><p class="fw-medium mb-0" id="vu-name"></p></div>
+            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Email" %}</p><p class="fw-medium mb-0" id="vu-email"></p></div>
+            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Role" %}</p><p class="mb-0" id="vu-role"></p></div>
+            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Site" %}</p><p class="fw-medium mb-0" id="vu-site"></p></div>
+            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Status" %}</p><p class="mb-0" id="vu-status"></p></div>
+          </div>
+          <hr class="my-3">
+          <div class="row g-3 text-muted small">
+            <div class="col-md-4"><p class="mb-1">{% trans "Created by" %}</p><p class="fw-medium text-body mb-0" id="vu-created-by"></p></div>
+            <div class="col-md-4"><p class="mb-1">{% trans "Created" %}</p><p class="fw-medium text-body mb-0" id="vu-created-date"></p></div>
+            <div class="col-md-4"><p class="mb-1">{% trans "Last updated" %}</p><p class="fw-medium text-body mb-0" id="vu-updated-date"></p></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Close" %}</button></div>
+    </div>
+  </div>
+</div>
+
+
 <!-- ===== CREATE USER MODAL ===== -->
 <div class="modal fade" id="createUserModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -415,6 +447,7 @@ let deleteTargetId = null;
 let debounceTimer  = null;
 
 /* ── Bootstrap modal instances ── */
+const viewModal          = new bootstrap.Modal('#viewUserModal');
 const createModal        = new bootstrap.Modal('#createUserModal');
 const editModal          = new bootstrap.Modal('#editUserModal');
 const deleteModal        = new bootstrap.Modal('#deleteUserModal');
@@ -516,6 +549,10 @@ function renderUsersTable(users) {
       <td class="text-muted small">${u.created_date}</td>
       <td class="text-end">
         <div class="d-flex gap-1 justify-content-end">
+          <button class="btn btn-sm btn-icon btn-outline-secondary" onclick="openViewModal(${u.id})"
+                  title="{% trans 'View' %}">
+            <i class="bi bi-eye"></i>
+          </button>
           ${CAN_EDIT
             ? `<button class="btn btn-sm btn-icon btn-outline-primary" onclick="openEditModal(${u.id})"
                        title="{% trans 'Edit' %}">
@@ -538,6 +575,33 @@ function renderUsersTable(users) {
       </td>
     </tr>
   `).join('');
+}
+
+/* ================================================================
+   VIEW USER
+================================================================ */
+function openViewModal(userId) {
+  document.getElementById('viewUserLoader').classList.remove('d-none');
+  document.getElementById('viewUserContent').classList.add('d-none');
+  viewModal.show();
+  ajaxGet(userDetailUrl(userId))
+    .then(data => {
+      if (!data.success) { showToast(data.message, 'danger'); viewModal.hide(); return; }
+      const u = data.user;
+      document.getElementById('vu-name').textContent         = u.full_name;
+      document.getElementById('vu-email').textContent        = u.email;
+      document.getElementById('vu-role').innerHTML           = `<span class="badge bg-${u.role_color} rounded-pill">${escHtml(u.role_display)}</span>`;
+      document.getElementById('vu-site').textContent         = u.site_name || '—';
+      document.getElementById('vu-status').innerHTML         = u.is_active
+        ? `<span class="badge bg-success-subtle text-success rounded-pill">${T.active}</span>`
+        : `<span class="badge bg-danger-subtle text-danger rounded-pill">${T.inactive}</span>`;
+      document.getElementById('vu-created-by').textContent   = u.created_by || '—';
+      document.getElementById('vu-created-date').textContent = u.created_date || '—';
+      document.getElementById('vu-updated-date').textContent = u.updated_date || '—';
+      document.getElementById('viewUserLoader').classList.add('d-none');
+      document.getElementById('viewUserContent').classList.remove('d-none');
+    })
+    .catch(() => { showToast('{% trans "Failed to load user." %}', 'danger'); viewModal.hide(); });
 }
 
 /* ================================================================

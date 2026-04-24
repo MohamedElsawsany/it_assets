@@ -6,7 +6,7 @@ from django.views.decorators.http import require_http_methods
 from django.db.models import Q
 
 from accounts.permissions import permission_required, has_permission, Perms
-from inventory.models import Device
+from inventory.models import Device, DeviceFlag
 from .models import MaintenanceRecord
 from .forms import MaintenanceForm, CloseMaintenanceForm
 
@@ -69,17 +69,25 @@ def maintenance_data(request):
 
 @login_required
 def maintenance_detail(request, pk):
-    if not has_permission(request.user, Perms.MAINTENANCE_EDIT):
+    if not has_permission(request.user, Perms.MAINTENANCE_VIEW):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+    show_cost = has_permission(request.user, Perms.MAINTENANCE_VIEW_COST)
     rec = get_object_or_404(MaintenanceRecord.objects.select_related('device'), pk=pk)
-    return JsonResponse({'success': True, 'item': {
+    item = {
         'id': rec.pk,
         'device_id': rec.device_id, 'device_serial': rec.device.serial_number,
         'issue_description': rec.issue_description,
         'maintenance_type': rec.maintenance_type,
+        'maintenance_type_display': rec.get_maintenance_type_display(),
         'vendor_name': rec.vendor_name or '',
         'sent_date': rec.sent_date.strftime('%Y-%m-%dT%H:%M'),
-    }})
+        'returned_date': rec.returned_date.strftime('%Y-%m-%dT%H:%M') if rec.returned_date else '',
+        'resolution_notes': rec.resolution_notes or '',
+        'is_open': rec.is_open,
+    }
+    if show_cost:
+        item['cost'] = str(rec.cost) if rec.cost is not None else ''
+    return JsonResponse({'success': True, 'item': item, 'show_cost': show_cost})
 
 
 @login_required
@@ -91,7 +99,20 @@ def maintenance_create(request):
     if form.is_valid():
         rec = form.save(commit=False)
         rec.created_by = request.user
+        device = rec.device
+        # Block if device already has an open maintenance record
+        if device.maintenance_records.filter(returned_date__isnull=True).exists():
+            return JsonResponse({
+                'success': False,
+                'message': _('This device already has an open maintenance record. Please close it before creating a new one.'),
+            })
+        # Save the device's current flag so we can restore it when this record is closed
+        rec.previous_flag = device.flag
         rec.save()
+        # Put the device under maintenance
+        device.flag = DeviceFlag.UNDER_MAINTENANCE
+        device.maintenance_mode = True
+        device.save()
         return JsonResponse({'success': True, 'message': _('Maintenance record created successfully.')})
     errors = {f: [str(e) for e in v] for f, v in form.errors.items()}
     return JsonResponse({'success': False, 'errors': errors})
@@ -111,6 +132,18 @@ def maintenance_edit(request, pk):
     return JsonResponse({'success': False, 'errors': errors})
 
 
+def _restore_device_flag(device, previous_flag):
+    """Restore device flag after closing/deleting the last open maintenance record."""
+    # If a valid previous flag was stored, restore it; otherwise fall back to assignment status
+    if previous_flag and previous_flag != DeviceFlag.UNDER_MAINTENANCE:
+        device.flag = previous_flag
+    else:
+        has_active = device.assignments.filter(returned_date__isnull=True).exists()
+        device.flag = DeviceFlag.ASSIGNED if has_active else DeviceFlag.AVAILABLE
+    device.maintenance_mode = False
+    device.save()
+
+
 @login_required
 @require_http_methods(['POST'])
 def maintenance_close(request, pk):
@@ -126,6 +159,10 @@ def maintenance_close(request, pk):
         if has_permission(request.user, Perms.MAINTENANCE_VIEW_COST):
             rec.cost = form.cleaned_data.get('cost')
         rec.save()
+        # Restore device flag if this was the last open record for the device
+        other_open = rec.device.maintenance_records.filter(returned_date__isnull=True).exclude(pk=rec.pk).exists()
+        if not other_open:
+            _restore_device_flag(rec.device, rec.previous_flag)
         return JsonResponse({'success': True, 'message': _('Maintenance record closed successfully.')})
     errors = {f: [str(e) for e in v] for f, v in form.errors.items()}
     return JsonResponse({'success': False, 'errors': errors})
@@ -137,5 +174,10 @@ def maintenance_delete(request, pk):
     if not has_permission(request.user, Perms.MAINTENANCE_DELETE):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
     rec = get_object_or_404(MaintenanceRecord, pk=pk)
+    # If the record is open, restore device flag when it's the last open record
+    if rec.is_open:
+        other_open = rec.device.maintenance_records.filter(returned_date__isnull=True).exclude(pk=rec.pk).exists()
+        if not other_open:
+            _restore_device_flag(rec.device, rec.previous_flag)
     rec.delete()
     return JsonResponse({'success': True, 'message': _('Maintenance record deleted successfully.')})

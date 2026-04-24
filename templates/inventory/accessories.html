@@ -102,6 +102,39 @@
 </div>
 
 
+<!-- ===== VIEW MODAL ===== -->
+<div class="modal fade" id="viewModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-plug me-2 text-secondary"></i>{% trans "Accessory Details" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="viewLoader" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+        <div id="viewContent" class="d-none">
+          <div class="row g-3">
+            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Type" %}</p><p class="fw-medium mb-0" id="v-type"></p></div>
+            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Serial Number" %}</p><p class="fw-medium font-monospace mb-0" id="v-serial"></p></div>
+            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Brand" %}</p><p class="fw-medium mb-0" id="v-brand"></p></div>
+            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Linked Device" %}</p><p class="fw-medium font-monospace mb-0" id="v-device"></p></div>
+            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Site" %}</p><p class="fw-medium mb-0" id="v-site"></p></div>
+            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Flag" %}</p><p class="fw-medium mb-0" id="v-flag"></p></div>
+          </div>
+          <hr class="my-3">
+          <div class="row g-3 text-muted small">
+            <div class="col-md-4"><p class="mb-1">{% trans "Created by" %}</p><p class="fw-medium text-body mb-0" id="v-created-by"></p></div>
+            <div class="col-md-4"><p class="mb-1">{% trans "Created" %}</p><p class="fw-medium text-body mb-0" id="v-created-date"></p></div>
+            <div class="col-md-4"><p class="mb-1">{% trans "Last updated" %}</p><p class="fw-medium text-body mb-0" id="v-updated-date"></p></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Close" %}</button></div>
+    </div>
+  </div>
+</div>
+
+
 <!-- ===== CREATE MODAL ===== -->
 <div class="modal fade" id="createModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -273,6 +306,7 @@ const T = { records: '{% trans "records" %}' };
 let deleteTargetId = null;
 let debounceTimer  = null;
 
+const viewModal   = new bootstrap.Modal('#viewModal');
 const createModal = new bootstrap.Modal('#createModal');
 const editModal   = new bootstrap.Modal('#editModal');
 const deleteModal = new bootstrap.Modal('#deleteModal');
@@ -333,12 +367,36 @@ function renderTable(items) {
       <td class="text-muted small">${a.created_date}</td>
       <td class="text-end">
         <div class="d-flex gap-1 justify-content-end">
+          <button class="btn btn-sm btn-icon btn-outline-secondary" onclick="openViewModal(${a.id})" title="{% trans 'View' %}"><i class="bi bi-eye"></i></button>
           ${CAN_EDIT ? `<button class="btn btn-sm btn-icon btn-outline-primary" onclick="openEditModal(${a.id})" title="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></button>` : ''}
           ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDeleteModal(${a.id},'${escHtml(a.type_name)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
         </div>
       </td>
     </tr>
   `).join('');
+}
+
+function openViewModal(pk) {
+  document.getElementById('viewLoader').classList.remove('d-none');
+  document.getElementById('viewContent').classList.add('d-none');
+  viewModal.show();
+  ajaxGet(detailUrl(pk))
+    .then(data => {
+      if (!data.success) { showToast(data.message, 'danger'); viewModal.hide(); return; }
+      const a = data.item;
+      document.getElementById('v-type').textContent         = a.type_name;
+      document.getElementById('v-serial').textContent       = a.serial_number || '—';
+      document.getElementById('v-brand').textContent        = a.brand_name    || '—';
+      document.getElementById('v-device').textContent       = a.device_serial || '—';
+      document.getElementById('v-site').textContent         = a.site_name;
+      document.getElementById('v-flag').textContent         = a.flag_name;
+      document.getElementById('v-created-by').textContent   = a.created_by;
+      document.getElementById('v-created-date').textContent = a.created_date;
+      document.getElementById('v-updated-date').textContent = a.updated_date || '—';
+      document.getElementById('viewLoader').classList.add('d-none');
+      document.getElementById('viewContent').classList.remove('d-none');
+    })
+    .catch(() => { showToast('{% trans "Failed to load accessory." %}', 'danger'); viewModal.hide(); });
 }
 
 function openCreateModal() {

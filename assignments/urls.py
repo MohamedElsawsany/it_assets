@@ -15,5 +15,6 @@ urlpatterns = [
     path('transfers/', views.transfers_index, name='transfers-index'),
     path('transfers/data/', views.transfers_data, name='transfers-data'),
     path('transfers/create/', views.transfer_create, name='transfer-create'),
+    path('transfers/<int:pk>/', views.transfer_detail, name='transfer-detail'),
     path('transfers/<int:pk>/delete/', views.transfer_delete, name='transfer-delete'),
 ]

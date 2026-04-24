@@ -43,10 +43,15 @@ def departments_data(request):
 
 @login_required
 def department_detail(request, pk):
-    if not has_permission(request.user, Perms.EMPLOYEES_EDIT):
+    if not has_permission(request.user, Perms.EMPLOYEES_VIEW):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
-    dept = get_object_or_404(Department, pk=pk, deleted_date__isnull=True)
-    return JsonResponse({'success': True, 'item': {'id': dept.pk, 'name': dept.name}})
+    dept = get_object_or_404(Department.objects.select_related('created_by'), pk=pk, deleted_date__isnull=True)
+    return JsonResponse({'success': True, 'item': {
+        'id': dept.pk, 'name': dept.name,
+        'created_by': dept.created_by.full_name,
+        'created_date': dept.created_date.strftime('%Y-%m-%d %H:%M'),
+        'updated_date': dept.updated_date.strftime('%Y-%m-%d %H:%M') if dept.updated_date else '',
+    }})
 
 
 @login_required
@@ -123,15 +128,18 @@ def employees_data(request):
 
 @login_required
 def employee_detail(request, pk):
-    if not has_permission(request.user, Perms.EMPLOYEES_EDIT):
+    if not has_permission(request.user, Perms.EMPLOYEES_VIEW):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
-    emp = get_object_or_404(Employee.objects.select_related('department', 'site'),
+    emp = get_object_or_404(Employee.objects.select_related('department', 'site', 'created_by'),
                             pk=pk, deleted_date__isnull=True)
     return JsonResponse({'success': True, 'item': {
         'id': emp.pk, 'first_name': emp.first_name, 'last_name': emp.last_name,
         'employee_card_id': emp.employee_card_id,
         'department_id': emp.department_id, 'department_name': emp.department.name,
         'site_id': emp.site_id,             'site_name': emp.site.name,
+        'created_by': emp.created_by.full_name,
+        'created_date': emp.created_date.strftime('%Y-%m-%d %H:%M'),
+        'updated_date': emp.updated_date.strftime('%Y-%m-%d %H:%M') if emp.updated_date else '',
     }})
 
 
@@ -170,6 +178,8 @@ def employee_delete(request, pk):
     if not has_permission(request.user, Perms.EMPLOYEES_DELETE):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
     emp = get_object_or_404(Employee, pk=pk, deleted_date__isnull=True)
+    if emp.assignments.exists():
+        return JsonResponse({'success': False, 'message': _('Cannot delete: employee has assignment records.')})
     emp.deleted_date = timezone.now()
     emp.save()
     return JsonResponse({'success': True, 'message': _('Employee deleted successfully.')})

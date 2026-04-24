@@ -61,15 +61,37 @@ def assignments_data(request):
 
 @login_required
 def assignment_detail(request, pk):
-    if not has_permission(request.user, Perms.ASSIGNMENTS_EDIT):
+    if not has_permission(request.user, Perms.ASSIGNMENTS_VIEW):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
-    a = get_object_or_404(DeviceAssignment.objects.select_related('device', 'employee'), pk=pk)
+    a = get_object_or_404(DeviceAssignment.objects.select_related('device', 'employee', 'assigned_by'), pk=pk)
     return JsonResponse({'success': True, 'item': {
         'id': a.pk,
         'device_id': a.device_id,       'device_serial': a.device.serial_number,
         'employee_id': a.employee_id,   'employee_name': a.employee.full_name,
         'assigned_date': a.assigned_date.strftime('%Y-%m-%dT%H:%M'),
+        'returned_date': a.returned_date.strftime('%Y-%m-%dT%H:%M') if a.returned_date else '',
+        'is_active': a.is_active,
         'notes': a.notes or '',
+        'assigned_by': a.assigned_by.full_name,
+        'created_date': a.created_date.strftime('%Y-%m-%d %H:%M'),
+        'updated_date': a.updated_date.strftime('%Y-%m-%d %H:%M') if a.updated_date else '',
+    }})
+
+
+@login_required
+def transfer_detail(request, pk):
+    if not has_permission(request.user, Perms.TRANSFERS_VIEW):
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+    t = get_object_or_404(DeviceTransfer.objects.select_related('device', 'from_site', 'to_site', 'transferred_by'), pk=pk)
+    return JsonResponse({'success': True, 'item': {
+        'id': t.pk,
+        'device_serial': t.device.serial_number,
+        'from_site_name': t.from_site.name,
+        'to_site_name': t.to_site.name,
+        'transfer_date': t.transfer_date.strftime('%Y-%m-%d %H:%M'),
+        'notes': t.notes or '',
+        'transferred_by': t.transferred_by.full_name,
+        'created_date': t.created_date.strftime('%Y-%m-%d %H:%M'),
     }})
 
 

@@ -64,20 +64,27 @@ def users_data(request):
 
 @login_required
 def user_detail(request, user_id):
-    if not has_permission(request.user, Perms.USERS_EDIT):
+    if not has_permission(request.user, Perms.USERS_VIEW):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
 
-    user = get_object_or_404(User, pk=user_id, deleted_date__isnull=True)
+    user = get_object_or_404(User.objects.select_related('site', 'created_by'), pk=user_id, deleted_date__isnull=True)
     return JsonResponse({
         'success': True,
         'user': {
             'id': user.pk,
             'first_name': user.first_name,
             'last_name': user.last_name,
+            'full_name': user.full_name,
             'email': user.email,
             'role': user.role,
+            'role_display': user.get_role_display(),
+            'role_color': user.role_color,
             'site_id': user.site_id or '',
+            'site_name': user.site.name if user.site else '',
             'is_active': user.is_active,
+            'created_by': user.created_by.full_name if user.created_by else '',
+            'created_date': user.created_date.strftime('%Y-%m-%d %H:%M') if user.created_date else '',
+            'updated_date': user.updated_date.strftime('%Y-%m-%d %H:%M') if user.updated_date else '',
         }
     })
 
@@ -124,6 +131,10 @@ def user_delete(request, user_id):
     user = get_object_or_404(User, pk=user_id, deleted_date__isnull=True)
     if user.pk == request.user.pk:
         return JsonResponse({'success': False, 'message': _('You cannot delete your own account.')})
+    if user.assigned_devices.exists():
+        return JsonResponse({'success': False, 'message': _('Cannot delete: user has assignment records.')})
+    if user.device_transfers.exists():
+        return JsonResponse({'success': False, 'message': _('Cannot delete: user has transfer records.')})
 
     from django.utils import timezone
     user.deleted_date = timezone.now()

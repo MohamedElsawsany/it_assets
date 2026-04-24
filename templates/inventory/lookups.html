@@ -91,6 +91,31 @@
 
 </div>
 
+<!-- ===== VIEW MODAL ===== -->
+<div class="modal fade" id="viewModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-list-ul me-2 text-secondary"></i>{% trans "Item Details" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="viewLoader" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+        <div id="viewContent" class="d-none">
+          <div class="row g-3" id="viewFields"></div>
+          <hr class="my-3">
+          <div class="row g-3 text-muted small">
+            <div class="col-md-4"><p class="mb-1">{% trans "Created by" %}</p><p class="fw-medium text-body mb-0" id="vl-created-by"></p></div>
+            <div class="col-md-4"><p class="mb-1">{% trans "Created" %}</p><p class="fw-medium text-body mb-0" id="vl-created-date"></p></div>
+            <div class="col-md-4"><p class="mb-1">{% trans "Last updated" %}</p><p class="fw-medium text-body mb-0" id="vl-updated-date"></p></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Close" %}</button></div>
+    </div>
+  </div>
+</div>
+
 <!-- ===== CREATE MODAL ===== -->
 <div class="modal fade" id="createModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
@@ -189,6 +214,7 @@ const LOOKUP_META = {
 let currentType   = 'brands';
 let deleteTargetPk  = null;
 
+const viewModal   = new bootstrap.Modal('#viewModal');
 const createModal = new bootstrap.Modal('#createModal');
 const editModal   = new bootstrap.Modal('#editModal');
 const deleteModal = new bootstrap.Modal('#deleteModal');
@@ -257,6 +283,7 @@ function renderItems(items) {
       <td class="text-muted small">${item.created_date}</td>
       <td class="text-end">
         <div class="d-flex gap-1 justify-content-end">
+          <button class="btn btn-sm btn-icon btn-outline-secondary" onclick="openViewModal(${item.id})" title="{% trans 'View' %}"><i class="bi bi-eye"></i></button>
           ${CAN_EDIT ? `<button class="btn btn-sm btn-icon btn-outline-primary" onclick="openEditModal(${item.id})" title="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></button>` : ''}
           ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDeleteModal(${item.id},'${escHtml(item.name)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
         </div>
@@ -292,6 +319,30 @@ function initLookupSelects($container, $modal, data) {
     initSelect2($container.find('[name=category]'), 'categories', null, S);
     if (data && data.category_id) setSelect2Value($container.find('[name=category]'), data.category_id, data.category_name);
   }
+}
+
+function openViewModal(pk) {
+  const meta = LOOKUP_META[currentType];
+  document.getElementById('viewLoader').classList.remove('d-none');
+  document.getElementById('viewContent').classList.add('d-none');
+  viewModal.show();
+  ajaxGet(`/inventory/lookups/${currentType}/${pk}/`)
+    .then(data => {
+      if (!data.success) { showToast(data.message, 'danger'); viewModal.hide(); return; }
+      const item = data.item;
+      let fieldsHtml = `<div class="col-12"><p class="text-muted small mb-1">{% trans "Name" %}</p><p class="fw-medium mb-0">${escHtml(item.name)}</p></div>`;
+      if (meta.hasBrand && item.brand_name)
+        fieldsHtml += `<div class="col-md-6"><p class="text-muted small mb-1">{% trans "Brand" %}</p><p class="fw-medium mb-0">${escHtml(item.brand_name)}</p></div>`;
+      if (meta.hasCategory && item.category_name)
+        fieldsHtml += `<div class="col-md-6"><p class="text-muted small mb-1">{% trans "Category" %}</p><p class="fw-medium mb-0">${escHtml(item.category_name)}</p></div>`;
+      document.getElementById('viewFields').innerHTML = fieldsHtml;
+      document.getElementById('vl-created-by').textContent   = item.created_by || '—';
+      document.getElementById('vl-created-date').textContent = item.created_date || '—';
+      document.getElementById('vl-updated-date').textContent = item.updated_date || '—';
+      document.getElementById('viewLoader').classList.add('d-none');
+      document.getElementById('viewContent').classList.remove('d-none');
+    })
+    .catch(() => { showToast('{% trans "Failed to load item." %}', 'danger'); viewModal.hide(); });
 }
 
 function openCreateModal() {
