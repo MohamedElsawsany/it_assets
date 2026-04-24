@@ -44,7 +44,7 @@
               <span class="input-group-text"><i class="bi bi-search"></i></span>
               <input type="text" class="form-control" id="govSearch"
                      placeholder="{% trans 'Search governorates…' %}"
-                     oninput="debounce(loadGovernorates, 400)()">
+                     oninput="currentGovPage=1; debounce(loadGovernorates, 400)()">
             </div>
           </div>
           {% if rbac.locations_create %}
@@ -83,6 +83,7 @@
         </div>
         <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
           <span class="text-muted small" id="govRecordCount"></span>
+          <div id="govPagination"></div>
         </div>
       </div>
     </div>
@@ -98,7 +99,7 @@
               <span class="input-group-text"><i class="bi bi-search"></i></span>
               <input type="text" class="form-control" id="siteSearch"
                      placeholder="{% trans 'Search sites…' %}"
-                     oninput="debounce(loadSites, 400)()">
+                     oninput="currentSitePage=1; debounce(loadSites, 400)()">
             </div>
           </div>
           <div class="col-md-3">
@@ -142,6 +143,7 @@
         </div>
         <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
           <span class="text-muted small" id="siteRecordCount"></span>
+          <div id="sitePagination"></div>
         </div>
       </div>
     </div>
@@ -355,11 +357,16 @@ function debounce(fn, ms) {
   return function() { clearTimeout(_timers[fn]); _timers[fn] = setTimeout(fn, ms); };
 }
 
+let currentGovPage  = 1;
+let currentSitePage = 1;
+
 /* ── GOVERNORATES ── */
-function loadGovernorates() {
+function loadGovernorates(page) {
+  currentGovPage = page || 1;
   const search = document.getElementById('govSearch').value.trim();
   const params = new URLSearchParams();
   if (search) params.set('search', search);
+  params.set('page', currentGovPage);
   document.getElementById('govLoader').classList.remove('d-none');
   document.getElementById('govTableWrapper').classList.add('d-none');
   ajaxGet(`${URL_GOV_DATA}?${params}`)
@@ -367,6 +374,7 @@ function loadGovernorates() {
       renderTable(data.items, 'govTableBody', 'govEmpty', 'govTableWrapper', renderGovRow);
       document.getElementById('govRecordCount').textContent = `${data.total} ${T.records}`;
       document.getElementById('govCount').textContent = data.total;
+      renderPagination('govPagination', data.page, data.num_pages, loadGovernorates);
     })
     .catch(() => showToast('{% trans "Failed to load governorates." %}', 'danger'))
     .finally(() => { document.getElementById('govLoader').classList.add('d-none'); document.getElementById('govTableWrapper').classList.remove('d-none'); });
@@ -389,12 +397,14 @@ function renderGovRow(g, i) {
 }
 
 /* ── SITES ── */
-function loadSites() {
+function loadSites(page) {
+  currentSitePage = page || 1;
   const search = document.getElementById('siteSearch').value.trim();
   const govId  = document.getElementById('govFilter').value;
   const params = new URLSearchParams();
   if (search) params.set('search', search);
   if (govId)  params.set('governorate', govId);
+  params.set('page', currentSitePage);
   document.getElementById('siteLoader').classList.remove('d-none');
   document.getElementById('siteTableWrapper').classList.add('d-none');
   ajaxGet(`${URL_SITE_DATA}?${params}`)
@@ -402,6 +412,7 @@ function loadSites() {
       renderTable(data.items, 'siteTableBody', 'siteEmpty', 'siteTableWrapper', renderSiteRow);
       document.getElementById('siteRecordCount').textContent = `${data.total} ${T.records}`;
       document.getElementById('sitesCount').textContent = data.total;
+      renderPagination('sitePagination', data.page, data.num_pages, loadSites);
     })
     .catch(() => showToast('{% trans "Failed to load sites." %}', 'danger'))
     .finally(() => { document.getElementById('siteLoader').classList.add('d-none'); document.getElementById('siteTableWrapper').classList.remove('d-none'); });
@@ -630,7 +641,7 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', function()
 document.addEventListener('DOMContentLoaded', () => {
   // Filter bar
   initSelect2($('#govFilter'), 'governorates', null, '{% trans "All Governorates" %}');
-  $('#govFilter').on('change', loadSites);
+  $('#govFilter').on('change', () => { currentSitePage = 1; loadSites(); });
 
   // Create modal — site governorate select
   initSelect2($('#siteCreateFields [name=governorate]'), 'governorates', null, '— {% trans "Select" %} —');

@@ -1,9 +1,12 @@
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods
 from django.db.models import Q
+
+PAGE_SIZE = 10
 
 from accounts.permissions import permission_required, has_permission, Perms
 from inventory.models import Device, DeviceFlag
@@ -46,8 +49,15 @@ def maintenance_data(request):
     if type_f:
         qs = qs.filter(maintenance_type=type_f)
 
+    qs = qs.order_by('-sent_date')
+    paginator = Paginator(qs, PAGE_SIZE)
+    try:
+        page_num = int(request.GET.get('page', 1))
+    except (ValueError, TypeError):
+        page_num = 1
+    page_obj  = paginator.get_page(page_num)
     items = []
-    for r in qs.order_by('-sent_date'):
+    for r in page_obj:
         item = {
             'id': r.pk,
             'device_id': r.device_id,
@@ -63,7 +73,8 @@ def maintenance_data(request):
         if show_cost:
             item['cost'] = str(r.cost) if r.cost is not None else ''
         items.append(item)
-    return JsonResponse({'success': True, 'items': items, 'total': len(items),
+    return JsonResponse({'success': True, 'items': items, 'total': paginator.count,
+                         'page': page_obj.number, 'num_pages': paginator.num_pages,
                          'show_cost': show_cost})
 
 

@@ -1,10 +1,13 @@
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 from django.db.models import Q, Count
+
+PAGE_SIZE = 10
 
 from accounts.permissions import permission_required, has_permission, Perms
 from .models import Governorate, Site
@@ -30,13 +33,21 @@ def governorates_data(request):
     )
     if search:
         qs = qs.filter(name__icontains=search)
+    qs = qs.order_by('name')
+    paginator = Paginator(qs, PAGE_SIZE)
+    try:
+        page_num = int(request.GET.get('page', 1))
+    except (ValueError, TypeError):
+        page_num = 1
+    page_obj  = paginator.get_page(page_num)
     items = [
         {'id': g.pk, 'name': g.name,
          'sites_count': g.sites_count,
          'created_date': g.created_date.strftime('%Y-%m-%d')}
-        for g in qs.order_by('name')
+        for g in page_obj
     ]
-    return JsonResponse({'success': True, 'items': items, 'total': len(items)})
+    return JsonResponse({'success': True, 'items': items, 'total': paginator.count,
+                         'page': page_obj.number, 'num_pages': paginator.num_pages})
 
 
 @login_required
@@ -106,14 +117,22 @@ def sites_data(request):
         qs = qs.filter(Q(name__icontains=search) | Q(governorate__name__icontains=search))
     if gov_id:
         qs = qs.filter(governorate_id=gov_id)
+    qs = qs.order_by('governorate__name', 'name')
+    paginator = Paginator(qs, PAGE_SIZE)
+    try:
+        page_num = int(request.GET.get('page', 1))
+    except (ValueError, TypeError):
+        page_num = 1
+    page_obj  = paginator.get_page(page_num)
     items = [
         {'id': s.pk, 'name': s.name,
          'governorate_id': s.governorate_id,
          'governorate_name': s.governorate.name,
          'created_date': s.created_date.strftime('%Y-%m-%d')}
-        for s in qs.order_by('governorate__name', 'name')
+        for s in page_obj
     ]
-    return JsonResponse({'success': True, 'items': items, 'total': len(items)})
+    return JsonResponse({'success': True, 'items': items, 'total': paginator.count,
+                         'page': page_obj.number, 'num_pages': paginator.num_pages})
 
 
 @login_required

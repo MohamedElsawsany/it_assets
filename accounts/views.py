@@ -1,9 +1,12 @@
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods
 from django.db.models import Q
+
+PAGE_SIZE = 10
 
 from .models import User
 from .forms import UserCreateForm, UserEditForm, ResetPasswordForm
@@ -42,8 +45,16 @@ def users_data(request):
     elif status_filter == 'inactive':
         qs = qs.filter(is_active=False)
 
+    qs = qs.order_by('-created_date')
+    paginator = Paginator(qs, PAGE_SIZE)
+    try:
+        page_num = int(request.GET.get('page', 1))
+    except (ValueError, TypeError):
+        page_num = 1
+    page_obj  = paginator.get_page(page_num)
+
     users = []
-    for user in qs.order_by('-created_date'):
+    for user in page_obj:
         users.append({
             'id': user.pk,
             'full_name': user.full_name,
@@ -59,7 +70,8 @@ def users_data(request):
             'created_date': user.created_date.strftime('%Y-%m-%d') if user.created_date else '',
         })
 
-    return JsonResponse({'success': True, 'users': users, 'total': len(users)})
+    return JsonResponse({'success': True, 'users': users, 'total': paginator.count,
+                         'page': page_obj.number, 'num_pages': paginator.num_pages})
 
 
 @login_required

@@ -43,7 +43,7 @@
               <span class="input-group-text"><i class="bi bi-search"></i></span>
               <input type="text" class="form-control" id="empSearch"
                      placeholder="{% trans 'Search by name or card ID…' %}"
-                     oninput="debounce(loadEmployees, 400)()">
+                     oninput="currentEmpPage=1; debounce(loadEmployees, 400)()">
             </div>
           </div>
           <div class="col-md-3">
@@ -96,6 +96,7 @@
         </div>
         <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
           <span class="text-muted small" id="empRecordCount"></span>
+          <div id="empPagination"></div>
         </div>
       </div>
     </div>
@@ -111,7 +112,7 @@
               <span class="input-group-text"><i class="bi bi-search"></i></span>
               <input type="text" class="form-control" id="deptSearch"
                      placeholder="{% trans 'Search departments…' %}"
-                     oninput="debounce(loadDepartments, 400)()">
+                     oninput="currentDeptPage=1; debounce(loadDepartments, 400)()">
             </div>
           </div>
           {% if rbac.employees_create %}
@@ -150,6 +151,7 @@
         </div>
         <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
           <span class="text-muted small" id="deptRecordCount"></span>
+          <div id="deptPagination"></div>
         </div>
       </div>
     </div>
@@ -411,6 +413,9 @@ function debounce(fn, ms) {
   return function() { clearTimeout(_timers[fn]); _timers[fn] = setTimeout(fn, ms); };
 }
 
+let currentEmpPage  = 1;
+let currentDeptPage = 1;
+
 function switchTab(tab) {
   document.getElementById('panel-employees').classList.toggle('d-none', tab !== 'employees');
   document.getElementById('panel-departments').classList.toggle('d-none', tab !== 'departments');
@@ -420,7 +425,8 @@ function switchTab(tab) {
 }
 
 /* ── Employees ── */
-function loadEmployees() {
+function loadEmployees(page) {
+  currentEmpPage = page || 1;
   const search = document.getElementById('empSearch').value.trim();
   const dept   = document.getElementById('deptFilter').value;
   const siteEl = document.getElementById('empSiteFilter');
@@ -429,6 +435,7 @@ function loadEmployees() {
   if (search) params.set('search', search);
   if (dept)   params.set('department', dept);
   if (site)   params.set('site', site);
+  params.set('page', currentEmpPage);
   document.getElementById('empLoader').classList.remove('d-none');
   document.getElementById('empTableWrapper').classList.add('d-none');
   ajaxGet(`${URL_EMP_DATA}?${params}`)
@@ -436,6 +443,7 @@ function loadEmployees() {
       renderTable(data.items, 'empTableBody', 'empEmpty', 'empTableWrapper', renderEmpRow);
       document.getElementById('empRecordCount').textContent = `${data.total} ${T.records}`;
       document.getElementById('empCount').textContent = data.total;
+      renderPagination('empPagination', data.page, data.num_pages, loadEmployees);
     })
     .catch(() => showToast('{% trans "Failed to load employees." %}', 'danger'))
     .finally(() => { document.getElementById('empLoader').classList.add('d-none'); document.getElementById('empTableWrapper').classList.remove('d-none'); });
@@ -460,10 +468,12 @@ function renderEmpRow(e, i) {
 }
 
 /* ── Departments ── */
-function loadDepartments() {
+function loadDepartments(page) {
+  currentDeptPage = page || 1;
   const search = document.getElementById('deptSearch').value.trim();
   const params = new URLSearchParams();
   if (search) params.set('search', search);
+  params.set('page', currentDeptPage);
   document.getElementById('deptLoader').classList.remove('d-none');
   document.getElementById('deptTableWrapper').classList.add('d-none');
   ajaxGet(`${URL_DEPT_DATA}?${params}`)
@@ -471,6 +481,7 @@ function loadDepartments() {
       renderTable(data.items, 'deptTableBody', 'deptEmpty', 'deptTableWrapper', renderDeptRow);
       document.getElementById('deptRecordCount').textContent = `${data.total} ${T.records}`;
       document.getElementById('deptCount').textContent = data.total;
+      renderPagination('deptPagination', data.page, data.num_pages, loadDepartments);
     })
     .catch(() => showToast('{% trans "Failed to load departments." %}', 'danger'))
     .finally(() => { document.getElementById('deptLoader').classList.add('d-none'); document.getElementById('deptTableWrapper').classList.remove('d-none'); });
@@ -660,8 +671,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Filter bar selects
   initSelect2($('#deptFilter'),    'departments', null, '{% trans "All Departments" %}');
   initSelect2($('#empSiteFilter'), 'sites',       null, '{% trans "All Sites" %}');
-  $('#deptFilter').on('change', loadEmployees);
-  $('#empSiteFilter').on('change', loadEmployees);
+  $('#deptFilter').on('change', () => { currentEmpPage = 1; loadEmployees(); });
+  $('#empSiteFilter').on('change', () => { currentEmpPage = 1; loadEmployees(); });
 
   // Create modal selects
   initSelect2($('#createEmpForm [name=department]'), 'departments', null, '— {% trans "Select" %} —');

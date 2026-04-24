@@ -1,9 +1,12 @@
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods
 from django.db.models import Q
+
+PAGE_SIZE = 10
 
 from accounts.permissions import permission_required, has_permission, Perms
 from inventory.models import Device, DeviceFlag
@@ -43,6 +46,13 @@ def assignments_data(request):
         qs = qs.filter(returned_date__isnull=True)
     elif status_f == 'returned':
         qs = qs.filter(returned_date__isnull=False)
+    qs = qs.order_by('-assigned_date')
+    paginator = Paginator(qs, PAGE_SIZE)
+    try:
+        page_num = int(request.GET.get('page', 1))
+    except (ValueError, TypeError):
+        page_num = 1
+    page_obj  = paginator.get_page(page_num)
     items = [
         {'id': a.pk,
          'device_id': a.device_id,
@@ -54,9 +64,10 @@ def assignments_data(request):
          'returned_date': a.returned_date.strftime('%Y-%m-%d') if a.returned_date else '',
          'is_active': a.is_active,
          'notes': a.notes or ''}
-        for a in qs.order_by('-assigned_date')
+        for a in page_obj
     ]
-    return JsonResponse({'success': True, 'items': items, 'total': len(items)})
+    return JsonResponse({'success': True, 'items': items, 'total': paginator.count,
+                         'page': page_obj.number, 'num_pages': paginator.num_pages})
 
 
 @login_required
@@ -186,6 +197,13 @@ def transfers_data(request):
             Q(from_site__name__icontains=search) |
             Q(to_site__name__icontains=search)
         )
+    qs = qs.order_by('-transfer_date')
+    paginator = Paginator(qs, PAGE_SIZE)
+    try:
+        page_num = int(request.GET.get('page', 1))
+    except (ValueError, TypeError):
+        page_num = 1
+    page_obj  = paginator.get_page(page_num)
     items = [
         {'id': t.pk,
          'device_id': t.device_id,
@@ -197,9 +215,10 @@ def transfers_data(request):
          'transfer_date': t.transfer_date.strftime('%Y-%m-%d'),
          'notes': t.notes or '',
          'transferred_by': t.transferred_by.full_name}
-        for t in qs.order_by('-transfer_date')
+        for t in page_obj
     ]
-    return JsonResponse({'success': True, 'items': items, 'total': len(items)})
+    return JsonResponse({'success': True, 'items': items, 'total': paginator.count,
+                         'page': page_obj.number, 'num_pages': paginator.num_pages})
 
 
 @login_required

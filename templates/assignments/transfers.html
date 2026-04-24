@@ -74,6 +74,7 @@
       </div>
       <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
         <span class="text-muted small" id="recordCount"></span>
+        <div id="pagination"></div>
       </div>
     </div>
   </div>
@@ -204,28 +205,32 @@ const T = { records: '{% trans "records" %}' };
 
 let deleteTargetId = null;
 let debounceTimer  = null;
+let currentPage    = 1;
 
 const viewModal   = new bootstrap.Modal('#viewModal');
 const createModal = new bootstrap.Modal('#createModal');
 const deleteModal = new bootstrap.Modal('#deleteModal');
 
-function loadTransfers() {
+function loadTransfers(page) {
+  currentPage = page || 1;
   const search = document.getElementById('searchInput').value.trim();
   const params = new URLSearchParams();
   if (search) params.set('search', search);
+  params.set('page', currentPage);
   document.getElementById('tableLoader').classList.remove('d-none');
   document.getElementById('tableWrapper').classList.add('d-none');
   ajaxGet(`${URL_DATA}?${params}`)
     .then(data => {
       renderTable(data.items);
       document.getElementById('recordCount').textContent = `${data.total} ${T.records}`;
+      renderPagination('pagination', data.page, data.num_pages, loadTransfers);
     })
     .catch(() => showToast('{% trans "Failed to load transfers." %}', 'danger'))
     .finally(() => { document.getElementById('tableLoader').classList.add('d-none'); document.getElementById('tableWrapper').classList.remove('d-none'); });
 }
 
-function debounceLoad() { clearTimeout(debounceTimer); debounceTimer = setTimeout(loadTransfers, 400); }
-function resetFilters() { document.getElementById('searchInput').value = ''; loadTransfers(); }
+function debounceLoad() { currentPage = 1; clearTimeout(debounceTimer); debounceTimer = setTimeout(loadTransfers, 400); }
+function resetFilters() { currentPage = 1; document.getElementById('searchInput').value = ''; loadTransfers(); }
 
 function renderTable(items) {
   const tbody = document.getElementById('transfersTableBody');

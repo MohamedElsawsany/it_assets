@@ -1,10 +1,13 @@
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 from django.db.models import Q, Count
+
+PAGE_SIZE = 10
 
 from accounts.permissions import permission_required, has_permission, Perms
 from locations.models import Site
@@ -32,13 +35,21 @@ def departments_data(request):
     )
     if search:
         qs = qs.filter(name__icontains=search)
+    qs = qs.order_by('name')
+    paginator = Paginator(qs, PAGE_SIZE)
+    try:
+        page_num = int(request.GET.get('page', 1))
+    except (ValueError, TypeError):
+        page_num = 1
+    page_obj  = paginator.get_page(page_num)
     items = [
         {'id': d.pk, 'name': d.name,
          'employees_count': d.employees_count,
          'created_date': d.created_date.strftime('%Y-%m-%d')}
-        for d in qs.order_by('name')
+        for d in page_obj
     ]
-    return JsonResponse({'success': True, 'items': items, 'total': len(items)})
+    return JsonResponse({'success': True, 'items': items, 'total': paginator.count,
+                         'page': page_obj.number, 'num_pages': paginator.num_pages})
 
 
 @login_required
@@ -114,6 +125,13 @@ def employees_data(request):
         qs = qs.filter(department_id=dept_id)
     if site_id:
         qs = qs.filter(site_id=site_id)
+    qs = qs.order_by('first_name', 'last_name')
+    paginator = Paginator(qs, PAGE_SIZE)
+    try:
+        page_num = int(request.GET.get('page', 1))
+    except (ValueError, TypeError):
+        page_num = 1
+    page_obj  = paginator.get_page(page_num)
     items = [
         {'id': e.pk, 'full_name': e.full_name,
          'first_name': e.first_name, 'last_name': e.last_name,
@@ -121,9 +139,10 @@ def employees_data(request):
          'department_id': e.department_id, 'department_name': e.department.name,
          'site_id': e.site_id, 'site_name': e.site.name,
          'created_date': e.created_date.strftime('%Y-%m-%d')}
-        for e in qs.order_by('first_name', 'last_name')
+        for e in page_obj
     ]
-    return JsonResponse({'success': True, 'items': items, 'total': len(items)})
+    return JsonResponse({'success': True, 'items': items, 'total': paginator.count,
+                         'page': page_obj.number, 'num_pages': paginator.num_pages})
 
 
 @login_required

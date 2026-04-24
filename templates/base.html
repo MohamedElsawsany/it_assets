@@ -54,7 +54,7 @@
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/i18n/ar.js"></script>
   {% endif %}
 
-  <script src="{% static 'js/app.js' %}"></script>
+  <script src="{% static 'js/app.js' %}?v=2"></script>
   <script>
     window.APP_LANG = '{{ LANG }}';
     window.APP_DIR  = '{% if LANG == "ar" %}rtl{% else %}ltr{% endif %}';

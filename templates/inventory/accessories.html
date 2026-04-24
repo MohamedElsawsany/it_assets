@@ -95,6 +95,7 @@
       </div>
       <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
         <span class="text-muted small" id="recordCount"></span>
+        <div id="pagination"></div>
       </div>
     </div>
   </div>
@@ -305,13 +306,15 @@ const T = { records: '{% trans "records" %}' };
 
 let deleteTargetId = null;
 let debounceTimer  = null;
+let currentPage    = 1;
 
 const viewModal   = new bootstrap.Modal('#viewModal');
 const createModal = new bootstrap.Modal('#createModal');
 const editModal   = new bootstrap.Modal('#editModal');
 const deleteModal = new bootstrap.Modal('#deleteModal');
 
-function loadAccessories() {
+function loadAccessories(page) {
+  currentPage = page || 1;
   const search = document.getElementById('searchInput').value.trim();
   const type   = document.getElementById('typeFilter').value;
   const siteEl = document.getElementById('siteFilter');
@@ -322,20 +325,23 @@ function loadAccessories() {
   if (type)   params.set('type', type);
   if (site)   params.set('site', site);
   if (flag)   params.set('flag', flag);
+  params.set('page', currentPage);
   document.getElementById('tableLoader').classList.remove('d-none');
   document.getElementById('tableWrapper').classList.add('d-none');
   ajaxGet(`${URL_DATA}?${params}`)
     .then(data => {
       renderTable(data.items);
       document.getElementById('recordCount').textContent = `${data.total} ${T.records}`;
+      renderPagination('pagination', data.page, data.num_pages, loadAccessories);
     })
     .catch(() => showToast('{% trans "Failed to load accessories." %}', 'danger'))
     .finally(() => { document.getElementById('tableLoader').classList.add('d-none'); document.getElementById('tableWrapper').classList.remove('d-none'); });
 }
 
-function debounceLoad() { clearTimeout(debounceTimer); debounceTimer = setTimeout(loadAccessories, 400); }
+function debounceLoad() { currentPage = 1; clearTimeout(debounceTimer); debounceTimer = setTimeout(loadAccessories, 400); }
 
 function resetFilters() {
+  currentPage = 1;
   document.getElementById('searchInput').value = '';
   $('#typeFilter').val(null).trigger('change');
   const siteF = document.getElementById('siteFilter');
@@ -471,8 +477,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Filter bar
   initSelect2($('#typeFilter'), 'accessory-types', null, '{% trans "All Types" %}');
   initSelect2($('#siteFilter'), 'sites',           null, '{% trans "All Sites" %}');
-  $('#typeFilter, #siteFilter').on('change', loadAccessories);
-  document.getElementById('flagFilter').addEventListener('change', loadAccessories);
+  $('#typeFilter, #siteFilter').on('change', () => { currentPage = 1; loadAccessories(); });
+  document.getElementById('flagFilter').addEventListener('change', () => { currentPage = 1; loadAccessories(); });
 
   // Create modal
   initSelect2($('#createForm [name=accessory_type]'), 'accessory-types', null, S);

@@ -94,6 +94,7 @@
       </div>
       <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
         <span class="text-muted small" id="recordCount"></span>
+        <div id="pagination"></div>
       </div>
     </div>
   </div>
@@ -457,6 +458,7 @@ const T = {
 
 let deleteTargetId = null;
 let debounceTimer  = null;
+let currentPage    = 1;
 
 const viewModal       = new bootstrap.Modal('#viewModal');
 const createModal     = new bootstrap.Modal('#createModal');
@@ -464,7 +466,8 @@ const editModal       = new bootstrap.Modal('#editModal');
 const changeFlagModal = new bootstrap.Modal('#changeFlagModal');
 const deleteModal     = new bootstrap.Modal('#deleteModal');
 
-function loadDevices() {
+function loadDevices(page) {
+  currentPage = page || 1;
   const search = document.getElementById('searchInput').value.trim();
   const cat    = document.getElementById('catFilter').value;
   const siteEl = document.getElementById('siteFilter');
@@ -475,20 +478,23 @@ function loadDevices() {
   if (cat)    params.set('category', cat);
   if (site)   params.set('site', site);
   if (flag)   params.set('flag', flag);
+  params.set('page', currentPage);
   document.getElementById('tableLoader').classList.remove('d-none');
   document.getElementById('tableWrapper').classList.add('d-none');
   ajaxGet(`${URL_DEVICES_DATA}?${params}`)
     .then(data => {
       renderDevicesTable(data.items);
       document.getElementById('recordCount').textContent = `${data.total} ${T.records}`;
+      renderPagination('pagination', data.page, data.num_pages, loadDevices);
     })
     .catch(() => showToast('{% trans "Failed to load devices." %}', 'danger'))
     .finally(() => { document.getElementById('tableLoader').classList.add('d-none'); document.getElementById('tableWrapper').classList.remove('d-none'); });
 }
 
-function debounceLoad() { clearTimeout(debounceTimer); debounceTimer = setTimeout(loadDevices, 400); }
+function debounceLoad() { currentPage = 1; clearTimeout(debounceTimer); debounceTimer = setTimeout(loadDevices, 400); }
 
 function resetFilters() {
+  currentPage = 1;
   document.getElementById('searchInput').value = '';
   $('#catFilter').val(null).trigger('change');
   const siteF = document.getElementById('siteFilter');
@@ -670,8 +676,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Filter bar
   initSelect2($('#catFilter'),  'categories', null, '{% trans "All Categories" %}');
   initSelect2($('#siteFilter'), 'sites',      null, '{% trans "All Sites" %}');
-  $('#catFilter, #siteFilter').on('change', loadDevices);
-  document.getElementById('flagFilter').addEventListener('change', loadDevices);
+  $('#catFilter, #siteFilter').on('change', () => { currentPage = 1; loadDevices(); });
+  document.getElementById('flagFilter').addEventListener('change', () => { currentPage = 1; loadDevices(); });
 
   // Create modal
   initSelect2($('#createForm [name=category]'),    'categories',    null, S);

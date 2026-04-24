@@ -273,6 +273,49 @@ function setSelect2Value($el, id, text) {
   $el.val(sid).trigger('change');
 }
 
+/* ── Pagination ─────────────────────────────────────────────── */
+/**
+ * Render a Bootstrap pagination bar into the element with the given id.
+ * @param {string}   containerId  - id of the container element
+ * @param {number}   current      - current page number (1-based)
+ * @param {number}   numPages     - total number of pages
+ * @param {function} loadFn       - called with the new page number when clicked
+ */
+function renderPagination(containerId, current, numPages, loadFn) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (numPages <= 1) { el.innerHTML = ''; return; }
+
+  // Build a compact list of page numbers with ellipsis gaps
+  const show = new Set([1, 2, current - 1, current, current + 1, numPages - 1, numPages]);
+  const pages = [...show].filter(p => p >= 1 && p <= numPages).sort((a, b) => a - b);
+
+  let html = '<nav><ul class="pagination pagination-sm mb-0 flex-wrap">';
+  html += `<li class="page-item${current === 1 ? ' disabled' : ''}">
+    <a class="page-link" href="#" data-page="${current - 1}">&lsaquo;</a></li>`;
+
+  let prev = 0;
+  for (const p of pages) {
+    if (prev && p - prev > 1) html += '<li class="page-item disabled"><span class="page-link">…</span></li>';
+    html += `<li class="page-item${p === current ? ' active' : ''}">
+      <a class="page-link" href="#" data-page="${p}">${p}</a></li>`;
+    prev = p;
+  }
+
+  html += `<li class="page-item${current === numPages ? ' disabled' : ''}">
+    <a class="page-link" href="#" data-page="${current + 1}">&rsaquo;</a></li>`;
+  html += '</ul></nav>';
+  el.innerHTML = html;
+
+  el.querySelectorAll('.page-link[data-page]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const p = parseInt(a.dataset.page);
+      if (p >= 1 && p <= numPages && p !== current) loadFn(p);
+    });
+  });
+}
+
 /**
  * After form.reset(), sync all Select2 widgets so their visible UI
  * reflects the now-empty underlying <select> values.

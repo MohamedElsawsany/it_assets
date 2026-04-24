@@ -1,10 +1,13 @@
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 from django.db.models import Q
+
+PAGE_SIZE = 10
 
 from accounts.permissions import permission_required, has_permission, Perms
 from locations.models import Site
@@ -75,8 +78,16 @@ def lookup_data(request, lookup_type):
         qs = qs.select_related('category')
     if search:
         qs = qs.filter(name__icontains=search)
-    items = [serialize(obj) for obj in qs.order_by('name')]
-    return JsonResponse({'success': True, 'items': items, 'total': len(items)})
+    qs = qs.order_by('name')
+    paginator = Paginator(qs, PAGE_SIZE)
+    try:
+        page_num = int(request.GET.get('page', 1))
+    except (ValueError, TypeError):
+        page_num = 1
+    page_obj  = paginator.get_page(page_num)
+    items = [serialize(obj) for obj in page_obj]
+    return JsonResponse({'success': True, 'items': items, 'total': paginator.count,
+                         'page': page_obj.number, 'num_pages': paginator.num_pages})
 
 
 @login_required
@@ -194,8 +205,15 @@ def devices_data(request):
     if site_id: qs = qs.filter(site_id=site_id)
     if flag_id: qs = qs.filter(flag=flag_id)
 
+    qs = qs.order_by('-created_date')
+    paginator = Paginator(qs, PAGE_SIZE)
+    try:
+        page_num = int(request.GET.get('page', 1))
+    except (ValueError, TypeError):
+        page_num = 1
+    page_obj  = paginator.get_page(page_num)
     items = []
-    for d in qs.order_by('-created_date'):
+    for d in page_obj:
         item = {
             'id': d.pk,
             'serial_number': d.serial_number,
@@ -217,7 +235,8 @@ def devices_data(request):
                 'ports_number': d.ports_number or '',
             })
         items.append(item)
-    return JsonResponse({'success': True, 'items': items, 'total': len(items)})
+    return JsonResponse({'success': True, 'items': items, 'total': paginator.count,
+                         'page': page_obj.number, 'num_pages': paginator.num_pages})
 
 
 @login_required
@@ -385,6 +404,13 @@ def accessories_data(request):
     if type_id: qs = qs.filter(accessory_type_id=type_id)
     if site_id: qs = qs.filter(site_id=site_id)
     if flag_id: qs = qs.filter(flag=flag_id)
+    qs = qs.order_by('-created_date')
+    paginator = Paginator(qs, PAGE_SIZE)
+    try:
+        page_num = int(request.GET.get('page', 1))
+    except (ValueError, TypeError):
+        page_num = 1
+    page_obj  = paginator.get_page(page_num)
     items = [
         {'id': a.pk,
          'type_id': a.accessory_type_id, 'type_name': a.accessory_type.name,
@@ -394,9 +420,10 @@ def accessories_data(request):
          'site_id': a.site_id, 'site_name': a.site.name,
          'flag': a.flag, 'flag_name': a.get_flag_display(),
          'created_date': a.created_date.strftime('%Y-%m-%d')}
-        for a in qs.order_by('-created_date')
+        for a in page_obj
     ]
-    return JsonResponse({'success': True, 'items': items, 'total': len(items)})
+    return JsonResponse({'success': True, 'items': items, 'total': paginator.count,
+                         'page': page_obj.number, 'num_pages': paginator.num_pages})
 
 
 @login_required
