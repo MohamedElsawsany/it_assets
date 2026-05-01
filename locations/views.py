@@ -58,8 +58,8 @@ def governorate_detail(request, pk):
     return JsonResponse({'success': True, 'item': {
         'id': gov.pk, 'name': gov.name,
         'created_by': gov.created_by.full_name,
-        'created_date': gov.created_date.strftime('%Y-%m-%d %H:%M'),
-        'updated_date': gov.updated_date.strftime('%Y-%m-%d %H:%M') if gov.updated_date else '',
+        'created_date': gov.created_date.strftime('%Y-%m-%d %I:%M %p'),
+        'updated_date': gov.updated_date.strftime('%Y-%m-%d %I:%M %p') if gov.updated_date else '',
     }})
 
 
@@ -145,8 +145,8 @@ def site_detail(request, pk):
         'id': site.pk, 'name': site.name,
         'governorate_id': site.governorate_id, 'governorate_name': site.governorate.name,
         'created_by': site.created_by.full_name,
-        'created_date': site.created_date.strftime('%Y-%m-%d %H:%M'),
-        'updated_date': site.updated_date.strftime('%Y-%m-%d %H:%M') if site.updated_date else '',
+        'created_date': site.created_date.strftime('%Y-%m-%d %I:%M %p'),
+        'updated_date': site.updated_date.strftime('%Y-%m-%d %I:%M %p') if site.updated_date else '',
     }})
 
 

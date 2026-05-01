@@ -78,12 +78,20 @@ def _categories(q, start, end, request):
 
 
 def _device_models(q, start, end, request):
+    brand_id    = request.GET.get('brand', '').strip()
+    category_id = request.GET.get('category', '').strip()
+
+    # Require at least one filter — never dump the full model list
+    if not brand_id and not category_id:
+        return [], 0
+
     qs = DeviceModel.objects.filter(deleted_date__isnull=True).select_related('brand', 'category')
-    if q:
-        qs = qs.filter(Q(name__icontains=q) | Q(brand__name__icontains=q))
-    brand_id = request.GET.get('brand')
     if brand_id:
         qs = qs.filter(brand_id=brand_id)
+    if category_id:
+        qs = qs.filter(category_id=category_id)
+    if q:
+        qs = qs.filter(Q(name__icontains=q) | Q(brand__name__icontains=q))
     qs = qs.order_by('name')
     total = qs.count()
     items = [{'id': o.pk, 'text': f'{o.name} ({o.brand.name})'} for o in qs[start:end]]
@@ -142,30 +150,46 @@ def _governorates(q, start, end, request):
 
 
 def _devices(q, start, end, request):
-    qs = Device.objects.filter(deleted_date__isnull=True).select_related('category', 'brand')
+    qs = Device.objects.filter(deleted_date__isnull=True).select_related('category', 'brand', 'device_model')
     if q:
         qs = qs.filter(
             Q(serial_number__icontains=q) |
             Q(brand__name__icontains=q) |
-            Q(category__name__icontains=q)
+            Q(category__name__icontains=q) |
+            Q(device_model__name__icontains=q)
         )
     qs = qs.order_by('serial_number')
     total = qs.count()
-    items = [{'id': o.pk, 'text': f'{o.serial_number} ({o.category.name} · {o.brand.name})'}
+    items = [{'id': o.pk, 'text': f'{o.serial_number} ({o.category.name} · {o.brand.name} · {o.device_model.name})'}
              for o in qs[start:end]]
     return items, total
 
 
 def _employees(q, start, end, request):
+    from django.db.models.functions import Cast
+    from django.db.models import CharField
+
     qs = Employee.objects.filter(deleted_date__isnull=True).select_related('site', 'department')
+    qs = qs.annotate(card_id_str=Cast('employee_card_id', CharField()))
+
     if q:
-        qs = qs.filter(
-            Q(first_name__icontains=q) | Q(last_name__icontains=q) |
-            Q(employee_card_id__icontains=q)
-        )
+        # Each whitespace-separated term must match first_name OR last_name,
+        # so "ahmed hassan" correctly finds employees whose first+last name contain both words.
+        name_filter = Q()
+        for term in q.split():
+            name_filter &= (Q(first_name__icontains=term) | Q(last_name__icontains=term))
+
+        # Card ID: cast to string so partial matches work (e.g. "1004" matches "10045")
+        card_filter = Q(card_id_str__icontains=q)
+
+        qs = qs.filter(name_filter | card_filter)
+
     qs = qs.order_by('first_name', 'last_name')
     total = qs.count()
-    items = [{'id': o.pk, 'text': f'{o.full_name} ({o.site.name if o.site else ""})'} for o in qs[start:end]]
+    items = [
+        {'id': o.pk, 'text': f'{o.full_name} [{o.employee_card_id}]'}
+        for o in qs[start:end]
+    ]
     return items, total
 
 

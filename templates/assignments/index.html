@@ -66,16 +66,18 @@
               <th>{% trans "Device" %}</th>
               <th>{% trans "Employee" %}</th>
               <th>{% trans "Assigned Date" %}</th>
+              <th>{% trans "Assigned By" %}</th>
               <th>{% trans "Returned Date" %}</th>
+              <th>{% trans "Returned By" %}</th>
               <th>{% trans "Status" %}</th>
-              <th class="text-end" style="width:160px">{% trans "Actions" %}</th>
+              <th class="text-end" style="width:100px">{% trans "Actions" %}</th>
             </tr>
           </thead>
           <tbody id="assignmentsTableBody"></tbody>
         </table>
       </div>
       <div id="emptyState" class="text-center py-5 d-none">
-        <i class="bi bi-link-45deg display-6 text-muted"></i>
+        <i class="bi bi-box-arrow-in-right display-6 text-muted"></i>
         <p class="mt-3 text-muted">{% trans "No assignments found." %}</p>
       </div>
       <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
@@ -93,29 +95,65 @@
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-link-45deg me-2 text-secondary"></i>{% trans "Assignment Details" %}</h5>
+        <h5 class="modal-title"><i class="bi bi-box-arrow-in-right me-2 text-secondary"></i>{% trans "Assignment Details" %}</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <div id="viewLoader" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
         <div id="viewContent" class="d-none">
-          <div class="row g-3">
-            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Device" %}</p><p class="fw-medium font-monospace mb-0" id="v-device"></p></div>
-            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Employee" %}</p><p class="fw-medium mb-0" id="v-employee"></p></div>
-            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Assigned Date" %}</p><p class="fw-medium mb-0" id="v-assigned-date"></p></div>
-            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Returned Date" %}</p><p class="fw-medium mb-0" id="v-returned-date"></p></div>
-            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Status" %}</p><p class="mb-0" id="v-status"></p></div>
-            <div class="col-12"><p class="text-muted small mb-1">{% trans "Notes" %}</p><p class="fw-medium mb-0" id="v-notes"></p></div>
+
+          <!-- Device & Employee -->
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Device" %}</p>
+              <p class="fw-semibold font-monospace mb-0" id="v-device-serial"></p>
+              <p class="text-muted small mb-0" id="v-device-info"></p>
+            </div>
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Employee" %}</p>
+              <p class="fw-semibold mb-0" id="v-employee"></p>
+            </div>
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Status" %}</p>
+              <p class="mb-0" id="v-status"></p>
+            </div>
+            <div class="col-12">
+              <p class="text-muted small mb-1">{% trans "Notes" %}</p>
+              <p class="fw-medium mb-0" id="v-notes"></p>
+            </div>
           </div>
+
           <hr class="my-3">
-          <div class="row g-3 text-muted small">
-            <div class="col-md-4"><p class="mb-1">{% trans "Assigned by" %}</p><p class="fw-medium text-body mb-0" id="v-assigned-by"></p></div>
-            <div class="col-md-4"><p class="mb-1">{% trans "Created" %}</p><p class="fw-medium text-body mb-0" id="v-created-date"></p></div>
-            <div class="col-md-4"><p class="mb-1">{% trans "Last updated" %}</p><p class="fw-medium text-body mb-0" id="v-updated-date"></p></div>
+
+          <!-- Assignment audit row -->
+          <div class="row g-3 mb-2">
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Assigned Date" %}</p>
+              <p class="fw-medium mb-0" id="v-assigned-date"></p>
+            </div>
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Assigned By" %}</p>
+              <p class="fw-medium mb-0" id="v-assigned-by"></p>
+            </div>
           </div>
+
+          <!-- Return audit row -->
+          <div class="row g-3" id="v-return-row">
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Returned Date" %}</p>
+              <p class="fw-medium mb-0" id="v-returned-date"></p>
+            </div>
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Returned By" %}</p>
+              <p class="fw-medium mb-0" id="v-returned-by"></p>
+            </div>
+          </div>
+
         </div>
       </div>
-      <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Close" %}</button></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Close" %}</button>
+      </div>
     </div>
   </div>
 </div>
@@ -126,7 +164,7 @@
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-link-45deg me-2 text-primary"></i>{% trans "New Assignment" %}</h5>
+        <h5 class="modal-title"><i class="bi bi-plus-lg me-2 text-primary"></i>{% trans "New Assignment" %}</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <form id="createForm" novalidate>
@@ -159,57 +197,6 @@
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
           <button type="submit" class="btn btn-primary" id="createSubmitBtn">
             <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Assign" %}</span>
-            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-
-<!-- ===== EDIT MODAL ===== -->
-<div class="modal fade" id="editModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-pencil me-2 text-primary"></i>{% trans "Edit Assignment" %}</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <form id="editForm" novalidate>
-        {% csrf_token %}
-        <input type="hidden" id="editAssignmentId">
-        <div class="modal-body">
-          <div id="editLoader" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
-          <div id="editContent" class="d-none">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <label class="form-label">{% trans "Device" %} <span class="text-danger">*</span></label>
-                <select class="form-select" name="device" required><option value=""></option></select>
-                <div class="invalid-feedback"></div>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">{% trans "Employee" %} <span class="text-danger">*</span></label>
-                <select class="form-select" name="employee" required><option value=""></option></select>
-                <div class="invalid-feedback"></div>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">{% trans "Assigned Date" %} <span class="text-danger">*</span></label>
-                <input type="datetime-local" class="form-control" name="assigned_date" required>
-                <div class="invalid-feedback"></div>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">{% trans "Notes" %}</label>
-                <textarea class="form-control" name="notes" rows="2"></textarea>
-                <div class="invalid-feedback"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
-          <button type="submit" class="btn btn-primary" id="editSubmitBtn">
-            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Save Changes" %}</span>
             <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
           </button>
         </div>
@@ -254,68 +241,37 @@
   </div>
 </div>
 
-
-<!-- ===== DELETE MODAL ===== -->
-<div class="modal fade" id="deleteModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header border-0 pb-0">
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body text-center pt-0 pb-4">
-        <div class="delete-icon-wrapper mb-3"><i class="bi bi-trash3 text-danger"></i></div>
-        <h5 class="fw-semibold">{% trans "Delete Assignment" %}</h5>
-        <p class="text-muted"><strong id="deleteAssignmentLabel"></strong><br>
-          <small>{% trans "This action cannot be undone." %}</small></p>
-      </div>
-      <div class="modal-footer justify-content-center border-0 pt-0">
-        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
-        <button type="button" class="btn btn-danger px-4" id="confirmDeleteBtn">
-          <span class="btn-text"><i class="bi bi-trash3 me-1"></i>{% trans "Delete" %}</span>
-          <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Deleting…" %}</span>
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
 {% endblock %}
 
 
 {% block extra_js %}
 <script>
-const CAN_EDIT   = {{ rbac.assignments_edit|yesno:"true,false" }};
-const CAN_DELETE = {{ rbac.assignments_delete|yesno:"true,false" }};
 const CAN_RETURN = {{ rbac.assignments_return|yesno:"true,false" }};
 
 const URL_DATA   = '{% url "assignments-data" %}';
 const URL_CREATE = '{% url "assignment-create" %}';
 const detailUrl  = pk => `/assignments/${pk}/`;
-const editUrl    = pk => `/assignments/${pk}/edit/`;
 const returnUrl  = pk => `/assignments/${pk}/return/`;
-const deleteUrl  = pk => `/assignments/${pk}/delete/`;
 
 const T = {
   records:  '{% trans "records" %}',
   active:   '{% trans "Active" %}',
   returned: '{% trans "Returned" %}',
+  dash:     '—',
 };
 
-let deleteTargetId = null;
-let debounceTimer  = null;
-let currentPage    = 1;
+let debounceTimer = null;
+let currentPage   = 1;
 
 const viewModal   = new bootstrap.Modal('#viewModal');
 const createModal = new bootstrap.Modal('#createModal');
-const editModal   = new bootstrap.Modal('#editModal');
 const returnModal = new bootstrap.Modal('#returnModal');
-const deleteModal = new bootstrap.Modal('#deleteModal');
 
 function loadAssignments(page) {
   currentPage = page || 1;
-  const search  = document.getElementById('searchInput').value.trim();
-  const status  = document.getElementById('statusFilter').value;
-  const params  = new URLSearchParams();
+  const search = document.getElementById('searchInput').value.trim();
+  const status = document.getElementById('statusFilter').value;
+  const params = new URLSearchParams();
   if (search) params.set('search', search);
   if (status) params.set('status', status);
   params.set('page', currentPage);
@@ -328,7 +284,10 @@ function loadAssignments(page) {
       renderPagination('pagination', data.page, data.num_pages, loadAssignments);
     })
     .catch(() => showToast('{% trans "Failed to load assignments." %}', 'danger'))
-    .finally(() => { document.getElementById('tableLoader').classList.add('d-none'); document.getElementById('tableWrapper').classList.remove('d-none'); });
+    .finally(() => {
+      document.getElementById('tableLoader').classList.add('d-none');
+      document.getElementById('tableWrapper').classList.remove('d-none');
+    });
 }
 
 function debounceLoad() { currentPage = 1; clearTimeout(debounceTimer); debounceTimer = setTimeout(loadAssignments, 400); }
@@ -347,14 +306,16 @@ function renderTable(items) {
   document.getElementById('tableWrapper').classList.remove('d-none');
   tbody.innerHTML = items.map((a, i) => `
     <tr>
-      <td class="text-muted small">${i + 1}</td>
+      <td class="text-muted">${(currentPage - 1) * 10 + i + 1}</td>
       <td>
-        <div class="fw-medium font-monospace">${escHtml(a.device_serial)}</div>
-        <div class="text-muted small">${escHtml(a.device_label)}</div>
+        <div class="fw-semibold font-monospace" style="font-size:.82rem;">${escHtml(a.device_serial)}</div>
+        <div class="text-muted" style="font-size:.75rem;">${escHtml(a.device_category)} · ${escHtml(a.device_brand)} ${escHtml(a.device_model)}</div>
       </td>
       <td class="fw-medium">${escHtml(a.employee_name)}</td>
-      <td class="text-muted small">${a.assigned_date}</td>
-      <td class="text-muted small">${a.returned_date || '<span class="text-muted">—</span>'}</td>
+      <td>${a.assigned_date}</td>
+      <td>${escHtml(a.assigned_by)}</td>
+      <td>${a.returned_date || `<span class="text-muted">${T.dash}</span>`}</td>
+      <td>${a.returned_by ? escHtml(a.returned_by) : `<span class="text-muted">${T.dash}</span>`}</td>
       <td>
         <span class="badge rounded-pill ${a.is_active ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'}">
           ${a.is_active ? T.active : T.returned}
@@ -362,17 +323,20 @@ function renderTable(items) {
       </td>
       <td class="text-end">
         <div class="d-flex gap-1 justify-content-end">
-          <button class="btn btn-sm btn-icon btn-outline-secondary" onclick="openViewModal(${a.id})" title="{% trans 'View' %}"><i class="bi bi-eye"></i></button>
-          ${CAN_EDIT ? `<button class="btn btn-sm btn-icon btn-outline-primary" onclick="openEditModal(${a.id})" title="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></button>` : ''}
-          ${CAN_RETURN && a.is_active ? `<button class="btn btn-sm btn-icon btn-outline-success" onclick="openReturnModal(${a.id})" title="{% trans 'Return' %}"><i class="bi bi-box-arrow-in-left"></i></button>` : ''}
-          ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDeleteModal(${a.id},'${escHtml(a.device_serial)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
+          <button class="btn btn-sm btn-icon btn-outline-secondary" onclick="openViewModal(${a.id})" title="{% trans 'View' %}">
+            <i class="bi bi-eye"></i>
+          </button>
+          ${CAN_RETURN && a.is_active ? `
+          <button class="btn btn-sm btn-icon btn-outline-success" onclick="openReturnModal(${a.id})" title="{% trans 'Return' %}">
+            <i class="bi bi-box-arrow-in-left"></i>
+          </button>` : ''}
         </div>
       </td>
     </tr>
   `).join('');
 }
 
-/* View */
+/* ── View ── */
 function openViewModal(pk) {
   document.getElementById('viewLoader').classList.remove('d-none');
   document.getElementById('viewContent').classList.add('d-none');
@@ -381,30 +345,30 @@ function openViewModal(pk) {
     .then(data => {
       if (!data.success) { showToast(data.message, 'danger'); viewModal.hide(); return; }
       const a = data.item;
-      document.getElementById('v-device').textContent        = a.device_serial;
+      document.getElementById('v-device-serial').textContent = a.device_serial;
+      document.getElementById('v-device-info').textContent   = `${a.device_category} · ${a.device_brand} ${a.device_model}`;
       document.getElementById('v-employee').textContent      = a.employee_name;
-      document.getElementById('v-assigned-date').textContent = a.assigned_date ? a.assigned_date.replace('T',' ') : '—';
-      document.getElementById('v-returned-date').textContent = a.returned_date ? a.returned_date.replace('T',' ') : '—';
       document.getElementById('v-status').innerHTML = a.is_active
         ? `<span class="badge rounded-pill bg-success-subtle text-success">${T.active}</span>`
         : `<span class="badge rounded-pill bg-secondary-subtle text-secondary">${T.returned}</span>`;
-      document.getElementById('v-notes').textContent         = a.notes || '—';
-      document.getElementById('v-assigned-by').textContent   = a.assigned_by;
-      document.getElementById('v-created-date').textContent  = a.created_date;
-      document.getElementById('v-updated-date').textContent  = a.updated_date || '—';
+      document.getElementById('v-notes').textContent       = a.notes || T.dash;
+      document.getElementById('v-assigned-date').textContent = a.assigned_date ? a.assigned_date.replace('T', ' ') : T.dash;
+      document.getElementById('v-assigned-by').textContent   = a.assigned_by || T.dash;
+      document.getElementById('v-returned-date').textContent = a.returned_date ? a.returned_date.replace('T', ' ') : T.dash;
+      document.getElementById('v-returned-by').textContent   = a.returned_by || T.dash;
       document.getElementById('viewLoader').classList.add('d-none');
       document.getElementById('viewContent').classList.remove('d-none');
     })
     .catch(() => { showToast('{% trans "Failed to load assignment." %}', 'danger'); viewModal.hide(); });
 }
 
-/* Create */
+/* ── Create ── */
 function openCreateModal() {
   document.getElementById('createForm').reset();
   resetFormSelects(document.getElementById('createForm'));
   clearFormErrors(document.getElementById('createForm'));
   const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-  document.getElementById('createForm').querySelector('[name=assigned_date]').value = now.toISOString().slice(0,16);
+  document.getElementById('createForm').querySelector('[name=assigned_date]').value = now.toISOString().slice(0, 16);
   createModal.show();
 }
 document.getElementById('createForm').addEventListener('submit', function(e) {
@@ -412,50 +376,21 @@ document.getElementById('createForm').addEventListener('submit', function(e) {
   const btn = document.getElementById('createSubmitBtn');
   clearFormErrors(this); setButtonLoading(btn, true);
   ajaxPost(URL_CREATE, new FormData(this))
-    .then(data => { if (data.success) { createModal.hide(); showToast(data.message, 'success'); loadAssignments(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
-    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
-    .finally(() => setButtonLoading(btn, false));
-});
-
-/* Edit */
-function openEditModal(pk) {
-  document.getElementById('editLoader').classList.remove('d-none');
-  document.getElementById('editContent').classList.add('d-none');
-  document.getElementById('editAssignmentId').value = pk;
-  clearFormErrors(document.getElementById('editForm'));
-  editModal.show();
-  ajaxGet(detailUrl(pk))
     .then(data => {
-      if (!data.success) { showToast(data.message, 'danger'); editModal.hide(); return; }
-      const a = data.item;
-      const f = document.getElementById('editForm');
-      setSelect2Value($('#editForm [name=device]'),   a.device_id,   a.device_serial);
-      setSelect2Value($('#editForm [name=employee]'), a.employee_id, a.employee_name);
-      f.querySelector('[name=assigned_date]').value = a.assigned_date;
-      f.querySelector('[name=notes]').value         = a.notes || '';
-      document.getElementById('editLoader').classList.add('d-none');
-      document.getElementById('editContent').classList.remove('d-none');
+      if (data.success) { createModal.hide(); showToast(data.message, 'success'); loadAssignments(); }
+      else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); }
     })
-    .catch(() => { showToast('{% trans "Failed to load assignment." %}', 'danger'); editModal.hide(); });
-}
-document.getElementById('editForm').addEventListener('submit', function(e) {
-  e.preventDefault();
-  const pk  = document.getElementById('editAssignmentId').value;
-  const btn = document.getElementById('editSubmitBtn');
-  clearFormErrors(this); setButtonLoading(btn, true);
-  ajaxPost(editUrl(pk), new FormData(this))
-    .then(data => { if (data.success) { editModal.hide(); showToast(data.message, 'success'); loadAssignments(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
     .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
     .finally(() => setButtonLoading(btn, false));
 });
 
-/* Return */
+/* ── Return ── */
 function openReturnModal(pk) {
   document.getElementById('returnForm').reset();
   clearFormErrors(document.getElementById('returnForm'));
   document.getElementById('returnAssignmentId').value = pk;
   const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-  document.getElementById('returnForm').querySelector('[name=returned_date]').value = now.toISOString().slice(0,16);
+  document.getElementById('returnForm').querySelector('[name=returned_date]').value = now.toISOString().slice(0, 16);
   returnModal.show();
 }
 document.getElementById('returnForm').addEventListener('submit', function(e) {
@@ -464,25 +399,12 @@ document.getElementById('returnForm').addEventListener('submit', function(e) {
   const btn = document.getElementById('returnSubmitBtn');
   clearFormErrors(this); setButtonLoading(btn, true);
   ajaxPost(returnUrl(pk), new FormData(this))
-    .then(data => { if (data.success) { returnModal.hide(); showToast(data.message, 'success'); loadAssignments(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+    .then(data => {
+      if (data.success) { returnModal.hide(); showToast(data.message, 'success'); loadAssignments(); }
+      else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); }
+    })
     .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
     .finally(() => setButtonLoading(btn, false));
-});
-
-/* Delete */
-function openDeleteModal(pk, label) {
-  deleteTargetId = pk;
-  document.getElementById('deleteAssignmentLabel').textContent = label;
-  deleteModal.show();
-}
-document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
-  if (!deleteTargetId) return;
-  const btn = this;
-  setButtonLoading(btn, true);
-  ajaxPost(deleteUrl(deleteTargetId), new FormData())
-    .then(data => { if (data.success) { deleteModal.hide(); showToast(data.message, 'success'); loadAssignments(); } else { showToast(data.message, 'danger'); } })
-    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
-    .finally(() => { setButtonLoading(btn, false); deleteTargetId = null; });
 });
 
 /* ── Init ── */
@@ -490,8 +412,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const S = '— {% trans "Select" %} —';
   initSelect2($('#createForm [name=device]'),   'devices',   null, S);
   initSelect2($('#createForm [name=employee]'), 'employees', null, S);
-  initSelect2($('#editForm [name=device]'),     'devices',   null, S);
-  initSelect2($('#editForm [name=employee]'),   'employees', null, S);
   loadAssignments();
 });
 </script>

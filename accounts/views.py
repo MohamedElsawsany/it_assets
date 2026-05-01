@@ -95,8 +95,8 @@ def user_detail(request, user_id):
             'site_name': user.site.name if user.site else '',
             'is_active': user.is_active,
             'created_by': user.created_by.full_name if user.created_by else '',
-            'created_date': user.created_date.strftime('%Y-%m-%d %H:%M') if user.created_date else '',
-            'updated_date': user.updated_date.strftime('%Y-%m-%d %H:%M') if user.updated_date else '',
+            'created_date': user.created_date.strftime('%Y-%m-%d %I:%M %p') if user.created_date else '',
+            'updated_date': user.updated_date.strftime('%Y-%m-%d %I:%M %p') if user.updated_date else '',
         }
     })
 

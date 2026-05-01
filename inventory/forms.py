@@ -66,7 +66,7 @@ class DeviceForm(forms.ModelForm):
         fields = [
             'serial_number', 'category', 'brand', 'device_model', 'site', 'flag',
             'cpu', 'gpu', 'ram_size_gb', 'hdd_storage_gb', 'ssd_storage_gb',
-            'operating_system', 'screen_size_inch', 'ports_number',
+            'operating_system', 'screen_size_inch', 'ports_number', 'notes',
         ]
         widgets = {
             'serial_number':   forms.TextInput(attrs={'class': 'form-control'}),
@@ -83,6 +83,7 @@ class DeviceForm(forms.ModelForm):
             'ssd_storage_gb':  forms.NumberInput(attrs={'class': 'form-control'}),
             'screen_size_inch':forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'}),
             'ports_number':    forms.NumberInput(attrs={'class': 'form-control'}),
+            'notes':           forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
         labels = {
             'serial_number':   _('Serial Number'),
@@ -99,6 +100,7 @@ class DeviceForm(forms.ModelForm):
             'operating_system':_('Operating System'),
             'screen_size_inch':_('Screen Size (inches)'),
             'ports_number':    _('Ports'),
+            'notes':           _('Notes'),
         }
 
 
@@ -113,20 +115,20 @@ class ChangeFlagForm(forms.Form):
 class AccessoryForm(forms.ModelForm):
     class Meta:
         model  = Accessory
-        fields = ['accessory_type', 'serial_number', 'brand', 'device', 'site', 'flag']
+        fields = ['accessory_type', 'serial_number', 'brand', 'site', 'flag', 'notes']
         widgets = {
             'accessory_type': forms.Select(attrs={'class': 'form-select'}),
             'serial_number':  forms.TextInput(attrs={'class': 'form-control'}),
             'brand':          forms.Select(attrs={'class': 'form-select'}),
-            'device':         forms.Select(attrs={'class': 'form-select'}),
             'site':           forms.Select(attrs={'class': 'form-select'}),
             'flag':           forms.Select(attrs={'class': 'form-select'}),
+            'notes':          forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
         labels = {
             'accessory_type': _('Type'),
             'serial_number':  _('Serial Number'),
             'brand':          _('Brand'),
-            'device':         _('Linked Device'),
             'site':           _('Site'),
             'flag':           _('Flag'),
+            'notes':          _('Notes'),
         }

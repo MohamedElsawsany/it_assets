@@ -99,8 +99,8 @@ def lookup_item_detail(request, lookup_type, pk):
     item = serialize(obj)
     item.update({
         'created_by': obj.created_by.full_name if obj.created_by else '',
-        'created_date': obj.created_date.strftime('%Y-%m-%d %H:%M'),
-        'updated_date': obj.updated_date.strftime('%Y-%m-%d %H:%M') if obj.updated_date else '',
+        'created_date': obj.created_date.strftime('%Y-%m-%d %I:%M %p'),
+        'updated_date': obj.updated_date.strftime('%Y-%m-%d %I:%M %p') if obj.updated_date else '',
     })
     return JsonResponse({'success': True, 'item': item})
 
@@ -256,9 +256,10 @@ def device_detail(request, pk):
         'device_model_id': d.device_model_id, 'model_name': d.device_model.name,
         'site_id': d.site_id,             'site_name': d.site.name,
         'flag': d.flag, 'flag_name': d.get_flag_display(),
+        'notes': d.notes or '',
         'created_by': d.created_by.full_name,
-        'created_date': d.created_date.strftime('%Y-%m-%d %H:%M'),
-        'updated_date': d.updated_date.strftime('%Y-%m-%d %H:%M') if d.updated_date else '',
+        'created_date': d.created_date.strftime('%Y-%m-%d %I:%M %p'),
+        'updated_date': d.updated_date.strftime('%Y-%m-%d %I:%M %p') if d.updated_date else '',
     }
     if show_specs:
         item.update({
@@ -394,7 +395,7 @@ def accessories_data(request):
     site_id = request.GET.get('site', '').strip()
     flag_id = request.GET.get('flag', '').strip()
     qs = Accessory.objects.filter(deleted_date__isnull=True).select_related(
-        'accessory_type', 'brand', 'device', 'site'
+        'accessory_type', 'brand', 'site'
     )
     if search:
         qs = qs.filter(
@@ -416,7 +417,6 @@ def accessories_data(request):
          'type_id': a.accessory_type_id, 'type_name': a.accessory_type.name,
          'serial_number': a.serial_number or '',
          'brand_id': a.brand_id or '', 'brand_name': a.brand.name if a.brand else '',
-         'device_id': a.device_id or '', 'device_serial': a.device.serial_number if a.device else '',
          'site_id': a.site_id, 'site_name': a.site.name,
          'flag': a.flag, 'flag_name': a.get_flag_display(),
          'created_date': a.created_date.strftime('%Y-%m-%d')}
@@ -431,20 +431,21 @@ def accessory_detail(request, pk):
     if not has_permission(request.user, Perms.ACCESSORIES_VIEW):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
     a = get_object_or_404(
-        Accessory.objects.select_related('accessory_type', 'brand', 'device', 'site', 'created_by'),
+        Accessory.objects.select_related('accessory_type', 'brand', 'site', 'created_by', 'updated_by'),
         pk=pk, deleted_date__isnull=True,
     )
     return JsonResponse({'success': True, 'item': {
         'id': a.pk,
         'accessory_type_id': a.accessory_type_id, 'type_name': a.accessory_type.name,
         'serial_number': a.serial_number or '',
-        'brand_id': a.brand_id or '',   'brand_name': a.brand.name if a.brand else '',
-        'device_id': a.device_id or '', 'device_serial': a.device.serial_number if a.device else '',
-        'site_id': a.site_id,           'site_name': a.site.name,
+        'brand_id': a.brand_id or '', 'brand_name': a.brand.name if a.brand else '',
+        'site_id': a.site_id,         'site_name': a.site.name,
         'flag': a.flag, 'flag_name': a.get_flag_display(),
+        'notes': a.notes or '',
         'created_by': a.created_by.full_name,
-        'created_date': a.created_date.strftime('%Y-%m-%d %H:%M'),
-        'updated_date': a.updated_date.strftime('%Y-%m-%d %H:%M') if a.updated_date else '',
+        'created_date': a.created_date.strftime('%Y-%m-%d %I:%M %p'),
+        'updated_by': a.updated_by.full_name if a.updated_by else '',
+        'updated_date': a.updated_date.strftime('%Y-%m-%d %I:%M %p') if a.updated_date else '',
     }})
 
 
@@ -471,7 +472,9 @@ def accessory_edit(request, pk):
     a = get_object_or_404(Accessory, pk=pk, deleted_date__isnull=True)
     form = AccessoryForm(request.POST, instance=a)
     if form.is_valid():
-        form.save()
+        obj = form.save(commit=False)
+        obj.updated_by = request.user
+        obj.save()
         return JsonResponse({'success': True, 'message': _('Accessory updated successfully.')})
     errors = {f: [str(e) for e in v] for f, v in form.errors.items()}
     return JsonResponse({'success': False, 'errors': errors})

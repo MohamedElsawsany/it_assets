@@ -31,6 +31,11 @@ class DeviceAssignment(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         related_name='assigned_devices', db_column='Assigned_By',
     )
+    returned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+        related_name='returned_devices', db_column='Returned_By',
+        null=True, blank=True,
+    )
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(auto_now=True, null=True, blank=True)
 

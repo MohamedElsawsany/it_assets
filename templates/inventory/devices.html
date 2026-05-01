@@ -138,6 +138,10 @@
               <p class="text-muted small mb-1">{% trans "Flag" %}</p>
               <p class="fw-medium mb-0" id="view-flag"></p>
             </div>
+            <div class="col-12">
+              <p class="text-muted small mb-1">{% trans "Notes" %}</p>
+              <p class="fw-medium mb-0" id="view-notes"></p>
+            </div>
           </div>
           {% if show_specs %}
           <div id="viewSpecsSection" class="d-none">
@@ -235,6 +239,10 @@
                 {% endfor %}
               </select>
               <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-12">
+              <label class="form-label">{% trans "Notes" %}</label>
+              <textarea class="form-control" name="notes" rows="2"></textarea>
             </div>
             {% if show_specs %}
             <div class="col-12"><hr class="my-1"><p class="fw-medium text-muted small mb-0">{% trans "Specifications (optional)" %}</p></div>
@@ -338,6 +346,10 @@
                   {% endfor %}
                 </select>
                 <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-12">
+                <label class="form-label">{% trans "Notes" %}</label>
+                <textarea class="form-control" name="notes" rows="2"></textarea>
               </div>
               {% if show_specs %}
               <div class="col-12"><hr class="my-1"><p class="fw-medium text-muted small mb-0">{% trans "Specifications (optional)" %}</p></div>
@@ -572,7 +584,8 @@ function openEditModal(pk) {
       setSelect2Value($('#editForm [name=brand]'),        d.brand_id,        d.brand_name);
       setSelect2Value($('#editForm [name=device_model]'), d.device_model_id, d.model_name);
       setSelect2Value($('#editForm [name=site]'),         d.site_id,         d.site_name);
-      f.querySelector('[name=flag]').value = d.flag || '';
+      f.querySelector('[name=flag]').value  = d.flag || '';
+      f.querySelector('[name=notes]').value = d.notes || '';
       if (SHOW_SPECS) {
         const setNum = (n, v) => { const el = f.querySelector(`[name=${n}]`); if (el) el.value = v || ''; };
         setNum('ram_size_gb', d.ram_size_gb); setNum('hdd_storage_gb', d.hdd_storage_gb);
@@ -631,6 +644,7 @@ function openViewModal(pk) {
       document.getElementById('view-model').textContent       = d.model_name;
       document.getElementById('view-site').textContent        = d.site_name;
       document.getElementById('view-flag').textContent        = d.flag_name || d.flag;
+      document.getElementById('view-notes').textContent       = d.notes || '—';
       const specsSection = document.getElementById('viewSpecsSection');
       if (specsSection) {
         if (d.cpu_name !== undefined) {
@@ -680,10 +694,20 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('flagFilter').addEventListener('change', () => { currentPage = 1; loadDevices(); });
 
   // Create modal
-  initSelect2($('#createForm [name=category]'),    'categories',    null, S);
-  initSelect2($('#createForm [name=brand]'),       'brands',        null, S);
-  initSelect2($('#createForm [name=device_model]'),'device-models', null, S);
-  initSelect2($('#createForm [name=site]'),        'sites',         null, S);
+  initSelect2($('#createForm [name=category]'), 'categories', null, S);
+  initSelect2($('#createForm [name=brand]'),    'brands',     null, S);
+  initSelect2($('#createForm [name=device_model]'), 'device-models',
+    () => ({
+      brand:    $('#createForm [name=brand]').val()    || '',
+      category: $('#createForm [name=category]').val() || '',
+    }), S);
+  initSelect2($('#createForm [name=site]'), 'sites', null, S);
+
+  // Reset model when category or brand changes (create)
+  $('#createForm [name=category], #createForm [name=brand]').on('change', function () {
+    $('#createForm [name=device_model]').val(null).trigger('change');
+  });
+
   if (SHOW_SPECS) {
     initSelect2($('#createForm [name=cpu]'),              'cpus', null, '—');
     initSelect2($('#createForm [name=gpu]'),              'gpus', null, '—');
@@ -691,10 +715,20 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Edit modal
-  initSelect2($('#editForm [name=category]'),    'categories',    null, S);
-  initSelect2($('#editForm [name=brand]'),       'brands',        null, S);
-  initSelect2($('#editForm [name=device_model]'),'device-models', null, S);
-  initSelect2($('#editForm [name=site]'),        'sites',         null, S);
+  initSelect2($('#editForm [name=category]'), 'categories', null, S);
+  initSelect2($('#editForm [name=brand]'),    'brands',     null, S);
+  initSelect2($('#editForm [name=device_model]'), 'device-models',
+    () => ({
+      brand:    $('#editForm [name=brand]').val()    || '',
+      category: $('#editForm [name=category]').val() || '',
+    }), S);
+  initSelect2($('#editForm [name=site]'), 'sites', null, S);
+
+  // Reset model when category or brand changes (edit)
+  $('#editForm [name=category], #editForm [name=brand]').on('change', function () {
+    $('#editForm [name=device_model]').val(null).trigger('change');
+  });
+
   if (SHOW_SPECS) {
     initSelect2($('#editForm [name=cpu]'),              'cpus', null, '—');
     initSelect2($('#editForm [name=gpu]'),              'gpus', null, '—');

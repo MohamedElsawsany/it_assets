@@ -60,8 +60,8 @@ def department_detail(request, pk):
     return JsonResponse({'success': True, 'item': {
         'id': dept.pk, 'name': dept.name,
         'created_by': dept.created_by.full_name,
-        'created_date': dept.created_date.strftime('%Y-%m-%d %H:%M'),
-        'updated_date': dept.updated_date.strftime('%Y-%m-%d %H:%M') if dept.updated_date else '',
+        'created_date': dept.created_date.strftime('%Y-%m-%d %I:%M %p'),
+        'updated_date': dept.updated_date.strftime('%Y-%m-%d %I:%M %p') if dept.updated_date else '',
     }})
 
 
@@ -157,8 +157,8 @@ def employee_detail(request, pk):
         'department_id': emp.department_id, 'department_name': emp.department.name,
         'site_id': emp.site_id,             'site_name': emp.site.name,
         'created_by': emp.created_by.full_name,
-        'created_date': emp.created_date.strftime('%Y-%m-%d %H:%M'),
-        'updated_date': emp.updated_date.strftime('%Y-%m-%d %H:%M') if emp.updated_date else '',
+        'created_date': emp.created_date.strftime('%Y-%m-%d %I:%M %p'),
+        'updated_date': emp.updated_date.strftime('%Y-%m-%d %I:%M %p') if emp.updated_date else '',
     }})
 
 

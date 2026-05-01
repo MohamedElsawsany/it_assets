@@ -1,12 +1,14 @@
 {% if messages %}
 <div class="px-4 pt-3">
   {% for message in messages %}
-  <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
-    {% if message.tags == 'success' %}<i class="bi bi-check-circle-fill"></i>
-    {% elif message.tags == 'error' or message.tags == 'danger' %}<i class="bi bi-x-circle-fill"></i>
-    {% elif message.tags == 'warning' %}<i class="bi bi-exclamation-triangle-fill"></i>
-    {% else %}<i class="bi bi-info-circle-fill"></i>{% endif %}
-    <span>{{ message }}</span>
+  <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show d-flex align-items-center gap-2"
+       role="alert"
+       style="border-left:3px solid {% if message.tags == 'success' %}#16a34a{% elif message.tags == 'error' or message.tags == 'danger' %}#dc2626{% elif message.tags == 'warning' %}#d97706{% else %}#2563eb{% endif %};">
+    {% if message.tags == 'success' %}<i class="bi bi-check-circle-fill text-success flex-shrink-0"></i>
+    {% elif message.tags == 'error' or message.tags == 'danger' %}<i class="bi bi-x-circle-fill text-danger flex-shrink-0"></i>
+    {% elif message.tags == 'warning' %}<i class="bi bi-exclamation-triangle-fill text-warning flex-shrink-0"></i>
+    {% else %}<i class="bi bi-info-circle-fill text-primary flex-shrink-0"></i>{% endif %}
+    <span style="font-size:.84rem;">{{ message }}</span>
     <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
   </div>
   {% endfor %}

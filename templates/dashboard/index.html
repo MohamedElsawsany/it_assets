@@ -20,12 +20,11 @@
     </div>
   </div>
 
-  <!-- Stats row -->
-  <div class="row g-4 mb-4">
+  <!-- Stats grid -->
+  <div class="row g-3 mb-4">
 
-    <!-- Total Users -->
-    <div class="col-xl-2 col-lg-4 col-md-6">
-      <div class="stat-card stat-card-blue">
+    <div class="col-xl-2 col-lg-4 col-sm-6">
+      <div class="stat-card stat-card-indigo">
         <div class="stat-icon">
           <i class="bi bi-people-fill"></i>
         </div>
@@ -36,8 +35,7 @@
       </div>
     </div>
 
-    <!-- Active Users -->
-    <div class="col-xl-2 col-lg-4 col-md-6">
+    <div class="col-xl-2 col-lg-4 col-sm-6">
       <div class="stat-card stat-card-green">
         <div class="stat-icon">
           <i class="bi bi-person-check-fill"></i>
@@ -49,9 +47,8 @@
       </div>
     </div>
 
-    <!-- Total Devices -->
-    <div class="col-xl-2 col-lg-4 col-md-6">
-      <div class="stat-card stat-card-indigo">
+    <div class="col-xl-2 col-lg-4 col-sm-6">
+      <div class="stat-card stat-card-blue">
         <div class="stat-icon">
           <i class="bi bi-laptop-fill"></i>
         </div>
@@ -62,11 +59,10 @@
       </div>
     </div>
 
-    <!-- Assigned Devices -->
-    <div class="col-xl-2 col-lg-4 col-md-6">
+    <div class="col-xl-2 col-lg-4 col-sm-6">
       <div class="stat-card stat-card-orange">
         <div class="stat-icon">
-          <i class="bi bi-link-45deg"></i>
+          <i class="bi bi-box-arrow-in-right"></i>
         </div>
         <div class="stat-body">
           <div class="stat-value">{{ stats.assigned_devices|intcomma }}</div>
@@ -75,8 +71,7 @@
       </div>
     </div>
 
-    <!-- Open Maintenance -->
-    <div class="col-xl-2 col-lg-4 col-md-6">
+    <div class="col-xl-2 col-lg-4 col-sm-6">
       <div class="stat-card stat-card-red">
         <div class="stat-icon">
           <i class="bi bi-tools"></i>
@@ -88,8 +83,7 @@
       </div>
     </div>
 
-    <!-- Total Employees -->
-    <div class="col-xl-2 col-lg-4 col-md-6">
+    <div class="col-xl-2 col-lg-4 col-sm-6">
       <div class="stat-card stat-card-teal">
         <div class="stat-icon">
           <i class="bi bi-person-badge-fill"></i>
@@ -101,57 +95,66 @@
       </div>
     </div>
 
-  </div><!-- /stats row -->
+  </div>
 
-  <!-- Quick links row -->
-  <div class="row g-4">
+  <!-- Quick actions -->
+  <div class="row g-3">
 
     {% if rbac.users_view %}
-    <div class="col-lg-4 col-md-6">
+    <div class="col-xl-3 col-lg-4 col-md-6">
       <div class="quick-card">
-        <div class="quick-card-header">
-          <i class="bi bi-people text-primary"></i>
-          <h6 class="mb-0">{% trans "Users" %}</h6>
+        <div class="quick-card-icon" style="background:#eef2ff;color:#4f46e5;">
+          <i class="bi bi-shield-person"></i>
         </div>
-        <p class="quick-card-text text-muted small">
-          {% trans "Manage system users and their roles." %}
-        </p>
+        <div class="quick-card-title">{% trans "Users" %}</div>
+        <p class="quick-card-text">{% trans "Manage system users and their access roles." %}</p>
         <a href="{% url 'users-list' %}" class="btn btn-sm btn-primary">
-          {% trans "Go to Users" %} <i class="bi bi-arrow-end"></i>
+          {% trans "Manage Users" %} <i class="bi bi-arrow-end ms-1"></i>
         </a>
       </div>
     </div>
     {% endif %}
 
     {% if rbac.devices_view %}
-    <div class="col-lg-4 col-md-6">
+    <div class="col-xl-3 col-lg-4 col-md-6">
       <div class="quick-card">
-        <div class="quick-card-header">
-          <i class="bi bi-laptop text-indigo"></i>
-          <h6 class="mb-0">{% trans "Devices" %}</h6>
+        <div class="quick-card-icon" style="background:#eff6ff;color:#2563eb;">
+          <i class="bi bi-laptop"></i>
         </div>
-        <p class="quick-card-text text-muted small">
-          {% trans "Track and manage IT devices inventory." %}
-        </p>
-        <a href="#" class="btn btn-sm btn-outline-secondary disabled">
-          {% trans "Coming Soon" %}
+        <div class="quick-card-title">{% trans "Devices" %}</div>
+        <p class="quick-card-text">{% trans "Track and manage your IT devices inventory." %}</p>
+        <a href="{% url 'devices-index' %}" class="btn btn-sm btn-primary">
+          {% trans "View Devices" %} <i class="bi bi-arrow-end ms-1"></i>
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if rbac.assignments_view %}
+    <div class="col-xl-3 col-lg-4 col-md-6">
+      <div class="quick-card">
+        <div class="quick-card-icon" style="background:#fff7ed;color:#ea580c;">
+          <i class="bi bi-box-arrow-in-right"></i>
+        </div>
+        <div class="quick-card-title">{% trans "Assignments" %}</div>
+        <p class="quick-card-text">{% trans "View and manage device assignments to employees." %}</p>
+        <a href="{% url 'assignments-index' %}" class="btn btn-sm btn-primary">
+          {% trans "View Assignments" %} <i class="bi bi-arrow-end ms-1"></i>
         </a>
       </div>
     </div>
     {% endif %}
 
     {% if rbac.maintenance_view %}
-    <div class="col-lg-4 col-md-6">
+    <div class="col-xl-3 col-lg-4 col-md-6">
       <div class="quick-card">
-        <div class="quick-card-header">
-          <i class="bi bi-tools text-warning"></i>
-          <h6 class="mb-0">{% trans "Maintenance" %}</h6>
+        <div class="quick-card-icon" style="background:#fef2f2;color:#dc2626;">
+          <i class="bi bi-tools"></i>
         </div>
-        <p class="quick-card-text text-muted small">
-          {% trans "Monitor open maintenance records." %}
-        </p>
-        <a href="#" class="btn btn-sm btn-outline-secondary disabled">
-          {% trans "Coming Soon" %}
+        <div class="quick-card-title">{% trans "Maintenance" %}</div>
+        <p class="quick-card-text">{% trans "Monitor and track open maintenance records." %}</p>
+        <a href="{% url 'maintenance-index' %}" class="btn btn-sm btn-primary">
+          {% trans "View Maintenance" %} <i class="bi bi-arrow-end ms-1"></i>
         </a>
       </div>
     </div>
@@ -159,5 +162,5 @@
 
   </div>
 
-</div><!-- /page-container -->
+</div>
 {% endblock %}

@@ -7,9 +7,7 @@ urlpatterns = [
     path('data/', views.assignments_data, name='assignments-data'),
     path('create/', views.assignment_create, name='assignment-create'),
     path('<int:pk>/', views.assignment_detail, name='assignment-detail'),
-    path('<int:pk>/edit/', views.assignment_edit, name='assignment-edit'),
     path('<int:pk>/return/', views.assignment_return, name='assignment-return'),
-    path('<int:pk>/delete/', views.assignment_delete, name='assignment-delete'),
 
     # Transfers
     path('transfers/', views.transfers_index, name='transfers-index'),

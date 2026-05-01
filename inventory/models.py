@@ -162,6 +162,7 @@ class Device(models.Model):
 
     # ── Status ────────────────────────────────────────────────────────────────
     maintenance_mode = models.BooleanField(default=False)
+    notes            = models.TextField(null=True, blank=True)
 
     # ── Audit ─────────────────────────────────────────────────────────────────
     created_by   = models.ForeignKey(
@@ -239,9 +240,15 @@ class Accessory(models.Model):
     device         = models.ForeignKey(Device, on_delete=models.SET_NULL, null=True, blank=True, related_name='accessories')
     site           = models.ForeignKey('locations.Site', on_delete=models.PROTECT, related_name='accessories')
     flag           = models.CharField(max_length=20, choices=DeviceFlag.choices, default=DeviceFlag.AVAILABLE)
+    notes          = models.TextField(null=True, blank=True)
     created_by     = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         related_name='created_accessories',
+    )
+    updated_by     = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+        related_name='updated_accessories',
+        null=True, blank=True,
     )
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(auto_now=True, null=True, blank=True)

@@ -33,8 +33,8 @@ def assignments_data(request):
     search   = request.GET.get('search', '').strip()
     status_f = request.GET.get('status', '').strip()
     qs = DeviceAssignment.objects.select_related(
-        'device', 'device__brand', 'device__category',
-        'employee', 'assigned_by'
+        'device', 'device__brand', 'device__category', 'device__device_model',
+        'employee', 'assigned_by', 'returned_by',
     )
     if search:
         qs = qs.filter(
@@ -57,11 +57,15 @@ def assignments_data(request):
         {'id': a.pk,
          'device_id': a.device_id,
          'device_serial': a.device.serial_number,
-         'device_label': f'{a.device.brand} {a.device.category}',
+         'device_category': str(a.device.category),
+         'device_brand': str(a.device.brand),
+         'device_model': a.device.device_model.name,
          'employee_id': a.employee_id,
          'employee_name': a.employee.full_name,
          'assigned_date': a.assigned_date.strftime('%Y-%m-%d'),
+         'assigned_by': a.assigned_by.full_name,
          'returned_date': a.returned_date.strftime('%Y-%m-%d') if a.returned_date else '',
+         'returned_by': a.returned_by.full_name if a.returned_by else '',
          'is_active': a.is_active,
          'notes': a.notes or ''}
         for a in page_obj
@@ -74,18 +78,28 @@ def assignments_data(request):
 def assignment_detail(request, pk):
     if not has_permission(request.user, Perms.ASSIGNMENTS_VIEW):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
-    a = get_object_or_404(DeviceAssignment.objects.select_related('device', 'employee', 'assigned_by'), pk=pk)
+    a = get_object_or_404(
+        DeviceAssignment.objects.select_related(
+            'device', 'device__brand', 'device__category', 'device__device_model',
+            'employee', 'assigned_by', 'returned_by',
+        ), pk=pk)
     return JsonResponse({'success': True, 'item': {
         'id': a.pk,
-        'device_id': a.device_id,       'device_serial': a.device.serial_number,
-        'employee_id': a.employee_id,   'employee_name': a.employee.full_name,
+        'device_id': a.device_id,
+        'device_serial': a.device.serial_number,
+        'device_category': str(a.device.category),
+        'device_brand': str(a.device.brand),
+        'device_model': a.device.device_model.name,
+        'employee_id': a.employee_id,
+        'employee_name': a.employee.full_name,
         'assigned_date': a.assigned_date.strftime('%Y-%m-%dT%H:%M'),
         'returned_date': a.returned_date.strftime('%Y-%m-%dT%H:%M') if a.returned_date else '',
         'is_active': a.is_active,
         'notes': a.notes or '',
         'assigned_by': a.assigned_by.full_name,
-        'created_date': a.created_date.strftime('%Y-%m-%d %H:%M'),
-        'updated_date': a.updated_date.strftime('%Y-%m-%d %H:%M') if a.updated_date else '',
+        'returned_by': a.returned_by.full_name if a.returned_by else '',
+        'created_date': a.created_date.strftime('%Y-%m-%d %I:%M %p'),
+        'updated_date': a.updated_date.strftime('%Y-%m-%d %I:%M %p') if a.updated_date else '',
     }})
 
 
@@ -99,10 +113,10 @@ def transfer_detail(request, pk):
         'device_serial': t.device.serial_number,
         'from_site_name': t.from_site.name,
         'to_site_name': t.to_site.name,
-        'transfer_date': t.transfer_date.strftime('%Y-%m-%d %H:%M'),
+        'transfer_date': t.transfer_date.strftime('%Y-%m-%d %I:%M %p'),
         'notes': t.notes or '',
         'transferred_by': t.transferred_by.full_name,
-        'created_date': t.created_date.strftime('%Y-%m-%d %H:%M'),
+        'created_date': t.created_date.strftime('%Y-%m-%d %I:%M %p'),
     }})
 
 
@@ -128,19 +142,6 @@ def assignment_create(request):
     return JsonResponse({'success': False, 'errors': errors})
 
 
-@login_required
-@require_http_methods(['POST'])
-def assignment_edit(request, pk):
-    if not has_permission(request.user, Perms.ASSIGNMENTS_EDIT):
-        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
-    a = get_object_or_404(DeviceAssignment, pk=pk)
-    form = AssignmentForm(request.POST, instance=a)
-    if form.is_valid():
-        form.save()
-        return JsonResponse({'success': True, 'message': _('Assignment updated successfully.')})
-    errors = {f: [str(e) for e in v] for f, v in form.errors.items()}
-    return JsonResponse({'success': False, 'errors': errors})
-
 
 @login_required
 @require_http_methods(['POST'])
@@ -153,6 +154,7 @@ def assignment_return(request, pk):
     form = ReturnDeviceForm(request.POST)
     if form.is_valid():
         a.returned_date = form.cleaned_data['returned_date']
+        a.returned_by   = request.user
         if form.cleaned_data.get('notes'):
             a.notes = (a.notes or '') + '\n[Return] ' + form.cleaned_data['notes']
         a.save()
@@ -163,14 +165,6 @@ def assignment_return(request, pk):
     return JsonResponse({'success': False, 'errors': errors})
 
 
-@login_required
-@require_http_methods(['POST'])
-def assignment_delete(request, pk):
-    if not has_permission(request.user, Perms.ASSIGNMENTS_DELETE):
-        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
-    a = get_object_or_404(DeviceAssignment, pk=pk)
-    a.delete()
-    return JsonResponse({'success': True, 'message': _('Assignment deleted successfully.')})
 
 
 # ── Transfers ─────────────────────────────────────────────────────────────────

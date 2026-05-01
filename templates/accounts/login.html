@@ -4,93 +4,136 @@
 {% block title %}{% trans "Sign In" %} — {% trans "IT Asset Management" %}{% endblock %}
 
 {% block content %}
-<div class="auth-card">
 
-  <!-- Logo -->
-  <div class="auth-logo">
-    <div class="auth-logo-icon">
+<!-- Left panel: branding -->
+<div class="auth-panel-left d-none d-lg-flex">
+  <div class="auth-brand">
+    <div class="auth-brand-icon">
       <i class="bi bi-hdd-stack-fill"></i>
     </div>
-    <h4 class="auth-logo-title">{% trans "IT Asset Management" %}</h4>
-    <p class="auth-logo-sub">{% trans "Sign in to your account" %}</p>
+    <h2 class="auth-brand-title">{% trans "IT Asset Management" %}</h2>
+    <p class="auth-brand-sub">
+      {% trans "Centralized control for all your IT assets, assignments, and maintenance." %}
+    </p>
+
+    <div class="auth-features">
+      <div class="auth-feature-item">
+        <div class="auth-feature-icon"><i class="bi bi-laptop"></i></div>
+        <div class="auth-feature-text">{% trans "Track devices & accessories in real-time" %}</div>
+      </div>
+      <div class="auth-feature-item">
+        <div class="auth-feature-icon"><i class="bi bi-people"></i></div>
+        <div class="auth-feature-text">{% trans "Manage assignments across employees" %}</div>
+      </div>
+      <div class="auth-feature-item">
+        <div class="auth-feature-icon"><i class="bi bi-tools"></i></div>
+        <div class="auth-feature-text">{% trans "Monitor open maintenance records" %}</div>
+      </div>
+      <div class="auth-feature-item">
+        <div class="auth-feature-icon"><i class="bi bi-shield-check"></i></div>
+        <div class="auth-feature-text">{% trans "Role-based access control built-in" %}</div>
+      </div>
+    </div>
   </div>
+</div>
 
-  <!-- Form -->
-  <form method="post" novalidate>
-    {% csrf_token %}
+<!-- Right panel: login form -->
+<div class="auth-panel-right">
+  <div class="auth-form-wrap">
 
-    {% if form.non_field_errors %}
-    <div class="alert alert-danger d-flex align-items-center gap-2 mb-4" role="alert">
-      <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+    <!-- Mobile logo -->
+    <div class="d-flex align-items-center gap-3 d-lg-none mb-6" style="margin-bottom:28px;">
+      <div class="auth-brand-icon" style="width:40px;height:40px;font-size:1.1rem;border-radius:10px;">
+        <i class="bi bi-hdd-stack-fill"></i>
+      </div>
       <div>
+        <div style="font-size:.9rem;font-weight:700;color:var(--text-primary);">{% trans "IT Asset Management" %}</div>
+      </div>
+    </div>
+
+    <h1 class="auth-form-title">{% trans "Welcome back" %}</h1>
+    <p class="auth-form-sub">{% trans "Sign in to your account to continue" %}</p>
+
+    <!-- Error alert -->
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger d-flex align-items-center gap-2 mb-4" role="alert" style="border-radius:10px;">
+      <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+      <div style="font-size:.84rem;">
         {% for error in form.non_field_errors %}{{ error }}{% endfor %}
       </div>
     </div>
     {% endif %}
 
-    <div class="mb-3">
-      <label for="{{ form.username.id_for_label }}" class="form-label fw-medium">
-        {% trans "Email Address" %}
-      </label>
-      <div class="input-group">
-        <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-        <input type="email"
-               class="form-control {% if form.username.errors %}is-invalid{% endif %}"
-               id="{{ form.username.id_for_label }}"
-               name="{{ form.username.html_name }}"
-               value="{{ form.username.value|default:'' }}"
-               placeholder="{% trans 'Enter your email' %}"
-               autocomplete="email"
-               autofocus>
-        {% for error in form.username.errors %}
-        <div class="invalid-feedback">{{ error }}</div>
-        {% endfor %}
-      </div>
-    </div>
-
-    <div class="mb-4">
-      <label for="{{ form.password.id_for_label }}" class="form-label fw-medium">
-        {% trans "Password" %}
-      </label>
-      <div class="input-group">
-        <span class="input-group-text"><i class="bi bi-lock"></i></span>
-        <input type="password"
-               class="form-control {% if form.password.errors %}is-invalid{% endif %}"
-               id="{{ form.password.id_for_label }}"
-               name="{{ form.password.html_name }}"
-               placeholder="{% trans 'Enter your password' %}"
-               autocomplete="current-password">
-        <button class="btn btn-outline-secondary" type="button" id="togglePassword"
-                onclick="togglePasswordVisibility()">
-          <i class="bi bi-eye" id="togglePasswordIcon"></i>
-        </button>
-        {% for error in form.password.errors %}
-        <div class="invalid-feedback">{{ error }}</div>
-        {% endfor %}
-      </div>
-    </div>
-
-    <button type="submit" class="btn btn-primary w-100 btn-login">
-      <i class="bi bi-box-arrow-in-right me-2"></i>{% trans "Sign In" %}
-    </button>
-
-  </form>
-
-  <!-- Language switcher -->
-  <div class="auth-lang mt-4">
-    <form action="{% url 'set_language' %}" method="post" class="d-flex justify-content-center gap-2">
+    <form method="post" novalidate>
       {% csrf_token %}
-      <input type="hidden" name="next" value="{{ request.path }}">
-      <button type="submit" name="language" value="en" class="btn btn-sm btn-link text-decoration-none">
-        English
-      </button>
-      <span class="text-muted">|</span>
-      <button type="submit" name="language" value="ar" class="btn btn-sm btn-link text-decoration-none">
-        العربية
-      </button>
-    </form>
-  </div>
 
+      <div class="mb-4">
+        <label for="{{ form.username.id_for_label }}" class="form-label">
+          {% trans "Email address" %}
+        </label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+          <input type="email"
+                 class="form-control {% if form.username.errors %}is-invalid{% endif %}"
+                 id="{{ form.username.id_for_label }}"
+                 name="{{ form.username.html_name }}"
+                 value="{{ form.username.value|default:'' }}"
+                 placeholder="{% trans 'you@company.com' %}"
+                 autocomplete="email"
+                 autofocus>
+          {% for error in form.username.errors %}
+          <div class="invalid-feedback">{{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="mb-5">
+        <label for="{{ form.password.id_for_label }}" class="form-label">
+          {% trans "Password" %}
+        </label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-lock"></i></span>
+          <input type="password"
+                 class="form-control {% if form.password.errors %}is-invalid{% endif %}"
+                 id="{{ form.password.id_for_label }}"
+                 name="{{ form.password.html_name }}"
+                 placeholder="{% trans 'Enter your password' %}"
+                 autocomplete="current-password">
+          <button class="btn btn-outline-secondary" type="button"
+                  onclick="togglePasswordVisibility()" aria-label="{% trans 'Toggle password visibility' %}">
+            <i class="bi bi-eye" id="togglePasswordIcon"></i>
+          </button>
+          {% for error in form.password.errors %}
+          <div class="invalid-feedback">{{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100 btn-login mb-4">
+        {% trans "Sign in" %}
+        <i class="bi bi-arrow-right ms-2"></i>
+      </button>
+
+    </form>
+
+    <!-- Language switcher -->
+    <div class="text-center">
+      <form action="{% url 'set_language' %}" method="post" class="d-inline-flex align-items-center gap-1">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <button type="submit" name="language" value="en"
+                class="btn btn-sm btn-link text-decoration-none" style="font-size:.78rem;color:var(--text-muted);">
+          English
+        </button>
+        <span style="color:var(--border-color);">|</span>
+        <button type="submit" name="language" value="ar"
+                class="btn btn-sm btn-link text-decoration-none" style="font-size:.78rem;color:var(--text-muted);">
+          العربية
+        </button>
+      </form>
+    </div>
+
+  </div>
 </div>
 
 <script>

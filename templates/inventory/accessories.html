@@ -79,10 +79,8 @@
               <th>{% trans "Type" %}</th>
               <th>{% trans "Serial Number" %}</th>
               <th>{% trans "Brand" %}</th>
-              <th>{% trans "Linked Device" %}</th>
               <th>{% trans "Site" %}</th>
               <th>{% trans "Flag" %}</th>
-              <th>{% trans "Created" %}</th>
               <th class="text-end" style="width:120px">{% trans "Actions" %}</th>
             </tr>
           </thead>
@@ -118,15 +116,16 @@
             <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Type" %}</p><p class="fw-medium mb-0" id="v-type"></p></div>
             <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Serial Number" %}</p><p class="fw-medium font-monospace mb-0" id="v-serial"></p></div>
             <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Brand" %}</p><p class="fw-medium mb-0" id="v-brand"></p></div>
-            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Linked Device" %}</p><p class="fw-medium font-monospace mb-0" id="v-device"></p></div>
             <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Site" %}</p><p class="fw-medium mb-0" id="v-site"></p></div>
             <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Flag" %}</p><p class="fw-medium mb-0" id="v-flag"></p></div>
+            <div class="col-12"><p class="text-muted small mb-1">{% trans "Notes" %}</p><p class="fw-medium mb-0" id="v-notes"></p></div>
           </div>
           <hr class="my-3">
           <div class="row g-3 text-muted small">
-            <div class="col-md-4"><p class="mb-1">{% trans "Created by" %}</p><p class="fw-medium text-body mb-0" id="v-created-by"></p></div>
-            <div class="col-md-4"><p class="mb-1">{% trans "Created" %}</p><p class="fw-medium text-body mb-0" id="v-created-date"></p></div>
-            <div class="col-md-4"><p class="mb-1">{% trans "Last updated" %}</p><p class="fw-medium text-body mb-0" id="v-updated-date"></p></div>
+            <div class="col-md-3"><p class="mb-1">{% trans "Created by" %}</p><p class="fw-medium text-body mb-0" id="v-created-by"></p></div>
+            <div class="col-md-3"><p class="mb-1">{% trans "Created" %}</p><p class="fw-medium text-body mb-0" id="v-created-date"></p></div>
+            <div class="col-md-3"><p class="mb-1">{% trans "Updated by" %}</p><p class="fw-medium text-body mb-0" id="v-updated-by"></p></div>
+            <div class="col-md-3"><p class="mb-1">{% trans "Last updated" %}</p><p class="fw-medium text-body mb-0" id="v-updated-date"></p></div>
           </div>
         </div>
       </div>
@@ -164,11 +163,6 @@
               <div class="invalid-feedback"></div>
             </div>
             <div class="col-md-6">
-              <label class="form-label">{% trans "Linked Device" %}</label>
-              <select class="form-select" name="device"><option value=""></option></select>
-              <div class="invalid-feedback"></div>
-            </div>
-            <div class="col-md-6">
               <label class="form-label">{% trans "Site" %} <span class="text-danger">*</span></label>
               <select class="form-select" name="site" required><option value=""></option></select>
               <div class="invalid-feedback"></div>
@@ -181,6 +175,11 @@
                 <option value="{{ value }}">{{ label }}</option>
                 {% endfor %}
               </select>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-12">
+              <label class="form-label">{% trans "Notes" %}</label>
+              <textarea class="form-control" name="notes" rows="2"></textarea>
               <div class="invalid-feedback"></div>
             </div>
           </div>
@@ -229,11 +228,6 @@
                 <div class="invalid-feedback"></div>
               </div>
               <div class="col-md-6">
-                <label class="form-label">{% trans "Linked Device" %}</label>
-                <select class="form-select" name="device"><option value=""></option></select>
-                <div class="invalid-feedback"></div>
-              </div>
-              <div class="col-md-6">
                 <label class="form-label">{% trans "Site" %} <span class="text-danger">*</span></label>
                 <select class="form-select" name="site" required><option value=""></option></select>
                 <div class="invalid-feedback"></div>
@@ -246,6 +240,11 @@
                   <option value="{{ value }}">{{ label }}</option>
                   {% endfor %}
                 </select>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-12">
+                <label class="form-label">{% trans "Notes" %}</label>
+                <textarea class="form-control" name="notes" rows="2"></textarea>
                 <div class="invalid-feedback"></div>
               </div>
             </div>
@@ -363,14 +362,12 @@ function renderTable(items) {
   document.getElementById('tableWrapper').classList.remove('d-none');
   tbody.innerHTML = items.map((a, i) => `
     <tr>
-      <td class="text-muted small">${i + 1}</td>
+      <td class="text-muted">${(currentPage - 1) * 10 + i + 1}</td>
       <td class="fw-medium">${escHtml(a.type_name)}</td>
-      <td class="font-monospace small">${a.serial_number ? escHtml(a.serial_number) : '<span class="text-muted">—</span>'}</td>
+      <td class="font-monospace">${a.serial_number ? escHtml(a.serial_number) : '<span class="text-muted">—</span>'}</td>
       <td>${a.brand_name ? escHtml(a.brand_name) : '<span class="text-muted">—</span>'}</td>
-      <td>${a.device_serial ? `<span class="font-monospace small">${escHtml(a.device_serial)}</span>` : '<span class="text-muted">—</span>'}</td>
-      <td><span class="d-flex align-items-center gap-1"><i class="bi bi-geo-alt text-muted small"></i>${escHtml(a.site_name)}</span></td>
+      <td>${escHtml(a.site_name)}</td>
       <td><span class="badge bg-secondary-subtle text-secondary rounded-pill">${escHtml(a.flag_name)}</span></td>
-      <td class="text-muted small">${a.created_date}</td>
       <td class="text-end">
         <div class="d-flex gap-1 justify-content-end">
           <button class="btn btn-sm btn-icon btn-outline-secondary" onclick="openViewModal(${a.id})" title="{% trans 'View' %}"><i class="bi bi-eye"></i></button>
@@ -392,12 +389,13 @@ function openViewModal(pk) {
       const a = data.item;
       document.getElementById('v-type').textContent         = a.type_name;
       document.getElementById('v-serial').textContent       = a.serial_number || '—';
-      document.getElementById('v-brand').textContent        = a.brand_name    || '—';
-      document.getElementById('v-device').textContent       = a.device_serial || '—';
+      document.getElementById('v-brand').textContent        = a.brand_name || '—';
       document.getElementById('v-site').textContent         = a.site_name;
       document.getElementById('v-flag').textContent         = a.flag_name;
+      document.getElementById('v-notes').textContent        = a.notes || '—';
       document.getElementById('v-created-by').textContent   = a.created_by;
       document.getElementById('v-created-date').textContent = a.created_date;
+      document.getElementById('v-updated-by').textContent   = a.updated_by || '—';
       document.getElementById('v-updated-date').textContent = a.updated_date || '—';
       document.getElementById('viewLoader').classList.add('d-none');
       document.getElementById('viewContent').classList.remove('d-none');
@@ -432,11 +430,10 @@ function openEditModal(pk) {
       if (!data.success) { showToast(data.message, 'danger'); editModal.hide(); return; }
       const a = data.item;
       document.getElementById('editForm').querySelector('[name=serial_number]').value = a.serial_number || '';
+      document.getElementById('editForm').querySelector('[name=notes]').value         = a.notes || '';
       setSelect2Value($('#editForm [name=accessory_type]'), a.accessory_type_id, a.type_name);
-      if (a.brand_id)  setSelect2Value($('#editForm [name=brand]'),  a.brand_id,  a.brand_name);
-      else             $('#editForm [name=brand]').val(null).trigger('change');
-      if (a.device_id) setSelect2Value($('#editForm [name=device]'), a.device_id, a.device_serial);
-      else             $('#editForm [name=device]').val(null).trigger('change');
+      if (a.brand_id) setSelect2Value($('#editForm [name=brand]'), a.brand_id, a.brand_name);
+      else            $('#editForm [name=brand]').val(null).trigger('change');
       setSelect2Value($('#editForm [name=site]'), a.site_id, a.site_name);
       document.getElementById('editForm').querySelector('[name=flag]').value = a.flag || '';
       document.getElementById('editLoader').classList.add('d-none');
@@ -483,13 +480,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Create modal
   initSelect2($('#createForm [name=accessory_type]'), 'accessory-types', null, S);
   initSelect2($('#createForm [name=brand]'),          'brands',          null, '—');
-  initSelect2($('#createForm [name=device]'),         'devices',         null, '—');
   initSelect2($('#createForm [name=site]'),           'sites',           null, S);
 
   // Edit modal
   initSelect2($('#editForm [name=accessory_type]'), 'accessory-types', null, S);
   initSelect2($('#editForm [name=brand]'),          'brands',          null, '—');
-  initSelect2($('#editForm [name=device]'),         'devices',         null, '—');
   initSelect2($('#editForm [name=site]'),           'sites',           null, S);
 
   loadAccessories();

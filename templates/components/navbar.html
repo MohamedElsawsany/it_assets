@@ -1,15 +1,21 @@
 {% load i18n %}
+{% get_current_language as LANG %}
 <header class="app-navbar" id="appNavbar">
 
   <div class="navbar-start">
-    <!-- Sidebar toggle -->
+    <!-- Sidebar toggle (mobile) -->
     <button class="navbar-toggle-btn" id="sidebarToggleBtn" onclick="toggleSidebar()" aria-label="{% trans 'Toggle sidebar' %}">
       <i class="bi bi-list"></i>
     </button>
-    <!-- Page breadcrumb / title -->
-    <nav aria-label="breadcrumb" class="d-none d-md-block">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="d-none d-sm-block">
       <ol class="breadcrumb mb-0">
-        <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">{% trans "Home" %}</a></li>
+        <li class="breadcrumb-item">
+          <a href="{% url 'dashboard' %}">
+            <i class="bi bi-house" style="font-size:.8rem;"></i>
+          </a>
+        </li>
         {% block breadcrumb %}{% endblock %}
       </ol>
     </nav>
@@ -18,30 +24,29 @@
   <div class="navbar-end">
 
     <!-- Language switcher -->
-    <div class="dropdown me-2">
-      <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center gap-1"
+    <div class="dropdown">
+      <button class="lang-btn dropdown-toggle"
               type="button" data-bs-toggle="dropdown" aria-expanded="false">
-        <i class="bi bi-translate"></i>
+        <i class="bi bi-globe2" style="font-size:.85rem;"></i>
         <span class="d-none d-sm-inline">
-          {% get_current_language as LANG %}
           {% if LANG == 'ar' %}العربية{% else %}English{% endif %}
         </span>
       </button>
-      <ul class="dropdown-menu dropdown-menu-end">
-        <form action="{% url 'set_language' %}" method="post" id="langForm">
+      <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="min-width:140px;font-size:.82rem;">
+        <form action="{% url 'set_language' %}" method="post">
           {% csrf_token %}
           <input type="hidden" name="next" value="{{ request.path }}">
           <li>
             <button type="submit" name="language" value="en"
-                    class="dropdown-item {% if LANG == 'en' %}active{% endif %}">
-              <i class="bi bi-check2 me-1 {% if LANG != 'en' %}invisible{% endif %}"></i>
+                    class="dropdown-item d-flex align-items-center gap-2 {% if LANG == 'en' %}active{% endif %}">
+              {% if LANG == 'en' %}<i class="bi bi-check2"></i>{% else %}<span style="width:16px;display:inline-block;"></span>{% endif %}
               English
             </button>
           </li>
           <li>
             <button type="submit" name="language" value="ar"
-                    class="dropdown-item {% if LANG == 'ar' %}active{% endif %}">
-              <i class="bi bi-check2 me-1 {% if LANG != 'ar' %}invisible{% endif %}"></i>
+                    class="dropdown-item d-flex align-items-center gap-2 {% if LANG == 'ar' %}active{% endif %}">
+              {% if LANG == 'ar' %}<i class="bi bi-check2"></i>{% else %}<span style="width:16px;display:inline-block;"></span>{% endif %}
               العربية
             </button>
           </li>
@@ -49,40 +54,42 @@
       </ul>
     </div>
 
+    <div class="navbar-divider d-none d-sm-block"></div>
+
     <!-- User dropdown -->
     <div class="dropdown">
-      <button class="btn btn-sm d-flex align-items-center gap-2 user-menu-btn"
+      <button class="user-menu-btn dropdown-toggle"
               type="button" data-bs-toggle="dropdown" aria-expanded="false">
         <div class="user-avatar">
           {{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}
         </div>
-        <div class="d-none d-md-block text-start">
+        <div class="d-none d-md-block text-start" style="line-height:1.2;">
           <div class="user-name">{{ request.user.full_name }}</div>
-          <div class="user-role">
+          <div class="user-role" style="margin-top:1px;">
             <span class="badge bg-{{ rbac.role_color }} badge-sm">{{ rbac.role_display }}</span>
           </div>
         </div>
-        <i class="bi bi-chevron-down small ms-1"></i>
+        <i class="bi bi-chevron-down d-none d-md-inline" style="font-size:.65rem;color:var(--text-muted);"></i>
       </button>
-      <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+      <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:210px;font-size:.82rem;border-radius:12px;border-color:var(--border-color);">
         <li>
-          <div class="dropdown-header d-flex align-items-center gap-2 py-2">
-            <div class="user-avatar user-avatar-sm">
+          <div class="px-3 py-2 d-flex align-items-center gap-2">
+            <div class="user-avatar" style="width:36px;height:36px;font-size:.75rem;">
               {{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}
             </div>
-            <div>
-              <div class="fw-semibold small">{{ request.user.full_name }}</div>
-              <div class="text-muted" style="font-size:.75rem">{{ request.user.email }}</div>
+            <div style="min-width:0;">
+              <div class="fw-semibold text-truncate" style="font-size:.84rem;color:var(--text-primary);">{{ request.user.full_name }}</div>
+              <div class="text-truncate" style="font-size:.73rem;color:var(--text-muted);">{{ request.user.email }}</div>
             </div>
           </div>
         </li>
-        <li><hr class="dropdown-divider my-1"></li>
+        <li><hr class="dropdown-divider my-1" style="border-color:var(--border-color-light);"></li>
         <li>
           <form method="post" action="{% url 'logout' %}">
             {% csrf_token %}
-            <button type="submit" class="dropdown-item d-flex align-items-center gap-2">
-              <i class="bi bi-box-arrow-right text-danger"></i>
-              {% trans "Logout" %}
+            <button type="submit" class="dropdown-item d-flex align-items-center gap-2 py-2" style="color:var(--text-secondary);">
+              <i class="bi bi-box-arrow-right text-danger" style="font-size:.9rem;"></i>
+              {% trans "Sign out" %}
             </button>
           </form>
         </li>
