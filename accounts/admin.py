@@ -8,32 +8,26 @@ from .permissions import has_permission, Perms
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     ordering        = ('email',)
-    list_display    = ('email', 'first_name', 'last_name', 'role', 'site', 'is_active')
-    list_filter     = ('role', 'is_active', 'site')
+    list_display    = ('email', 'first_name', 'last_name', 'site', 'is_active')
+    list_filter     = ('is_active', 'site')
     search_fields   = ('email', 'first_name', 'last_name')
 
     fieldsets = (
         (None,            {'fields': ('email', 'password')}),
         ('Personal info', {'fields': ('first_name', 'last_name', 'site')}),
-        ('Role (RBAC)',   {'fields': ('role',)}),
-        ('Status',        {'fields': ('is_active', 'is_staff')}),
+        ('Site Scope',    {'fields': ('site_scope', 'own_site', 'allowed_sites')}),
+        ('Status',        {'fields': ('is_active', 'is_staff', 'is_superuser')}),
         ('Audit',         {'fields': ('created_by', 'created_date', 'updated_date', 'deleted_date')}),
     )
 
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields':  ('email', 'first_name', 'last_name', 'site', 'role', 'password1', 'password2'),
+            'fields':  ('email', 'first_name', 'last_name', 'site', 'password1', 'password2'),
         }),
     )
 
     readonly_fields = ('created_date', 'updated_date')
-
-    def get_fieldsets(self, request, obj=None):
-        fieldsets = super().get_fieldsets(request, obj)
-        if not has_permission(request.user, Perms.USERS_ASSIGN_ROLE):
-            fieldsets = [fs for fs in fieldsets if fs[0] != 'Role (RBAC)']
-        return fieldsets
 
     def has_add_permission(self, request):
         return has_permission(request.user, Perms.USERS_CREATE)

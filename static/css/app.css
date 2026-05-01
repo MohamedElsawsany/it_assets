@@ -803,6 +803,7 @@ body {
 .modal-header {
   border-bottom: 1px solid var(--border-color-light);
   padding: 18px 22px;
+  flex-shrink: 0;
 }
 
 .modal-title {
@@ -815,10 +816,67 @@ body {
   border-top: 1px solid var(--border-color-light);
   padding: 14px 22px;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .modal-body {
   padding: 22px;
+}
+
+/* ── Scrollable modals: guarantee footer is always visible ──── */
+/*
+ * Bootstrap's modal-dialog-scrollable only works correctly when
+ * modal-header / modal-body / modal-footer are *direct* children of
+ * modal-content.  Where a wrapper div (e.g. #editModalContent) sits
+ * between them the footer can be pushed off-screen on small screens.
+ * The rules below fix that specific wrapper AND add a safety-net for
+ * every scrollable modal.
+ */
+
+/* Safety-net for all scrollable modals */
+.modal-dialog-scrollable .modal-content {
+  display: flex;
+  flex-direction: column;
+  /* NOTE: do NOT set height:100% here — that forces full-dialog height even
+     on small-content modals and creates a large empty gap above the footer.
+     height:100% is only needed in fullscreen mode (Bootstrap sets it there). */
+}
+.modal-dialog-scrollable .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;       /* required so flex children can shrink below content size */
+  overflow-y: auto;
+}
+
+/* In fullscreen modes the modal-content must fill 100% height so the
+   flex layout can pin the footer at the bottom. */
+@media (max-width: 575.98px) {
+  .modal-fullscreen-sm-down.modal-dialog-scrollable .modal-content {
+    height: 100%;
+  }
+}
+@media (max-width: 767.98px) {
+  .modal-fullscreen-md-down.modal-dialog-scrollable .modal-content {
+    height: 100%;
+  }
+}
+
+/* Fix for editUserModal: #editModalContent wraps both modal-body and
+ * modal-footer, so it must itself become a flex column that fills the
+ * remaining height and lets its modal-body scroll. */
+#editModalContent:not(.d-none) {
+  display: flex !important;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+#editModalContent .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+#editModalContent .modal-footer {
+  flex-shrink: 0;
 }
 
 /* ── Modal sections (view mode) ─────────────────────────────── */
@@ -1316,6 +1374,12 @@ body {
   .section-header { padding: 12px 16px; }
   .app-table thead th { padding: 8px 12px; }
   .app-table tbody td { padding: 10px 12px; }
+
+  /* Tighten row gutters inside modals on small screens */
+  .modal .row { --bs-gutter-x: .75rem; }
+
+  /* Inline checkboxes in permission grid wrap more aggressively */
+  .perm-group .form-check-inline { margin-right: .3rem; }
 }
 
 @media (max-width: 575.98px) {
@@ -1325,4 +1389,23 @@ body {
   .stat-icon { width: 38px; height: 38px; font-size: 1rem; }
   .page-header { margin-bottom: 14px; }
   .page-title { font-size: 1rem; }
+
+  /* Full-screen modals: remove rounded corners (Bootstrap already does this,
+     but reinforce for our custom .modal-content overrides) */
+  .modal-fullscreen-sm-down .modal-content {
+    border-radius: 0;
+  }
+
+  /* On phones stack the filter bar vertically */
+  .filter-bar .row > [class*="col-"] { width: 100%; }
+
+  /* Permission checklist: wider model label column on phones */
+  .perm-group table td:first-child { width: auto; min-width: 80px; }
+}
+
+/* md-down fullscreen: remove rounded corners */
+@media (max-width: 767.98px) {
+  .modal-fullscreen-md-down .modal-content {
+    border-radius: 0;
+  }
 }

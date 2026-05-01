@@ -30,7 +30,7 @@
   <div class="card card-app mb-3">
     <div class="card-body py-3">
       <div class="row g-2 align-items-end">
-        <div class="col-md-5">
+        <div class="col-md-7">
           <div class="input-group">
             <span class="input-group-text"><i class="bi bi-search"></i></span>
             <input type="text" class="form-control" id="searchInput"
@@ -39,14 +39,6 @@
           </div>
         </div>
         <div class="col-md-3">
-          <select class="form-select" id="roleFilter" onchange="loadUsers()">
-            <option value="">{% trans "All Roles" %}</option>
-            {% for value, label in role_choices %}
-            <option value="{{ value }}">{{ label }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="col-md-2">
           <select class="form-select" id="statusFilter" onchange="loadUsers()">
             <option value="">{% trans "All Status" %}</option>
             <option value="active">{% trans "Active" %}</option>
@@ -80,7 +72,6 @@
             <tr>
               <th style="width:50px">#</th>
               <th>{% trans "User" %}</th>
-              <th>{% trans "Role" %}</th>
               <th>{% trans "Site" %}</th>
               <th>{% trans "Status" %}</th>
               <th>{% trans "Created" %}</th>
@@ -113,7 +104,7 @@
 
 <!-- ===== VIEW USER MODAL ===== -->
 <div class="modal fade" id="viewUserModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title"><i class="bi bi-person-badge me-2 text-secondary"></i>{% trans "User Details" %}</h5>
@@ -125,7 +116,6 @@
           <div class="row g-3">
             <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Full Name" %}</p><p class="fw-medium mb-0" id="vu-name"></p></div>
             <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Email" %}</p><p class="fw-medium mb-0" id="vu-email"></p></div>
-            <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Role" %}</p><p class="mb-0" id="vu-role"></p></div>
             <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Site" %}</p><p class="fw-medium mb-0" id="vu-site"></p></div>
             <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Status" %}</p><p class="mb-0" id="vu-status"></p></div>
           </div>
@@ -145,7 +135,7 @@
 
 <!-- ===== CREATE USER MODAL ===== -->
 <div class="modal fade" id="createUserModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">
@@ -173,16 +163,6 @@
               <div class="invalid-feedback"></div>
             </div>
             <div class="col-md-6">
-              <label class="form-label">{% trans "Role" %} <span class="text-danger">*</span></label>
-              <select class="form-select" name="role" required>
-                <option value="">— {% trans "Select role" %} —</option>
-                {% for value, label in role_choices %}
-                <option value="{{ value }}">{{ label }}</option>
-                {% endfor %}
-              </select>
-              <div class="invalid-feedback"></div>
-            </div>
-            <div class="col-md-6">
               <label class="form-label">{% trans "Site" %}</label>
               <select class="form-select" name="site">
                 <option value="">— {% trans "No site" %} —</option>
@@ -191,14 +171,6 @@
                 {% endfor %}
               </select>
               <div class="invalid-feedback"></div>
-            </div>
-            <div class="col-md-6 d-flex align-items-end">
-              <div class="form-check form-switch mb-1">
-                <input class="form-check-input" type="checkbox" name="is_active" id="createIsActive" checked>
-                <label class="form-check-label fw-medium" for="createIsActive">
-                  {% trans "Active" %}
-                </label>
-              </div>
             </div>
             <div class="col-md-6">
               <label class="form-label">{% trans "Password" %} <span class="text-danger">*</span></label>
@@ -224,6 +196,14 @@
               </div>
               <div class="invalid-feedback d-block" id="createConfirmPasswordError"></div>
             </div>
+            <div class="col-md-6 d-flex align-items-center">
+              <div class="form-check form-switch mb-1">
+                <input class="form-check-input" type="checkbox" name="is_active" id="createIsActive" checked>
+                <label class="form-check-label fw-medium" for="createIsActive">
+                  {% trans "Active" %}
+                </label>
+              </div>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -245,7 +225,7 @@
 
 <!-- ===== EDIT USER MODAL ===== -->
 <div class="modal fade" id="editUserModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
+  <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable modal-fullscreen-md-down">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">
@@ -253,73 +233,200 @@
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <form id="editUserForm" novalidate>
-        {% csrf_token %}
-        <input type="hidden" name="user_id" id="editUserId">
-        <div class="modal-body">
-          <div id="editModalLoader" class="text-center py-4">
-            <div class="spinner-border text-primary"></div>
-          </div>
-          <div id="editModalContent" class="d-none">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <label class="form-label">{% trans "First Name" %} <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" name="first_name" required>
-                <div class="invalid-feedback"></div>
+
+      <!-- Loading overlay shown while all three AJAX calls finish -->
+      <div id="editModalLoader" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">{% trans "Loading…" %}</span>
+        </div>
+      </div>
+
+      <!-- Main content (hidden until loaded) -->
+      <div id="editModalContent" class="d-none">
+
+        <!-- ── Tabs ─────────────────────────────────────────────────────── -->
+        <div class="modal-body p-0">
+          <ul class="nav nav-tabs px-3 pt-2" id="editUserTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="tab-basic-btn"
+                      data-bs-toggle="tab" data-bs-target="#tab-basic"
+                      type="button" role="tab">
+                <i class="bi bi-person me-1"></i>{% trans "Basic Info" %}
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="tab-perms-btn"
+                      data-bs-toggle="tab" data-bs-target="#tab-perms"
+                      type="button" role="tab">
+                <i class="bi bi-shield-lock me-1"></i>{% trans "Permissions" %}
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="tab-scope-btn"
+                      data-bs-toggle="tab" data-bs-target="#tab-scope"
+                      type="button" role="tab">
+                <i class="bi bi-geo-alt me-1"></i>{% trans "Site Access" %}
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content p-3" id="editUserTabContent">
+
+            <!-- ── Tab 1: Basic Info ───────────────────────────────────── -->
+            <div class="tab-pane fade show active" id="tab-basic" role="tabpanel">
+              <form id="editUserForm" novalidate>
+                {% csrf_token %}
+                <input type="hidden" name="user_id" id="editUserId">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label">{% trans "First Name" %} <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="first_name" required>
+                    <div class="invalid-feedback"></div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">{% trans "Last Name" %} <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="last_name" required>
+                    <div class="invalid-feedback"></div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">{% trans "Email Address" %} <span class="text-danger">*</span></label>
+                    <input type="email" class="form-control" name="email" required>
+                    <div class="invalid-feedback"></div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">{% trans "Primary Site" %}</label>
+                    <select class="form-select" name="site">
+                      <option value="">— {% trans "No site" %} —</option>
+                      {% for site in sites %}
+                      <option value="{{ site.pk }}">{{ site.name }}</option>
+                      {% endfor %}
+                    </select>
+                    <div class="invalid-feedback"></div>
+                  </div>
+                  <div class="col-md-6 d-flex align-items-end">
+                    <div class="form-check form-switch mb-1">
+                      <input class="form-check-input" type="checkbox" name="is_active" id="editIsActive">
+                      <label class="form-check-label fw-medium" for="editIsActive">
+                        {% trans "Active" %}
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            <!-- ── Tab 2: Permissions ──────────────────────────────────── -->
+            <div class="tab-pane fade" id="tab-perms" role="tabpanel">
+
+              <!-- Superuser notice (shown when is_superuser=true) -->
+              <div id="superuserNotice" class="alert alert-warning d-none mb-3 py-2">
+                <i class="bi bi-shield-fill-exclamation me-2"></i>
+                {% trans "This user is a superuser and has unrestricted access to everything regardless of the checkboxes below." %}
               </div>
-              <div class="col-md-6">
-                <label class="form-label">{% trans "Last Name" %} <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" name="last_name" required>
-                <div class="invalid-feedback"></div>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">{% trans "Email Address" %} <span class="text-danger">*</span></label>
-                <input type="email" class="form-control" name="email" required>
-                <div class="invalid-feedback"></div>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">{% trans "Role" %} <span class="text-danger">*</span></label>
-                <select class="form-select" name="role" required>
-                  <option value="">— {% trans "Select role" %} —</option>
-                  {% for value, label in role_choices %}
-                  <option value="{{ value }}">{{ label }}</option>
-                  {% endfor %}
-                </select>
-                <div class="invalid-feedback"></div>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">{% trans "Site" %}</label>
-                <select class="form-select" name="site">
-                  <option value="">— {% trans "No site" %} —</option>
-                  {% for site in sites %}
-                  <option value="{{ site.pk }}">{{ site.name }}</option>
-                  {% endfor %}
-                </select>
-                <div class="invalid-feedback"></div>
-              </div>
-              <div class="col-md-6 d-flex align-items-end">
-                <div class="form-check form-switch mb-1">
-                  <input class="form-check-input" type="checkbox" name="is_active" id="editIsActive">
-                  <label class="form-check-label fw-medium" for="editIsActive">
-                    {% trans "Active" %}
-                  </label>
+
+              <!-- Select-all row -->
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted small">{% trans "Click a group header to toggle all permissions in that group." %}</span>
+                <div class="d-flex gap-2">
+                  <button type="button" class="btn btn-sm btn-outline-primary" onclick="permSelectAll(true)">
+                    <i class="bi bi-check2-all me-1"></i>{% trans "Grant All" %}
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="permSelectAll(false)">
+                    <i class="bi bi-x-lg me-1"></i>{% trans "Revoke All" %}
+                  </button>
                 </div>
               </div>
+
+              <div id="permChecklist">
+                <!-- Filled by JS after AJAX fetch -->
+              </div>
             </div>
-          </div>
-        </div>
+
+            <!-- ── Tab 3: Site Access ──────────────────────────────────── -->
+            <div class="tab-pane fade" id="tab-scope" role="tabpanel">
+              <form id="editScopeForm" novalidate>
+                <input type="hidden" name="scope_user_id" id="editScopeUserId">
+                {% csrf_token %}
+
+                <p class="text-muted mb-3">
+                  {% trans "Controls which branches' data this user can see and manage." %}
+                </p>
+
+                <!-- Scope radio group -->
+                <div class="mb-3">
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="site_scope" id="scope-all"
+                           value="all" onchange="onScopeChange()">
+                    <label class="form-check-label fw-medium" for="scope-all">
+                      {% trans "All Branches" %}
+                      <span class="text-muted fw-normal small d-block">{% trans "Can see data from every branch." %}</span>
+                    </label>
+                  </div>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="site_scope" id="scope-own"
+                           value="own" onchange="onScopeChange()">
+                    <label class="form-check-label fw-medium" for="scope-own">
+                      {% trans "Own Branch Only" %}
+                      <span class="text-muted fw-normal small d-block">{% trans "Can only see data from their own assigned branch." %}</span>
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="site_scope" id="scope-specific"
+                           value="specific" onchange="onScopeChange()">
+                    <label class="form-check-label fw-medium" for="scope-specific">
+                      {% trans "Specific Branches" %}
+                      <span class="text-muted fw-normal small d-block">{% trans "Can only see data from the selected branches below." %}</span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Own-site selector (shown when scope=own) -->
+                <div id="ownSiteWrapper" class="d-none mb-3">
+                  <label class="form-label">{% trans "Own Site" %}</label>
+                  <select class="form-select" name="own_site" id="ownSiteSelect">
+                    <option value="">— {% trans "Select site" %} —</option>
+                    {% for site in sites %}
+                    <option value="{{ site.pk }}">{{ site.name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <!-- Allowed-sites multi-select (shown when scope=specific) -->
+                <div id="allowedSitesWrapper" class="d-none mb-3">
+                  <label class="form-label">{% trans "Allowed Sites" %}</label>
+                  <div class="border rounded p-2" style="max-height:220px;overflow-y:auto;">
+                    {% for site in sites %}
+                    <div class="form-check">
+                      <input class="form-check-input allowed-site-cb" type="checkbox"
+                             name="allowed_sites" value="{{ site.pk }}"
+                             id="allowed-site-{{ site.pk }}">
+                      <label class="form-check-label" for="allowed-site-{{ site.pk }}">
+                        {{ site.name }}
+                      </label>
+                    </div>
+                    {% endfor %}
+                  </div>
+                </div>
+
+              </form>
+            </div>
+
+          </div><!-- /tab-content -->
+        </div><!-- /modal-body -->
+
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
             {% trans "Cancel" %}
           </button>
-          <button type="submit" class="btn btn-primary" id="editSubmitBtn">
+          <button type="button" class="btn btn-primary" id="editSubmitBtn" onclick="submitEditModal()">
             <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Save Changes" %}</span>
             <span class="btn-loading d-none">
               <span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}
             </span>
           </button>
         </div>
-      </form>
+
+      </div><!-- /editModalContent -->
     </div>
   </div>
 </div>
@@ -327,7 +434,7 @@
 
 <!-- ===== DELETE USER MODAL ===== -->
 <div class="modal fade" id="deleteUserModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header border-0 pb-0">
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -361,7 +468,7 @@
 
 <!-- ===== RESET PASSWORD MODAL ===== -->
 <div class="modal fade" id="resetPasswordModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">
@@ -429,11 +536,13 @@ const CAN_RESET_PASSWORD = {{ rbac.users_reset_password|yesno:"true,false" }};
 /* ── URL helpers ── */
 const URL_USERS_DATA = '{% url "users-data" %}';
 const URL_USER_CREATE = '{% url "user-create" %}';
-const userDetailUrl     = id => `/accounts/users/${id}/`;
+const userDetailUrl      = id => `/accounts/users/${id}/`;
 const userEditUrl        = id => `/accounts/users/${id}/edit/`;
 const userDeleteUrl      = id => `/accounts/users/${id}/delete/`;
 const userToggleUrl      = id => `/accounts/users/${id}/toggle/`;
 const userResetPassUrl   = id => `/accounts/users/${id}/reset-password/`;
+const userPermissionsUrl = id => `/accounts/users/${id}/permissions/`;
+const userScopeUrl       = id => `/accounts/users/${id}/scope/`;
 
 /* ── Translations for JS ── */
 const T = {
@@ -461,12 +570,10 @@ const resetPasswordModal = new bootstrap.Modal('#resetPasswordModal');
 function loadUsers(page) {
   currentPage = page || 1;
   const search = document.getElementById('searchInput').value.trim();
-  const role   = document.getElementById('roleFilter').value;
   const status = document.getElementById('statusFilter').value;
 
   const params = new URLSearchParams();
   if (search) params.set('search', search);
-  if (role)   params.set('role', role);
   if (status) params.set('status', status);
   params.set('page', currentPage);
 
@@ -490,8 +597,7 @@ function debounceLoad() {
 
 function resetFilters() {
   currentPage = 1;
-  document.getElementById('searchInput').value = '';
-  document.getElementById('roleFilter').value  = '';
+  document.getElementById('searchInput').value  = '';
   document.getElementById('statusFilter').value = '';
   loadUsers();
 }
@@ -531,9 +637,6 @@ function renderUsersTable(users) {
             <div class="text-muted small">${escHtml(u.email)}</div>
           </div>
         </div>
-      </td>
-      <td>
-        <span class="badge bg-${u.role_color} rounded-pill">${escHtml(u.role_display)}</span>
       </td>
       <td>
         ${u.site_name
@@ -594,10 +697,9 @@ function openViewModal(userId) {
     .then(data => {
       if (!data.success) { showToast(data.message, 'danger'); viewModal.hide(); return; }
       const u = data.user;
-      document.getElementById('vu-name').textContent         = u.full_name;
-      document.getElementById('vu-email').textContent        = u.email;
-      document.getElementById('vu-role').innerHTML           = `<span class="badge bg-${u.role_color} rounded-pill">${escHtml(u.role_display)}</span>`;
-      document.getElementById('vu-site').textContent         = u.site_name || '—';
+      document.getElementById('vu-name').textContent  = u.full_name;
+      document.getElementById('vu-email').textContent = u.email;
+      document.getElementById('vu-site').textContent  = u.site_name || '—';
       document.getElementById('vu-status').innerHTML         = u.is_active
         ? `<span class="badge bg-success-subtle text-success rounded-pill">${T.active}</span>`
         : `<span class="badge bg-danger-subtle text-danger rounded-pill">${T.inactive}</span>`;
@@ -654,47 +756,191 @@ function openEditModal(userId) {
   clearFormErrors(form);
   loader.classList.remove('d-none');
   content.classList.add('d-none');
+  // Reset to first tab
+  document.getElementById('tab-basic-btn').click();
   editModal.show();
 
-  ajaxGet(userDetailUrl(userId))
-    .then(data => {
-      if (!data.success) { showToast(data.message, 'danger'); editModal.hide(); return; }
-      const u = data.user;
-      form.querySelector('[name=user_id]').value    = u.id;
-      form.querySelector('[name=first_name]').value = u.first_name;
-      form.querySelector('[name=last_name]').value  = u.last_name;
-      form.querySelector('[name=email]').value      = u.email;
-      form.querySelector('[name=role]').value       = u.role;
-      form.querySelector('[name=site]').value       = u.site_id || '';
-      form.querySelector('[name=is_active]').checked = u.is_active;
-      loader.classList.add('d-none');
-      content.classList.remove('d-none');
-    })
-    .catch(() => { showToast('{% trans "Failed to load user." %}', 'danger'); editModal.hide(); });
+  // Fire three requests in parallel
+  Promise.all([
+    ajaxGet(userDetailUrl(userId)),
+    ajaxGet(userPermissionsUrl(userId)),
+  ])
+  .then(([userResp, permResp]) => {
+    if (!userResp.success) { showToast(userResp.message, 'danger'); editModal.hide(); return; }
+    if (!permResp.success)  { showToast(permResp.message,  'danger'); editModal.hide(); return; }
+
+    const u = userResp.user;
+
+    // ── Tab 1: basic fields ────────────────────────────────────────────────
+    form.querySelector('[name=user_id]').value      = u.id;
+    form.querySelector('[name=first_name]').value   = u.first_name;
+    form.querySelector('[name=last_name]').value    = u.last_name;
+    form.querySelector('[name=email]').value        = u.email;
+    form.querySelector('[name=site]').value         = u.site_id || '';
+    form.querySelector('[name=is_active]').checked  = u.is_active;
+
+    // ── Tab 2: permissions ─────────────────────────────────────────────────
+    renderPermChecklist(permResp.groups, permResp.is_superuser);
+
+    // ── Tab 3: site scope ──────────────────────────────────────────────────
+    document.getElementById('editScopeUserId').value = u.id;
+    prefillScopeTab(u);
+
+    loader.classList.add('d-none');
+    content.classList.remove('d-none');
+  })
+  .catch(() => { showToast('{% trans "Failed to load user." %}', 'danger'); editModal.hide(); });
 }
 
-document.getElementById('editUserForm').addEventListener('submit', function(e) {
-  e.preventDefault();
+/* ──────────────────────────────────────────────────────────────
+   PERMISSION CHECKLIST
+────────────────────────────────────────────────────────────── */
+function renderPermChecklist(groups, isSuperuser) {
+  const notice = document.getElementById('superuserNotice');
+  notice.classList.toggle('d-none', !isSuperuser);
+
+  const container = document.getElementById('permChecklist');
+  if (!groups || !groups.length) { container.innerHTML = ''; return; }
+
+  container.innerHTML = groups.map(g => `
+    <div class="perm-group mb-3">
+      <div class="perm-group-header d-flex align-items-center gap-2 mb-1 cursor-pointer"
+           onclick="permToggleGroup(this)" style="cursor:pointer">
+        <i class="bi bi-chevron-down small text-muted perm-chevron"></i>
+        <span class="fw-semibold text-uppercase small text-muted tracking-wide">${escHtml(g.group)}</span>
+      </div>
+      <div class="perm-group-body">
+        <div class="card card-app">
+          <div class="card-body p-2">
+            <table class="table table-sm table-borderless mb-0 align-middle">
+              <tbody>
+                ${g.models.map(m => `
+                  <tr>
+                    <td class="text-muted small ps-1" style="width:130px">${escHtml(m.model)}</td>
+                    <td>
+                      <div class="d-flex flex-wrap gap-1">
+                        ${m.perms.map(p => `
+                          <div class="form-check form-check-inline mb-0">
+                            <input class="form-check-input perm-cb" type="checkbox"
+                                   id="perm-${p.id}"
+                                   data-perm-id="${p.id}"
+                                   ${p.granted ? 'checked' : ''}
+                                   ${!p.id ? 'disabled' : ''}
+                                   ${isSuperuser ? 'disabled' : ''}>
+                            <label class="form-check-label small" for="perm-${p.id}">${escHtml(p.label)}</label>
+                          </div>
+                        `).join('')}
+                      </div>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function permToggleGroup(header) {
+  const body    = header.nextElementSibling;
+  const chevron = header.querySelector('.perm-chevron');
+  const collapsed = body.style.display === 'none';
+  body.style.display    = collapsed ? '' : 'none';
+  chevron.classList.toggle('bi-chevron-right', !collapsed);
+  chevron.classList.toggle('bi-chevron-down',   collapsed);
+}
+
+function permSelectAll(grant) {
+  document.querySelectorAll('.perm-cb:not([disabled])').forEach(cb => {
+    cb.checked = grant;
+  });
+}
+
+function getSelectedPermIds() {
+  return Array.from(document.querySelectorAll('.perm-cb:checked:not([disabled])'))
+              .map(cb => cb.dataset.permId)
+              .filter(Boolean);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   SITE SCOPE TAB
+────────────────────────────────────────────────────────────── */
+function prefillScopeTab(user) {
+  const scope = user.site_scope || 'own';
+
+  // Select the right radio
+  const radio = document.querySelector(`[name="site_scope"][value="${scope}"]`);
+  if (radio) radio.checked = true;
+  onScopeChange();
+
+  if (scope === 'own') {
+    document.getElementById('ownSiteSelect').value = user.own_site_id || user.site_id || '';
+  } else if (scope === 'specific') {
+    const allowed = user.allowed_site_ids || [];
+    document.querySelectorAll('.allowed-site-cb').forEach(cb => {
+      cb.checked = allowed.includes(parseInt(cb.value));
+    });
+  }
+}
+
+function onScopeChange() {
+  const scope = document.querySelector('[name="site_scope"]:checked')?.value || 'own';
+  document.getElementById('ownSiteWrapper').classList.toggle('d-none',     scope !== 'own');
+  document.getElementById('allowedSitesWrapper').classList.toggle('d-none', scope !== 'specific');
+}
+
+/* ──────────────────────────────────────────────────────────────
+   SAVE ALL THREE SECTIONS
+────────────────────────────────────────────────────────────── */
+function submitEditModal() {
   const btn    = document.getElementById('editSubmitBtn');
-  const form   = this;
+  const form   = document.getElementById('editUserForm');
   const userId = form.querySelector('[name=user_id]').value;
+  if (!userId) return;
+
   clearFormErrors(form);
   setButtonLoading(btn, true);
 
+  // Build permissions FormData
+  const permData = new FormData();
+  permData.append('csrfmiddlewaretoken', form.querySelector('[name=csrfmiddlewaretoken]').value);
+  getSelectedPermIds().forEach(id => permData.append('permission_ids', id));
+
+  // Build scope FormData
+  const scopeData = new FormData(document.getElementById('editScopeForm'));
+  // allowed_sites checkboxes are outside editScopeForm — collect manually
+  document.querySelectorAll('.allowed-site-cb:checked').forEach(cb => {
+    scopeData.append('allowed_sites', cb.value);
+  });
+
+  // Fire all three in sequence: basic -> permissions -> scope
   ajaxPost(userEditUrl(userId), new FormData(form))
     .then(data => {
-      if (data.success) {
-        editModal.hide();
-        showToast(data.message, 'success');
-        loadUsers();
-      } else {
+      if (!data.success) {
         showFormErrors(form, data.errors || {});
         if (data.message) showToast(data.message, 'danger');
+        throw new Error('basic_failed');
       }
+      return ajaxPost(userPermissionsUrl(userId), permData);
     })
-    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .then(data => {
+      if (!data.success) { showToast(data.message, 'danger'); throw new Error('perms_failed'); }
+      return ajaxPost(userScopeUrl(userId), scopeData);
+    })
+    .then(data => {
+      if (!data.success) { showToast(data.message, 'danger'); throw new Error('scope_failed'); }
+      editModal.hide();
+      showToast('{% trans "User updated successfully." %}', 'success');
+      loadUsers();
+    })
+    .catch(err => {
+      if (err.message && err.message.endsWith('_failed')) return; // already shown toast
+      showToast('{% trans "An error occurred." %}', 'danger');
+    })
     .finally(() => setButtonLoading(btn, false));
-});
+}
 
 /* ================================================================
    TOGGLE STATUS

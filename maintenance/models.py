@@ -53,8 +53,9 @@ class MaintenanceRecord(models.Model):
     class Meta:
         db_table = 'Maintenance_Records'
         permissions = [
-            ('close_maintenancerecord', 'Can close a maintenance record and add resolution notes'),
-            ('view_cost',               'Can view the financial cost field on a maintenance record'),
+            ('close_maintenancerecord',  'Can close a maintenance record and add resolution notes'),
+            ('view_cost',                'Can view the financial cost field on a maintenance record'),
+            ('export_maintenancerecord', 'Can export maintenance records to a file'),
         ]
 
     def __str__(self):

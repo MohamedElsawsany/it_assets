@@ -14,4 +14,6 @@ urlpatterns = [
     path('users/<int:user_id>/delete/', views.user_delete, name='user-delete'),
     path('users/<int:user_id>/toggle/', views.user_toggle_status, name='user-toggle'),
     path('users/<int:user_id>/reset-password/', views.user_reset_password, name='user-reset-password'),
+    path('users/<int:user_id>/permissions/', views.user_permissions, name='user-permissions'),
+    path('users/<int:user_id>/scope/', views.user_scope_save, name='user-scope'),
 ]

@@ -21,9 +21,10 @@ from .forms import AssignmentForm, ReturnDeviceForm, TransferForm
 @login_required
 @permission_required(Perms.ASSIGNMENTS_VIEW)
 def assignments_index(request):
+    allowed = request.user.get_allowed_sites()
     return render(request, 'assignments/index.html', {
-        'devices':   Device.objects.filter(deleted_date__isnull=True).order_by('serial_number'),
-        'employees': Employee.objects.filter(deleted_date__isnull=True).select_related('site').order_by('first_name'),
+        'devices':   Device.objects.filter(deleted_date__isnull=True, site__in=allowed).order_by('serial_number'),
+        'employees': Employee.objects.filter(deleted_date__isnull=True, site__in=allowed).select_related('site').order_by('first_name'),
     })
 
 
@@ -32,7 +33,9 @@ def assignments_index(request):
 def assignments_data(request):
     search   = request.GET.get('search', '').strip()
     status_f = request.GET.get('status', '').strip()
-    qs = DeviceAssignment.objects.select_related(
+    qs = DeviceAssignment.objects.filter(
+        device__site__in=request.user.get_allowed_sites(),
+    ).select_related(
         'device', 'device__brand', 'device__category', 'device__device_model',
         'employee', 'assigned_by', 'returned_by',
     )
@@ -79,7 +82,9 @@ def assignment_detail(request, pk):
     if not has_permission(request.user, Perms.ASSIGNMENTS_VIEW):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
     a = get_object_or_404(
-        DeviceAssignment.objects.select_related(
+        DeviceAssignment.objects.filter(
+            device__site__in=request.user.get_allowed_sites(),
+        ).select_related(
             'device', 'device__brand', 'device__category', 'device__device_model',
             'employee', 'assigned_by', 'returned_by',
         ), pk=pk)
@@ -107,7 +112,13 @@ def assignment_detail(request, pk):
 def transfer_detail(request, pk):
     if not has_permission(request.user, Perms.TRANSFERS_VIEW):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
-    t = get_object_or_404(DeviceTransfer.objects.select_related('device', 'from_site', 'to_site', 'transferred_by'), pk=pk)
+    allowed = request.user.get_allowed_sites()
+    t = get_object_or_404(
+        DeviceTransfer.objects.filter(
+            Q(from_site__in=allowed) | Q(to_site__in=allowed),
+        ).select_related('device', 'from_site', 'to_site', 'transferred_by'),
+        pk=pk,
+    )
     return JsonResponse({'success': True, 'item': {
         'id': t.pk,
         'device_serial': t.device.serial_number,
@@ -172,9 +183,10 @@ def assignment_return(request, pk):
 @login_required
 @permission_required(Perms.TRANSFERS_VIEW)
 def transfers_index(request):
+    allowed = request.user.get_allowed_sites()
     return render(request, 'assignments/transfers.html', {
-        'devices': Device.objects.filter(deleted_date__isnull=True).order_by('serial_number'),
-        'sites':   Site.objects.filter(deleted_date__isnull=True).order_by('name'),
+        'devices': Device.objects.filter(deleted_date__isnull=True, site__in=allowed).order_by('serial_number'),
+        'sites':   allowed.filter(deleted_date__isnull=True).order_by('name'),
     })
 
 
@@ -182,9 +194,10 @@ def transfers_index(request):
 @permission_required(Perms.TRANSFERS_VIEW)
 def transfers_data(request):
     search = request.GET.get('search', '').strip()
-    qs = DeviceTransfer.objects.select_related(
-        'device', 'from_site', 'to_site', 'transferred_by'
-    )
+    allowed = request.user.get_allowed_sites()
+    qs = DeviceTransfer.objects.filter(
+        Q(from_site__in=allowed) | Q(to_site__in=allowed)
+    ).select_related('device', 'from_site', 'to_site', 'transferred_by')
     if search:
         qs = qs.filter(
             Q(device__serial_number__icontains=search) |

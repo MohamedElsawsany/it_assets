@@ -19,7 +19,7 @@ from .forms import DepartmentForm, EmployeeForm
 @permission_required(Perms.EMPLOYEES_VIEW)
 def employees_index(request):
     return render(request, 'employees/index.html', {
-        'sites':       Site.objects.filter(deleted_date__isnull=True).order_by('name'),
+        'sites':       request.user.get_allowed_sites().filter(deleted_date__isnull=True).order_by('name'),
         'departments': Department.objects.filter(deleted_date__isnull=True).order_by('name'),
     })
 
@@ -115,7 +115,10 @@ def employees_data(request):
     search  = request.GET.get('search', '').strip()
     dept_id = request.GET.get('department', '').strip()
     site_id = request.GET.get('site', '').strip()
-    qs = Employee.objects.filter(deleted_date__isnull=True).select_related('department', 'site')
+    qs = Employee.objects.filter(
+        deleted_date__isnull=True,
+        site__in=request.user.get_allowed_sites(),
+    ).select_related('department', 'site')
     if search:
         qs = qs.filter(
             Q(first_name__icontains=search) | Q(last_name__icontains=search) |
@@ -149,8 +152,12 @@ def employees_data(request):
 def employee_detail(request, pk):
     if not has_permission(request.user, Perms.EMPLOYEES_VIEW):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
-    emp = get_object_or_404(Employee.objects.select_related('department', 'site', 'created_by'),
-                            pk=pk, deleted_date__isnull=True)
+    emp = get_object_or_404(
+        Employee.objects.filter(
+            site__in=request.user.get_allowed_sites(),
+        ).select_related('department', 'site', 'created_by'),
+        pk=pk, deleted_date__isnull=True,
+    )
     return JsonResponse({'success': True, 'item': {
         'id': emp.pk, 'first_name': emp.first_name, 'last_name': emp.last_name,
         'employee_card_id': emp.employee_card_id,

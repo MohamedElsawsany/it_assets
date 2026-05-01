@@ -1,5 +1,7 @@
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.utils.translation import gettext as _
@@ -13,12 +15,99 @@ from .forms import UserCreateForm, UserEditForm, ResetPasswordForm
 from .permissions import permission_required, has_permission, Perms
 
 
+# ── Permission checklist definition ──────────────────────────────────────────
+# Describes the groups and rows shown in the edit modal.
+# Each entry: (group_label, model_label, [(button_label, django_codename), ...])
+# Only permissions relevant to the IT asset app are included.
+
+PERM_GROUPS = [
+    ('Inventory', [
+        ('Devices', [
+            ('View',               'inventory.view_device'),
+            ('Add',                'inventory.add_device'),
+            ('Edit',               'inventory.change_device'),
+            ('Delete',             'inventory.delete_device'),
+            ('Flag',               'inventory.flag_device'),
+            ('Retire',             'inventory.retire_device'),
+            ('Toggle Maintenance', 'inventory.toggle_maintenance'),
+            ('View Specs',         'inventory.view_device_specs'),
+            ('Export',             'inventory.export_device'),
+            ('View History',       'inventory.view_history_device'),
+        ]),
+        ('Accessories', [
+            ('View',        'inventory.view_accessory'),
+            ('Add',         'inventory.add_accessory'),
+            ('Edit',        'inventory.change_accessory'),
+            ('Delete',      'inventory.delete_accessory'),
+            ('Link Device', 'inventory.link_device_accessory'),
+        ]),
+        ('Lookups', [
+            ('View',   'inventory.view_devicecategory'),
+            ('Add',    'inventory.add_devicecategory'),
+            ('Edit',   'inventory.change_devicecategory'),
+            ('Delete', 'inventory.delete_devicecategory'),
+        ]),
+    ]),
+    ('Assignments', [
+        ('Assignments', [
+            ('View',            'assignments.view_deviceassignment'),
+            ('Add',             'assignments.add_deviceassignment'),
+            ('Edit',            'assignments.change_deviceassignment'),
+            ('Delete',          'assignments.delete_deviceassignment'),
+            ('Return Device',   'assignments.return_device'),
+            ('Generate Report', 'assignments.generate_report'),
+        ]),
+        ('Transfers', [
+            ('View',             'assignments.view_devicetransfer'),
+            ('Add',              'assignments.add_devicetransfer'),
+            ('Approve Transfer', 'assignments.approve_transfer'),
+            ('Delete',           'assignments.delete_devicetransfer'),
+        ]),
+    ]),
+    ('Maintenance', [
+        ('Records', [
+            ('View',      'maintenance.view_maintenancerecord'),
+            ('Add',       'maintenance.add_maintenancerecord'),
+            ('Edit',      'maintenance.change_maintenancerecord'),
+            ('Delete',    'maintenance.delete_maintenancerecord'),
+            ('Close',     'maintenance.close_maintenancerecord'),
+            ('View Cost', 'maintenance.view_cost'),
+            ('Export',    'maintenance.export_maintenancerecord'),
+        ]),
+    ]),
+    ('Organization', [
+        ('Employees', [
+            ('View',     'employees.view_employee'),
+            ('Add',      'employees.add_employee'),
+            ('Edit',     'employees.change_employee'),
+            ('Delete',   'employees.delete_employee'),
+            ('Transfer', 'employees.transfer_employee'),
+        ]),
+        ('Locations', [
+            ('View',   'locations.view_site'),
+            ('Add',    'locations.add_site'),
+            ('Edit',   'locations.change_site'),
+            ('Delete', 'locations.delete_site'),
+        ]),
+    ]),
+    ('System', [
+        ('Users', [
+            ('View',           'accounts.view_user'),
+            ('Add',            'accounts.add_user'),
+            ('Edit',           'accounts.change_user'),
+            ('Delete',         'accounts.delete_user'),
+            ('Reset Password', 'accounts.reset_password_user'),
+            ('Activate',       'accounts.activate_user'),
+        ]),
+    ]),
+]
+
+
 @login_required
 @permission_required(Perms.USERS_VIEW)
 def users_list(request):
     from locations.models import Site
     return render(request, 'accounts/users.html', {
-        'role_choices': User.ROLE_CHOICES,
         'sites': Site.objects.all().order_by('name'),
     })
 
@@ -26,8 +115,7 @@ def users_list(request):
 @login_required
 @permission_required(Perms.USERS_VIEW)
 def users_data(request):
-    search = request.GET.get('search', '').strip()
-    role_filter = request.GET.get('role', '').strip()
+    search        = request.GET.get('search', '').strip()
     status_filter = request.GET.get('status', '').strip()
 
     qs = User.objects.filter(deleted_date__isnull=True).select_related('site')
@@ -38,8 +126,6 @@ def users_data(request):
             Q(last_name__icontains=search) |
             Q(email__icontains=search)
         )
-    if role_filter:
-        qs = qs.filter(role=role_filter)
     if status_filter == 'active':
         qs = qs.filter(is_active=True)
     elif status_filter == 'inactive':
@@ -56,17 +142,14 @@ def users_data(request):
     users = []
     for user in page_obj:
         users.append({
-            'id': user.pk,
-            'full_name': user.full_name,
-            'first_name': user.first_name,
-            'last_name': user.last_name,
-            'email': user.email,
-            'role': user.role,
-            'role_display': user.get_role_display(),
-            'role_color': user.role_color,
-            'site_id': user.site_id or '',
-            'site_name': user.site.name if user.site else '',
-            'is_active': user.is_active,
+            'id':           user.pk,
+            'full_name':    user.full_name,
+            'first_name':   user.first_name,
+            'last_name':    user.last_name,
+            'email':        user.email,
+            'site_id':      user.site_id or '',
+            'site_name':    user.site.name if user.site else '',
+            'is_active':    user.is_active,
             'created_date': user.created_date.strftime('%Y-%m-%d') if user.created_date else '',
         })
 
@@ -83,18 +166,21 @@ def user_detail(request, user_id):
     return JsonResponse({
         'success': True,
         'user': {
-            'id': user.pk,
-            'first_name': user.first_name,
-            'last_name': user.last_name,
-            'full_name': user.full_name,
-            'email': user.email,
-            'role': user.role,
-            'role_display': user.get_role_display(),
-            'role_color': user.role_color,
-            'site_id': user.site_id or '',
-            'site_name': user.site.name if user.site else '',
-            'is_active': user.is_active,
-            'created_by': user.created_by.full_name if user.created_by else '',
+            'id':          user.pk,
+            'first_name':  user.first_name,
+            'last_name':   user.last_name,
+            'full_name':   user.full_name,
+            'email':       user.email,
+            'site_id':     user.site_id or '',
+            'site_name':   user.site.name if user.site else '',
+            'is_active':   user.is_active,
+            'is_superuser': user.is_superuser,
+            # Site scope fields
+            'site_scope':       user.site_scope,
+            'own_site_id':      user.own_site_id or '',
+            'allowed_site_ids': list(user.allowed_sites.values_list('id', flat=True)),
+            # Audit
+            'created_by':   user.created_by.full_name if user.created_by else '',
             'created_date': user.created_date.strftime('%Y-%m-%d %I:%M %p') if user.created_date else '',
             'updated_date': user.updated_date.strftime('%Y-%m-%d %I:%M %p') if user.updated_date else '',
         }
@@ -189,3 +275,129 @@ def user_reset_password(request, user_id):
 
     errors = {field: [str(e) for e in errs] for field, errs in form.errors.items()}
     return JsonResponse({'success': False, 'errors': errors})
+
+
+# ── Permission management ─────────────────────────────────────────────────────
+
+@login_required
+def user_permissions(request, user_id):
+    """
+    GET  → returns the permission checklist structure with the target user's
+           current grants pre-marked.
+    POST → saves the submitted permission_ids to user.user_permissions.
+    """
+    if not has_permission(request.user, Perms.USERS_EDIT):
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+
+    target = get_object_or_404(User, pk=user_id, deleted_date__isnull=True)
+
+    if request.method == 'GET':
+        # Build a flat map: 'app.codename' → Permission.id
+        perm_lookup = {}
+        for p in Permission.objects.select_related('content_type').all():
+            key = f'{p.content_type.app_label}.{p.codename}'
+            perm_lookup[key] = p.id
+
+        # Current grants for this user
+        current_ids = set(
+            target.user_permissions.values_list('id', flat=True)
+        )
+
+        # Build the structured checklist from PERM_GROUPS
+        groups = []
+        for group_label, models in PERM_GROUPS:
+            model_rows = []
+            for model_label, perms in models:
+                buttons = []
+                for btn_label, codename in perms:
+                    pid = perm_lookup.get(codename)
+                    buttons.append({
+                        'label':    btn_label,
+                        'codename': codename,
+                        'id':       pid,
+                        'granted':  pid in current_ids if pid else False,
+                    })
+                model_rows.append({'model': model_label, 'perms': buttons})
+            groups.append({'group': group_label, 'models': model_rows})
+
+        return JsonResponse({
+            'success': True,
+            'is_superuser': target.is_superuser,
+            'groups': groups,
+        })
+
+    # POST — save selected permissions
+    if request.method == 'POST':
+        raw_ids = request.POST.getlist('permission_ids')
+        try:
+            perm_ids = [int(x) for x in raw_ids if x]
+        except ValueError:
+            return JsonResponse({'success': False, 'message': _('Invalid permission IDs.')}, status=400)
+
+        # Verify every submitted ID is in our managed set (security: don't let
+        # callers grant arbitrary Django admin/session/etc. permissions).
+        allowed_codenames = {
+            codename
+            for _, models in PERM_GROUPS
+            for _, perms in models
+            for _, codename in perms
+        }
+        allowed_ids = set(
+            Permission.objects.filter(
+                content_type__app_label__in=[c.split('.')[0] for c in allowed_codenames]
+            ).filter(
+                id__in=perm_ids
+            ).values_list('id', flat=True)
+        )
+
+        target.user_permissions.set(allowed_ids)
+        # Clear Django's permission cache for this user
+        if hasattr(target, '_perm_cache'):
+            del target._perm_cache
+        if hasattr(target, '_user_perm_cache'):
+            del target._user_perm_cache
+
+        return JsonResponse({'success': True, 'message': _('Permissions saved.')})
+
+    return JsonResponse({'success': False, 'message': _('Method not allowed.')}, status=405)
+
+
+@login_required
+@require_http_methods(['POST'])
+def user_scope_save(request, user_id):
+    """
+    Save site_scope + own_site / allowed_sites for a user.
+    """
+    if not has_permission(request.user, Perms.USERS_EDIT):
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+
+    target = get_object_or_404(User, pk=user_id, deleted_date__isnull=True)
+
+    scope = request.POST.get('site_scope', User.SiteScope.OWN)
+    if scope not in User.SiteScope.values:
+        return JsonResponse({'success': False, 'message': _('Invalid site scope.')}, status=400)
+
+    from locations.models import Site
+
+    target.site_scope = scope
+
+    if scope == User.SiteScope.OWN:
+        own_site_id = request.POST.get('own_site') or None
+        if own_site_id:
+            target.own_site = get_object_or_404(Site, pk=own_site_id)
+        else:
+            target.own_site = None
+        target.allowed_sites.clear()
+
+    elif scope == User.SiteScope.SPECIFIC:
+        site_ids = request.POST.getlist('allowed_sites')
+        target.own_site = None
+        target.save()
+        target.allowed_sites.set(Site.objects.filter(pk__in=site_ids))
+
+    elif scope == User.SiteScope.ALL:
+        target.own_site = None
+        target.allowed_sites.clear()
+
+    target.save()
+    return JsonResponse({'success': True, 'message': _('Site access saved.')})

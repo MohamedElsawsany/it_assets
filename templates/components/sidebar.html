@@ -141,7 +141,7 @@
       </div>
       <div style="min-width:0;flex:1;">
         <div class="sidebar-user-name text-truncate">{{ request.user.full_name }}</div>
-        <div class="sidebar-user-role">{{ rbac.role_display }}</div>
+        <div class="sidebar-user-role">{{ request.user.email }}</div>
       </div>
     </div>
   </div>

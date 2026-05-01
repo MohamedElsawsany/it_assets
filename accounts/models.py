@@ -1,8 +1,8 @@
 """
 accounts/models.py
 ──────────────────
-Role is stored as a CharField directly on User.
-All permission logic lives in accounts/permissions.py.
+Access control uses Django's per-user permission system (user.has_perm / user.user_permissions).
+Site scope controls which branches' data the user can see.
 """
 
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
@@ -24,70 +24,51 @@ class UserManager(BaseUserManager):
     def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault('is_staff',     True)
         extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('role',         'super_admin')
         return self.create_user(email, password, **extra_fields)
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    """
-    System user.  Role drives every RBAC decision — see permissions.py.
 
-    Roles (least → most privileged)
-    ────────────────────────────────
-      viewer            Read-only on non-sensitive data
-      maintenance_tech  Maintenance records + device view
-      site_manager      Assignment management at their site
-      inventory_manager Full device/accessory/lookup CRUD
-      it_supervisor     Oversight: approvals, reports, cost view
-      auditor           Read-only on EVERYTHING including costs
-      it_admin          Full CRUD everywhere — no role assignment
-      super_admin       Unrestricted
-    """
-
-    # ── Role constants ────────────────────────────────────────────────────────
-    SUPER_ADMIN       = 'super_admin'
-    IT_ADMIN          = 'it_admin'
-    IT_SUPERVISOR     = 'it_supervisor'
-    INVENTORY_MANAGER = 'inventory_manager'
-    SITE_MANAGER      = 'site_manager'
-    MAINTENANCE_TECH  = 'maintenance_tech'
-    AUDITOR           = 'auditor'
-    VIEWER            = 'viewer'
-
-    ROLE_CHOICES = [
-        (SUPER_ADMIN,       _('Super Administrator')),
-        (IT_ADMIN,          _('IT Admin')),
-        (IT_SUPERVISOR,     _('IT Supervisor')),
-        (INVENTORY_MANAGER, _('Inventory Manager')),
-        (SITE_MANAGER,      _('Site Manager')),
-        (MAINTENANCE_TECH,  _('Maintenance Technician')),
-        (AUDITOR,           _('Auditor')),
-        (VIEWER,            _('Viewer')),
-    ]
-
-    # Bootstrap / Tailwind colour token used in templates: {{ rbac.role_color }}
-    ROLE_COLORS = {
-        SUPER_ADMIN:       'danger',
-        IT_ADMIN:          'primary',
-        IT_SUPERVISOR:     'info',
-        INVENTORY_MANAGER: 'purple',
-        SITE_MANAGER:      'warning',
-        MAINTENANCE_TECH:  'success',
-        AUDITOR:           'dark',
-        VIEWER:            'secondary',
-    }
+    # ── Site scope ────────────────────────────────────────────────────────────
+    class SiteScope(models.TextChoices):
+        ALL      = 'all',      _('All Branches')
+        OWN      = 'own',      _('Own Branch Only')
+        SPECIFIC = 'specific', _('Specific Branches')
 
     # ── Fields ────────────────────────────────────────────────────────────────
     first_name = models.CharField(max_length=255)
     last_name  = models.CharField(max_length=255)
     email      = models.EmailField(max_length=255, unique=True)
-    role       = models.CharField(max_length=30, choices=ROLE_CHOICES, default=VIEWER)
 
+    # Primary site FK — kept for backward compatibility and as default own_site.
     site = models.ForeignKey(
         'locations.Site',
         on_delete=models.PROTECT,
         related_name='users',
         null=True, blank=True,
+    )
+
+    # Site scope: controls which branches' data this user can access.
+    site_scope = models.CharField(
+        max_length=10,
+        choices=SiteScope.choices,
+        default=SiteScope.OWN,
+        verbose_name=_('Site Scope'),
+    )
+    own_site = models.ForeignKey(
+        'locations.Site',
+        on_delete=models.SET_NULL,
+        related_name='own_users',
+        null=True, blank=True,
+        verbose_name=_('Own Site'),
+        help_text=_('Used when site scope is "Own Branch Only".'),
+    )
+    allowed_sites = models.ManyToManyField(
+        'locations.Site',
+        related_name='allowed_users',
+        blank=True,
+        verbose_name=_('Allowed Sites'),
+        help_text=_('Used when site scope is "Specific Branches".'),
     )
 
     is_active = models.BooleanField(default=True)
@@ -110,6 +91,10 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     class Meta:
         db_table = 'Users'
+        permissions = [
+            ('reset_password_user', 'Can reset another user\'s password'),
+            ('activate_user',       'Can activate or deactivate users'),
+        ]
 
     def __str__(self):
         return f'{self.first_name} {self.last_name}'
@@ -118,6 +103,23 @@ class User(AbstractBaseUser, PermissionsMixin):
     def full_name(self):
         return f'{self.first_name} {self.last_name}'
 
-    @property
-    def role_color(self):
-        return self.ROLE_COLORS.get(self.role, 'secondary')
+    def get_allowed_sites(self):
+        """
+        Returns a Site queryset representing every branch this user may access.
+
+        Rules:
+          is_superuser or site_scope='all'      -> all sites
+          site_scope='specific'                  -> allowed_sites M2M
+          site_scope='own' (default)             -> own_site FK, falling back to site FK
+          no site at all (own scope)             -> empty queryset
+        """
+        from locations.models import Site
+        if self.is_superuser or self.site_scope == self.SiteScope.ALL:
+            return Site.objects.all()
+        if self.site_scope == self.SiteScope.SPECIFIC:
+            return self.allowed_sites.all()
+        # OWN — prefer own_site, fall back to legacy site FK
+        anchor = self.own_site_id or self.site_id
+        if anchor:
+            return Site.objects.filter(pk=anchor)
+        return Site.objects.none()

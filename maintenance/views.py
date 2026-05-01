@@ -19,7 +19,8 @@ from .forms import MaintenanceForm, CloseMaintenanceForm
 def maintenance_index(request):
     return render(request, 'maintenance/index.html', {
         'devices': Device.objects.filter(
-            deleted_date__isnull=True
+            deleted_date__isnull=True,
+            site__in=request.user.get_allowed_sites(),
         ).select_related('category', 'brand').order_by('serial_number'),
         'type_choices': MaintenanceRecord.MaintenanceType.choices,
     })
@@ -33,7 +34,9 @@ def maintenance_data(request):
     type_f   = request.GET.get('type', '').strip()
     show_cost = has_permission(request.user, Perms.MAINTENANCE_VIEW_COST)
 
-    qs = MaintenanceRecord.objects.select_related(
+    qs = MaintenanceRecord.objects.filter(
+        device__site__in=request.user.get_allowed_sites(),
+    ).select_related(
         'device', 'device__category', 'device__brand'
     )
     if search:
@@ -83,7 +86,10 @@ def maintenance_detail(request, pk):
     if not has_permission(request.user, Perms.MAINTENANCE_VIEW):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
     show_cost = has_permission(request.user, Perms.MAINTENANCE_VIEW_COST)
-    rec = get_object_or_404(MaintenanceRecord.objects.select_related('device'), pk=pk)
+    rec = get_object_or_404(
+        MaintenanceRecord.objects.filter(device__site__in=request.user.get_allowed_sites()).select_related('device'),
+        pk=pk,
+    )
     item = {
         'id': rec.pk,
         'device_id': rec.device_id, 'device_serial': rec.device.serial_number,

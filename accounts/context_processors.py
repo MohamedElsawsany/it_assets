@@ -4,8 +4,13 @@ accounts/context_processors.py
 Injects an `rbac` dict into every template so you can gate UI elements
 without any extra view logic.
 
-Template usage
-──────────────
+All checks now delegate to Django's per-user permission system via
+has_permission() → user.has_perm().  The dict keys are unchanged so
+existing templates continue to work while you migrate them incrementally
+to {% if perms.app.codename %} checks.
+
+Template usage (legacy style — still works)
+────────────────────────────────────────────
   {% if rbac.devices_create %}
       <a href="{% url 'device-add' %}">Add device</a>
   {% endif %}
@@ -14,11 +19,16 @@ Template usage
       <td>{{ record.cost }}</td>
   {% endif %}
 
-  {% if rbac.sees_all_sites %}
-      <select name="site">...</select>   {# branch selector shown only to global roles #}
+  {% if rbac.site_scope == 'all' %}
+      <select name="site">...</select>
   {% endif %}
 
   <span class="badge bg-{{ rbac.role_color }}">{{ rbac.role_display }}</span>
+
+New style (preferred for new/migrated templates)
+─────────────────────────────────────────────────
+  {% if perms.inventory.view_device %} ... {% endif %}
+  {% if perms.inventory.add_device %}  ... {% endif %}
 
 Register in settings.py:
     TEMPLATES[0]['OPTIONS']['context_processors'] += [
@@ -41,7 +51,6 @@ def user_permissions(request):
         'users_create':         hp(Perms.USERS_CREATE),
         'users_edit':           hp(Perms.USERS_EDIT),
         'users_delete':         hp(Perms.USERS_DELETE),
-        'users_assign_role':    hp(Perms.USERS_ASSIGN_ROLE),
         'users_reset_password': hp(Perms.USERS_RESET_PASSWORD),
         'users_activate':       hp(Perms.USERS_ACTIVATE),
 
@@ -107,15 +116,10 @@ def user_permissions(request):
         'maintenance_export':    hp(Perms.MAINTENANCE_EXPORT),
 
         # ── Site scope ────────────────────────────────────────────────────────
-        # True  → user can see all branches (show branch selector in UI)
-        # False → user is locked to their own branch only
+        # sees_all_sites kept for any templates that haven't migrated yet.
+        # Prefer checking rbac.site_scope == 'all' in new code.
         'sees_all_sites': sees_all_sites(request.user),
+        'site_scope':     getattr(request.user, 'site_scope', 'own'),
     }
-
-    # ── Role metadata ─────────────────────────────────────────────────────────
-    rbac['role']         = getattr(request.user, 'role', 'viewer')
-    rbac['role_display'] = (request.user.get_role_display()
-                            if hasattr(request.user, 'get_role_display') else '')
-    rbac['role_color']   = getattr(request.user, 'role_color', 'secondary')
 
     return {'rbac': rbac}

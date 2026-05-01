@@ -176,10 +176,12 @@ class Device(models.Model):
     class Meta:
         db_table = 'Devices'
         permissions = [
-            ('retire_device',      'Can mark a device as Retired'),
-            ('flag_device',        'Can change the status flag of a device'),
-            ('toggle_maintenance', 'Can toggle maintenance mode on a device'),
-            ('view_device_specs',  'Can view detailed hardware specifications'),
+            ('retire_device',       'Can mark a device as Retired'),
+            ('flag_device',         'Can change the status flag of a device'),
+            ('toggle_maintenance',  'Can toggle maintenance mode on a device'),
+            ('view_device_specs',   'Can view detailed hardware specifications'),
+            ('export_device',       'Can export device data to a file'),
+            ('view_history_device', 'Can view the assignment history of a device'),
         ]
 
     def __str__(self):
@@ -256,6 +258,9 @@ class Accessory(models.Model):
 
     class Meta:
         db_table = 'Accessories'
+        permissions = [
+            ('link_device_accessory', 'Can link or unlink an accessory to a device'),
+        ]
 
     def __str__(self):
         return f'{self.accessory_type.name} — {self.serial_number or "No S/N"}'

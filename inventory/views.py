@@ -171,7 +171,7 @@ def lookup_delete(request, lookup_type, pk):
 def devices_index(request):
     show_specs = has_permission(request.user, Perms.DEVICES_VIEW_SPECS)
     return render(request, 'inventory/devices.html', {
-        'sites':      Site.objects.filter(deleted_date__isnull=True).order_by('name'),
+        'sites':      request.user.get_allowed_sites().filter(deleted_date__isnull=True).order_by('name'),
         'categories': DeviceCategory.objects.filter(deleted_date__isnull=True).order_by('name'),
         'brands':     Brand.objects.filter(deleted_date__isnull=True).order_by('name'),
         'models':     DeviceModel.objects.filter(deleted_date__isnull=True).select_related('brand').order_by('name'),
@@ -192,9 +192,10 @@ def devices_data(request):
     flag_id  = request.GET.get('flag', '').strip()
     show_specs = has_permission(request.user, Perms.DEVICES_VIEW_SPECS)
 
-    qs = Device.objects.filter(deleted_date__isnull=True).select_related(
-        'category', 'brand', 'device_model', 'site'
-    )
+    qs = Device.objects.filter(
+        deleted_date__isnull=True,
+        site__in=request.user.get_allowed_sites(),
+    ).select_related('category', 'brand', 'device_model', 'site')
     if search:
         qs = qs.filter(
             Q(serial_number__icontains=search) |
@@ -244,8 +245,10 @@ def device_detail(request, pk):
     if not has_permission(request.user, Perms.DEVICES_VIEW):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
     d = get_object_or_404(
-        Device.objects.select_related('category', 'brand', 'device_model', 'site',
-                                      'cpu', 'gpu', 'operating_system', 'created_by'),
+        Device.objects.filter(
+            site__in=request.user.get_allowed_sites(),
+        ).select_related('category', 'brand', 'device_model', 'site',
+                         'cpu', 'gpu', 'operating_system', 'created_by'),
         pk=pk, deleted_date__isnull=True,
     )
     show_specs = has_permission(request.user, Perms.DEVICES_VIEW_SPECS)
@@ -378,12 +381,13 @@ def device_toggle_maintenance(request, pk):
 @login_required
 @permission_required(Perms.ACCESSORIES_VIEW)
 def accessories_index(request):
+    allowed = request.user.get_allowed_sites()
     return render(request, 'inventory/accessories.html', {
-        'types':       AccessoryType.objects.filter(deleted_date__isnull=True).order_by('name'),
-        'brands':      Brand.objects.filter(deleted_date__isnull=True).order_by('name'),
-        'sites':       Site.objects.filter(deleted_date__isnull=True).order_by('name'),
+        'types':        AccessoryType.objects.filter(deleted_date__isnull=True).order_by('name'),
+        'brands':       Brand.objects.filter(deleted_date__isnull=True).order_by('name'),
+        'sites':        allowed.filter(deleted_date__isnull=True).order_by('name'),
         'flag_choices': DeviceFlag.choices,
-        'devices':     Device.objects.filter(deleted_date__isnull=True).order_by('serial_number'),
+        'devices':      Device.objects.filter(deleted_date__isnull=True, site__in=allowed).order_by('serial_number'),
     })
 
 
@@ -394,9 +398,10 @@ def accessories_data(request):
     type_id = request.GET.get('type', '').strip()
     site_id = request.GET.get('site', '').strip()
     flag_id = request.GET.get('flag', '').strip()
-    qs = Accessory.objects.filter(deleted_date__isnull=True).select_related(
-        'accessory_type', 'brand', 'site'
-    )
+    qs = Accessory.objects.filter(
+        deleted_date__isnull=True,
+        site__in=request.user.get_allowed_sites(),
+    ).select_related('accessory_type', 'brand', 'site')
     if search:
         qs = qs.filter(
             Q(serial_number__icontains=search) |
@@ -431,7 +436,9 @@ def accessory_detail(request, pk):
     if not has_permission(request.user, Perms.ACCESSORIES_VIEW):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
     a = get_object_or_404(
-        Accessory.objects.select_related('accessory_type', 'brand', 'site', 'created_by', 'updated_by'),
+        Accessory.objects.filter(
+            site__in=request.user.get_allowed_sites(),
+        ).select_related('accessory_type', 'brand', 'site', 'created_by', 'updated_by'),
         pk=pk, deleted_date__isnull=True,
     )
     return JsonResponse({'success': True, 'item': {

@@ -1,13 +1,16 @@
 """
 accounts/permissions.py
 ───────────────────────
-42 permissions across 8 roles covering every model and action in the system.
-Site-scoped access control via ROLE_SITE_SCOPE + get_site_filter().
+Thin bridge between the app's permission constants and Django's built-in
+per-user permission system.
+
+Every Perms constant is now a real Django permission codename in the form
+'app_label.codename'.  has_permission() delegates to user.has_perm(), so
+Django handles superusers, group membership, and per-user grants automatically.
 
 Quick reference
 ───────────────
   from accounts.permissions import has_permission, permission_required, Perms
-  from accounts.permissions import get_site_filter, sees_all_sites
 
   # guard a view
   @permission_required(Perms.DEVICES_CREATE)
@@ -18,14 +21,16 @@ Quick reference
       ...
 
   # site-scoped queryset — works on any model with a direct `site` FK
-  devices = Device.objects.filter(**get_site_filter(request.user))
+  devices = Device.objects.filter(site__in=request.user.get_allowed_sites())
 
   # site-scoped queryset — model with indirect site (via related field)
-  assignments = DeviceAssignment.objects.filter(**get_site_filter(request.user, prefix='device__'))
+  assignments = DeviceAssignment.objects.filter(
+      device__site__in=request.user.get_allowed_sites()
+  )
 
   # templates — injected automatically by context_processors.py
   {% if rbac.devices_create %} ... {% endif %}
-  {% if rbac.sees_all_sites %} ... {% endif %}
+  {% if rbac.site_scope == 'all' %} ... {% endif %}
 """
 
 from functools import wraps
@@ -36,84 +41,86 @@ from django.shortcuts import redirect
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# PERMISSION CONSTANTS
+# PERMISSION CONSTANTS  (Django codenames: 'app_label.codename')
 # ══════════════════════════════════════════════════════════════════════════════
 
 class Perms:
 
-    # ── Users / Accounts (7) ──────────────────────────────────────────────────
-    USERS_VIEW               = 'users.view'
-    USERS_CREATE             = 'users.create'
-    USERS_EDIT               = 'users.edit'
-    USERS_DELETE             = 'users.delete'
-    USERS_ASSIGN_ROLE        = 'users.assign_role'
-    USERS_RESET_PASSWORD     = 'users.reset_password'
-    USERS_ACTIVATE           = 'users.activate'
+    # ── Users / Accounts ──────────────────────────────────────────────────────
+    USERS_VIEW           = 'accounts.view_user'
+    USERS_CREATE         = 'accounts.add_user'
+    USERS_EDIT           = 'accounts.change_user'
+    USERS_DELETE         = 'accounts.delete_user'
+    USERS_RESET_PASSWORD = 'accounts.reset_password_user'
+    USERS_ACTIVATE       = 'accounts.activate_user'
 
-    # ── Locations — Governorates + Sites (4) ─────────────────────────────────
-    LOCATIONS_VIEW           = 'locations.view'
-    LOCATIONS_CREATE         = 'locations.create'
-    LOCATIONS_EDIT           = 'locations.edit'
-    LOCATIONS_DELETE         = 'locations.delete'
+    # ── Locations — Sites + Governorates ─────────────────────────────────────
+    # A single check on the Site model gates both Site and Governorate views.
+    LOCATIONS_VIEW           = 'locations.view_site'
+    LOCATIONS_CREATE         = 'locations.add_site'
+    LOCATIONS_EDIT           = 'locations.change_site'
+    LOCATIONS_DELETE         = 'locations.delete_site'
 
-    # ── Employees + Departments (5) ───────────────────────────────────────────
-    EMPLOYEES_VIEW           = 'employees.view'
-    EMPLOYEES_CREATE         = 'employees.create'
-    EMPLOYEES_EDIT           = 'employees.edit'
-    EMPLOYEES_DELETE         = 'employees.delete'
-    EMPLOYEES_TRANSFER       = 'employees.transfer'
+    # ── Employees + Departments ───────────────────────────────────────────────
+    EMPLOYEES_VIEW           = 'employees.view_employee'
+    EMPLOYEES_CREATE         = 'employees.add_employee'
+    EMPLOYEES_EDIT           = 'employees.change_employee'
+    EMPLOYEES_DELETE         = 'employees.delete_employee'
+    EMPLOYEES_TRANSFER       = 'employees.transfer_employee'
 
-    # ── Lookup tables (4) ─────────────────────────────────────────────────────
-    LOOKUPS_VIEW             = 'lookups.view'
-    LOOKUPS_CREATE           = 'lookups.create'
-    LOOKUPS_EDIT             = 'lookups.edit'
-    LOOKUPS_DELETE           = 'lookups.delete'
+    # ── Lookup tables ─────────────────────────────────────────────────────────
+    # DeviceCategory is the representative model; one check gates all lookups
+    # (Brand, DeviceModel, CPU, GPU, OperatingSystem, AccessoryType).
+    LOOKUPS_VIEW             = 'inventory.view_devicecategory'
+    LOOKUPS_CREATE           = 'inventory.add_devicecategory'
+    LOOKUPS_EDIT             = 'inventory.change_devicecategory'
+    LOOKUPS_DELETE           = 'inventory.delete_devicecategory'
 
-    # ── Devices (10) ──────────────────────────────────────────────────────────
-    DEVICES_VIEW             = 'devices.view'
-    DEVICES_CREATE           = 'devices.create'
-    DEVICES_EDIT             = 'devices.edit'
-    DEVICES_DELETE           = 'devices.delete'
-    DEVICES_VIEW_SPECS       = 'devices.view_specs'
-    DEVICES_RETIRE           = 'devices.retire'
-    DEVICES_CHANGE_FLAG      = 'devices.change_flag'
-    DEVICES_TOGGLE_MAINTENANCE = 'devices.toggle_maintenance'
-    DEVICES_EXPORT           = 'devices.export'
-    DEVICES_VIEW_HISTORY     = 'devices.view_history'
+    # ── Devices ───────────────────────────────────────────────────────────────
+    DEVICES_VIEW               = 'inventory.view_device'
+    DEVICES_CREATE             = 'inventory.add_device'
+    DEVICES_EDIT               = 'inventory.change_device'
+    DEVICES_DELETE             = 'inventory.delete_device'
+    DEVICES_VIEW_SPECS         = 'inventory.view_device_specs'
+    DEVICES_RETIRE             = 'inventory.retire_device'
+    DEVICES_CHANGE_FLAG        = 'inventory.flag_device'
+    DEVICES_TOGGLE_MAINTENANCE = 'inventory.toggle_maintenance'
+    DEVICES_EXPORT             = 'inventory.export_device'
+    DEVICES_VIEW_HISTORY       = 'inventory.view_history_device'
 
-    # ── Accessories (5) ───────────────────────────────────────────────────────
-    ACCESSORIES_VIEW         = 'accessories.view'
-    ACCESSORIES_CREATE       = 'accessories.create'
-    ACCESSORIES_EDIT         = 'accessories.edit'
-    ACCESSORIES_DELETE       = 'accessories.delete'
-    ACCESSORIES_LINK_DEVICE  = 'accessories.link_device'
+    # ── Accessories ───────────────────────────────────────────────────────────
+    ACCESSORIES_VIEW         = 'inventory.view_accessory'
+    ACCESSORIES_CREATE       = 'inventory.add_accessory'
+    ACCESSORIES_EDIT         = 'inventory.change_accessory'
+    ACCESSORIES_DELETE       = 'inventory.delete_accessory'
+    ACCESSORIES_LINK_DEVICE  = 'inventory.link_device_accessory'
 
-    # ── Assignments (6) ───────────────────────────────────────────────────────
-    ASSIGNMENTS_VIEW         = 'assignments.view'
-    ASSIGNMENTS_CREATE       = 'assignments.create'
-    ASSIGNMENTS_EDIT         = 'assignments.edit'
-    ASSIGNMENTS_DELETE       = 'assignments.delete'
-    ASSIGNMENTS_RETURN       = 'assignments.return'
-    ASSIGNMENTS_EXPORT       = 'assignments.export'
+    # ── Assignments ───────────────────────────────────────────────────────────
+    ASSIGNMENTS_VIEW         = 'assignments.view_deviceassignment'
+    ASSIGNMENTS_CREATE       = 'assignments.add_deviceassignment'
+    ASSIGNMENTS_EDIT         = 'assignments.change_deviceassignment'
+    ASSIGNMENTS_DELETE       = 'assignments.delete_deviceassignment'
+    ASSIGNMENTS_RETURN       = 'assignments.return_device'
+    ASSIGNMENTS_EXPORT       = 'assignments.generate_report'
 
-    # ── Transfers (4) ─────────────────────────────────────────────────────────
-    TRANSFERS_VIEW           = 'transfers.view'
-    TRANSFERS_CREATE         = 'transfers.create'
-    TRANSFERS_APPROVE        = 'transfers.approve'
-    TRANSFERS_DELETE         = 'transfers.delete'
+    # ── Transfers ─────────────────────────────────────────────────────────────
+    TRANSFERS_VIEW           = 'assignments.view_devicetransfer'
+    TRANSFERS_CREATE         = 'assignments.add_devicetransfer'
+    TRANSFERS_APPROVE        = 'assignments.approve_transfer'
+    TRANSFERS_DELETE         = 'assignments.delete_devicetransfer'
 
-    # ── Maintenance (7) ───────────────────────────────────────────────────────
-    MAINTENANCE_VIEW         = 'maintenance.view'
-    MAINTENANCE_CREATE       = 'maintenance.create'
-    MAINTENANCE_EDIT         = 'maintenance.edit'
-    MAINTENANCE_DELETE       = 'maintenance.delete'
-    MAINTENANCE_CLOSE        = 'maintenance.close'
+    # ── Maintenance ───────────────────────────────────────────────────────────
+    MAINTENANCE_VIEW         = 'maintenance.view_maintenancerecord'
+    MAINTENANCE_CREATE       = 'maintenance.add_maintenancerecord'
+    MAINTENANCE_EDIT         = 'maintenance.change_maintenancerecord'
+    MAINTENANCE_DELETE       = 'maintenance.delete_maintenancerecord'
+    MAINTENANCE_CLOSE        = 'maintenance.close_maintenancerecord'
     MAINTENANCE_VIEW_COST    = 'maintenance.view_cost'
-    MAINTENANCE_EXPORT       = 'maintenance.export'
+    MAINTENANCE_EXPORT       = 'maintenance.export_maintenancerecord'
 
     ALL = [
         USERS_VIEW, USERS_CREATE, USERS_EDIT, USERS_DELETE,
-        USERS_ASSIGN_ROLE, USERS_RESET_PASSWORD, USERS_ACTIVATE,
+        USERS_RESET_PASSWORD, USERS_ACTIVATE,
 
         LOCATIONS_VIEW, LOCATIONS_CREATE, LOCATIONS_EDIT, LOCATIONS_DELETE,
 
@@ -141,289 +148,68 @@ class Perms:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# ROLE → PERMISSION MAPPING
+# CORE HELPERS
 # ══════════════════════════════════════════════════════════════════════════════
 
-P = Perms
+def has_permission(user, perm):
+    """
+    Return True if the user holds the given Django permission codename.
 
-ROLE_PERMISSIONS = {
-
-    # ── 1. Super Admin ────────────────────────────────────────────────────────
-    'super_admin': None,
-
-    # ── 2. IT Admin ───────────────────────────────────────────────────────────
-    'it_admin': {
-        P.USERS_VIEW, P.USERS_CREATE, P.USERS_EDIT,
-        P.USERS_DELETE, P.USERS_RESET_PASSWORD, P.USERS_ACTIVATE,
-
-        P.LOCATIONS_VIEW, P.LOCATIONS_CREATE, P.LOCATIONS_EDIT, P.LOCATIONS_DELETE,
-
-        P.EMPLOYEES_VIEW, P.EMPLOYEES_CREATE, P.EMPLOYEES_EDIT,
-        P.EMPLOYEES_DELETE, P.EMPLOYEES_TRANSFER,
-
-        P.LOOKUPS_VIEW, P.LOOKUPS_CREATE, P.LOOKUPS_EDIT, P.LOOKUPS_DELETE,
-
-        P.DEVICES_VIEW, P.DEVICES_CREATE, P.DEVICES_EDIT, P.DEVICES_DELETE,
-        P.DEVICES_VIEW_SPECS, P.DEVICES_RETIRE, P.DEVICES_CHANGE_FLAG,
-        P.DEVICES_TOGGLE_MAINTENANCE, P.DEVICES_EXPORT, P.DEVICES_VIEW_HISTORY,
-
-        P.ACCESSORIES_VIEW, P.ACCESSORIES_CREATE, P.ACCESSORIES_EDIT,
-        P.ACCESSORIES_DELETE, P.ACCESSORIES_LINK_DEVICE,
-
-        P.ASSIGNMENTS_VIEW, P.ASSIGNMENTS_CREATE, P.ASSIGNMENTS_EDIT,
-        P.ASSIGNMENTS_DELETE, P.ASSIGNMENTS_RETURN, P.ASSIGNMENTS_EXPORT,
-
-        P.TRANSFERS_VIEW, P.TRANSFERS_CREATE,
-        P.TRANSFERS_APPROVE, P.TRANSFERS_DELETE,
-
-        P.MAINTENANCE_VIEW, P.MAINTENANCE_CREATE, P.MAINTENANCE_EDIT,
-        P.MAINTENANCE_DELETE, P.MAINTENANCE_CLOSE,
-        P.MAINTENANCE_VIEW_COST, P.MAINTENANCE_EXPORT,
-    },
-
-    # ── 3. IT Supervisor ──────────────────────────────────────────────────────
-    'it_supervisor': {
-        P.USERS_VIEW,
-
-        P.LOCATIONS_VIEW,
-
-        P.EMPLOYEES_VIEW, P.EMPLOYEES_TRANSFER,
-
-        P.LOOKUPS_VIEW,
-
-        P.DEVICES_VIEW, P.DEVICES_VIEW_SPECS,
-        P.DEVICES_CHANGE_FLAG, P.DEVICES_TOGGLE_MAINTENANCE,
-        P.DEVICES_EXPORT, P.DEVICES_VIEW_HISTORY,
-
-        P.ACCESSORIES_VIEW,
-
-        P.ASSIGNMENTS_VIEW, P.ASSIGNMENTS_CREATE, P.ASSIGNMENTS_EDIT,
-        P.ASSIGNMENTS_RETURN, P.ASSIGNMENTS_EXPORT,
-
-        P.TRANSFERS_VIEW, P.TRANSFERS_APPROVE,
-
-        P.MAINTENANCE_VIEW, P.MAINTENANCE_EDIT,
-        P.MAINTENANCE_CLOSE, P.MAINTENANCE_VIEW_COST, P.MAINTENANCE_EXPORT,
-    },
-
-    # ── 4. Inventory Manager ──────────────────────────────────────────────────
-    'inventory_manager': {
-        P.LOCATIONS_VIEW,
-
-        P.EMPLOYEES_VIEW,
-
-        P.LOOKUPS_VIEW, P.LOOKUPS_CREATE, P.LOOKUPS_EDIT, P.LOOKUPS_DELETE,
-
-        P.DEVICES_VIEW, P.DEVICES_CREATE, P.DEVICES_EDIT, P.DEVICES_DELETE,
-        P.DEVICES_VIEW_SPECS, P.DEVICES_RETIRE, P.DEVICES_CHANGE_FLAG,
-        P.DEVICES_EXPORT, P.DEVICES_VIEW_HISTORY,
-
-        P.ACCESSORIES_VIEW, P.ACCESSORIES_CREATE, P.ACCESSORIES_EDIT,
-        P.ACCESSORIES_DELETE, P.ACCESSORIES_LINK_DEVICE,
-
-        P.ASSIGNMENTS_VIEW, P.ASSIGNMENTS_EXPORT,
-
-        P.TRANSFERS_VIEW,
-
-        P.MAINTENANCE_VIEW,
-    },
-
-    # ── 5. Site Manager ───────────────────────────────────────────────────────
-    'site_manager': {
-        P.LOCATIONS_VIEW,
-
-        P.EMPLOYEES_VIEW, P.EMPLOYEES_CREATE,
-        P.EMPLOYEES_EDIT, P.EMPLOYEES_TRANSFER,
-
-        P.LOOKUPS_VIEW,
-
-        P.DEVICES_VIEW, P.DEVICES_VIEW_SPECS, P.DEVICES_VIEW_HISTORY,
-
-        P.ACCESSORIES_VIEW, P.ACCESSORIES_LINK_DEVICE,
-
-        P.ASSIGNMENTS_VIEW, P.ASSIGNMENTS_CREATE, P.ASSIGNMENTS_EDIT,
-        P.ASSIGNMENTS_RETURN, P.ASSIGNMENTS_EXPORT,
-
-        P.TRANSFERS_VIEW, P.TRANSFERS_CREATE,
-
-        P.MAINTENANCE_VIEW,
-    },
-
-    # ── 6. Maintenance Technician ─────────────────────────────────────────────
-    'maintenance_tech': {
-        P.LOCATIONS_VIEW,
-
-        P.LOOKUPS_VIEW,
-
-        P.DEVICES_VIEW, P.DEVICES_VIEW_SPECS, P.DEVICES_TOGGLE_MAINTENANCE,
-
-        P.ACCESSORIES_VIEW,
-
-        P.ASSIGNMENTS_VIEW,
-
-        P.TRANSFERS_VIEW,
-
-        P.MAINTENANCE_VIEW, P.MAINTENANCE_CREATE, P.MAINTENANCE_EDIT,
-        P.MAINTENANCE_CLOSE, P.MAINTENANCE_EXPORT,
-    },
-
-    # ── 7. Auditor ────────────────────────────────────────────────────────────
-    'auditor': {
-        P.USERS_VIEW,
-
-        P.LOCATIONS_VIEW,
-
-        P.EMPLOYEES_VIEW,
-
-        P.LOOKUPS_VIEW,
-
-        P.DEVICES_VIEW, P.DEVICES_VIEW_SPECS,
-        P.DEVICES_EXPORT, P.DEVICES_VIEW_HISTORY,
-
-        P.ACCESSORIES_VIEW,
-
-        P.ASSIGNMENTS_VIEW, P.ASSIGNMENTS_EXPORT,
-
-        P.TRANSFERS_VIEW,
-
-        P.MAINTENANCE_VIEW, P.MAINTENANCE_VIEW_COST, P.MAINTENANCE_EXPORT,
-    },
-
-    # ── 8. Viewer ─────────────────────────────────────────────────────────────
-    'viewer': {
-        P.LOCATIONS_VIEW,
-        P.EMPLOYEES_VIEW,
-        P.LOOKUPS_VIEW,
-        P.DEVICES_VIEW,
-        P.ACCESSORIES_VIEW,
-        P.ASSIGNMENTS_VIEW,
-        P.TRANSFERS_VIEW,
-        P.MAINTENANCE_VIEW,
-    },
-}
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SITE SCOPE
-# ══════════════════════════════════════════════════════════════════════════════
-#
-# 'all'  → user sees records from every branch
-# 'own'  → user sees records from their assigned site only
-#
-# Special cases (always override the role scope):
-#   - user.site is NULL  → sees all branches regardless of role
-#   - unauthenticated    → sees nothing
-#
-# To change a role's scope, just swap 'own' ↔ 'all' below.
-# ─────────────────────────────────────────────────────────────────────────────
-
-ROLE_SITE_SCOPE = {
-    'super_admin':       'all',
-    'it_admin':          'all',
-    'it_supervisor':     'all',
-    'auditor':           'all',
-    'inventory_manager': 'all',
-    'site_manager':      'own',
-    'maintenance_tech':  'own',
-    'viewer':            'own',
-}
+    Delegates entirely to user.has_perm() — Django handles:
+      • is_superuser → always True
+      • user.user_permissions (per-user grants)
+      • user.groups (group-based grants)
+    """
+    if not user or not user.is_authenticated:
+        return False
+    return user.has_perm(perm)
 
 
 def get_site_filter(user, prefix=''):
     """
-    Returns a dict to unpack into a queryset .filter() call.
+    Returns a dict to unpack into a queryset .filter() call,
+    scoped to the sites the user is allowed to see.
+
+    Kept for backward compatibility with views not yet migrated to
+    .filter(site__in=request.user.get_allowed_sites()).
 
     Parameters
     ──────────
     user    : the request.user
-    prefix  : dot-path to the `site` field when it's not direct on the model.
-              e.g. 'device__'  →  filters on  device__site=...
-                   'employee__' →  filters on  employee__site=...
+    prefix  : relationship path to the `site` FK when it's not direct.
+              e.g. 'device__'  → filters on  device__site__in=...
+                   'employee__' → filters on  employee__site__in=...
 
     Examples
     ────────
-    # Model has a direct `site` FK  (Device, Accessory, Employee …)
     Device.objects.filter(**get_site_filter(request.user))
-
-    # Model reaches site via a related field  (DeviceAssignment, MaintenanceRecord …)
     DeviceAssignment.objects.filter(**get_site_filter(request.user, prefix='device__'))
-    MaintenanceRecord.objects.filter(**get_site_filter(request.user, prefix='device__'))
-
-    Return values
-    ─────────────
-    {}                          → no filter applied  (sees all)
-    {'site': <Site obj>}        → filtered to user's site
-    {'site_id': None}           → safety fallback for unauthenticated users
-                                  (returns empty queryset)
     """
     if not user or not user.is_authenticated:
-        # Safety: unauthenticated callers should never reach a view,
-        # but if they do, return nothing.
         return {f'{prefix}site_id': None}
 
-    # NULL site → global access regardless of role
-    if not user.site_id:
+    allowed = user.get_allowed_sites()
+
+    # get_allowed_sites() returns Site.objects.all() for global users — no filter needed.
+    # We detect this by checking if it's an "all sites" scope.
+    from accounts.models import User as _User
+    if user.is_superuser or getattr(user, 'site_scope', _User.SiteScope.OWN) == _User.SiteScope.ALL:
         return {}
 
-    role  = getattr(user, 'role', 'viewer')
-    scope = ROLE_SITE_SCOPE.get(role, 'own')
-
-    if scope == 'all':
-        return {}
-
-    return {f'{prefix}site': user.site}
+    return {f'{prefix}site__in': allowed}
 
 
 def sees_all_sites(user):
     """
     Returns True if the user can see records from all branches.
-
-    Use this in views / templates to decide whether to show a
-    branch selector / filter dropdown.
-
-    Template usage (via context_processors):
-        {% if rbac.sees_all_sites %}
-            <select name="site">...</select>
-        {% endif %}
-    """
-    if not user or not user.is_authenticated:
-        return False
-    if not user.site_id:
-        return True
-    role  = getattr(user, 'role', 'viewer')
-    scope = ROLE_SITE_SCOPE.get(role, 'own')
-    return scope == 'all'
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# CORE HELPER
-# ══════════════════════════════════════════════════════════════════════════════
-
-def has_permission(user, perm):
-    """
-    Return True if the user holds the given permission string.
-
-    Logic
-    ─────
-    1. Unauthenticated → False
-    2. Django superuser flag → True  (emergency hatch)
-    3. Role == 'super_admin' → True
-    4. ROLE_PERMISSIONS[role] is None → True  (None = full access sentinel)
-    5. perm in role's permission set → True / False
+    Used in the context processor to populate rbac.sees_all_sites.
     """
     if not user or not user.is_authenticated:
         return False
     if user.is_superuser:
         return True
-    role = getattr(user, 'role', None)
-    if not role:
-        return False
-    if role == 'super_admin':
-        return True
-    role_perms = ROLE_PERMISSIONS.get(role)
-    if role_perms is None:
-        return True
-    return perm in role_perms
+    from accounts.models import User as _User
+    return getattr(user, 'site_scope', _User.SiteScope.OWN) == _User.SiteScope.ALL
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -432,7 +218,7 @@ def has_permission(user, perm):
 
 def permission_required(perm):
     """
-    Gate a view behind a single Perms constant.
+    Gate a view behind a single Perms constant (Django codename).
 
     AJAX requests (X-Requested-With: XMLHttpRequest) receive a 403 JSON.
     Regular requests are redirected to 'dashboard' with an error message.

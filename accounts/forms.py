@@ -24,24 +24,22 @@ class UserCreateForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'email', 'role', 'site', 'is_active']
+        fields = ['first_name', 'last_name', 'email', 'site', 'is_active']
         widgets = {
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control'}),
-            'role': forms.Select(attrs={'class': 'form-select'}),
+            'last_name':  forms.TextInput(attrs={'class': 'form-control'}),
+            'email':      forms.EmailInput(attrs={'class': 'form-control'}),
         }
         labels = {
             'first_name': _('First Name'),
-            'last_name': _('Last Name'),
-            'email': _('Email Address'),
-            'role': _('Role'),
-            'is_active': _('Active'),
+            'last_name':  _('Last Name'),
+            'email':      _('Email Address'),
+            'is_active':  _('Active'),
         }
 
     def clean(self):
         cleaned_data = super().clean()
-        password = cleaned_data.get('password')
+        password         = cleaned_data.get('password')
         confirm_password = cleaned_data.get('confirm_password')
         if password and confirm_password and password != confirm_password:
             self.add_error('confirm_password', _("Passwords don't match."))
@@ -66,19 +64,17 @@ class UserEditForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'email', 'role', 'site', 'is_active']
+        fields = ['first_name', 'last_name', 'email', 'site', 'is_active']
         widgets = {
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control'}),
-            'role': forms.Select(attrs={'class': 'form-select'}),
+            'last_name':  forms.TextInput(attrs={'class': 'form-control'}),
+            'email':      forms.EmailInput(attrs={'class': 'form-control'}),
         }
         labels = {
             'first_name': _('First Name'),
-            'last_name': _('Last Name'),
-            'email': _('Email Address'),
-            'role': _('Role'),
-            'is_active': _('Active'),
+            'last_name':  _('Last Name'),
+            'email':      _('Email Address'),
+            'is_active':  _('Active'),
         }
 
 
@@ -94,8 +90,8 @@ class ResetPasswordForm(forms.Form):
     )
 
     def clean(self):
-        cleaned_data = super().clean()
-        new_password = cleaned_data.get('new_password')
+        cleaned_data     = super().clean()
+        new_password     = cleaned_data.get('new_password')
         confirm_password = cleaned_data.get('confirm_password')
         if new_password and confirm_password and new_password != confirm_password:
             self.add_error('confirm_password', _("Passwords don't match."))

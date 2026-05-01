@@ -65,9 +65,7 @@
         </div>
         <div class="d-none d-md-block text-start" style="line-height:1.2;">
           <div class="user-name">{{ request.user.full_name }}</div>
-          <div class="user-role" style="margin-top:1px;">
-            <span class="badge bg-{{ rbac.role_color }} badge-sm">{{ rbac.role_display }}</span>
-          </div>
+          <div class="user-role text-muted" style="margin-top:1px;font-size:.72rem;">{{ request.user.email }}</div>
         </div>
         <i class="bi bi-chevron-down d-none d-md-inline" style="font-size:.65rem;color:var(--text-muted);"></i>
       </button>

@@ -10,19 +10,21 @@ from maintenance.models import MaintenanceRecord
 
 @login_required
 def dashboard(request):
+    allowed = request.user.get_allowed_sites()
+
     stats = {
         'total_users':      User.objects.filter(deleted_date__isnull=True).count(),
         'active_users':     User.objects.filter(is_active=True, deleted_date__isnull=True).count(),
-        'total_devices':    Device.objects.filter(deleted_date__isnull=True).count(),
-        'assigned_devices': DeviceAssignment.objects.filter(returned_date__isnull=True).count(),
-        'open_maintenance': MaintenanceRecord.objects.filter(returned_date__isnull=True).count(),
-        'total_employees':  Employee.objects.filter(deleted_date__isnull=True).count(),
+        'total_devices':    Device.objects.filter(deleted_date__isnull=True, site__in=allowed).count(),
+        'assigned_devices': DeviceAssignment.objects.filter(returned_date__isnull=True, device__site__in=allowed).count(),
+        'open_maintenance': MaintenanceRecord.objects.filter(returned_date__isnull=True, device__site__in=allowed).count(),
+        'total_employees':  Employee.objects.filter(deleted_date__isnull=True, site__in=allowed).count(),
     }
 
     # Device flag breakdown
     flag_counts_qs = (
         Device.objects
-        .filter(deleted_date__isnull=True)
+        .filter(deleted_date__isnull=True, site__in=allowed)
         .values('flag')
         .annotate(count=Count('id'))
     )
@@ -50,7 +52,7 @@ def dashboard(request):
     # Recent active assignments
     recent_assignments = (
         DeviceAssignment.objects
-        .filter(returned_date__isnull=True)
+        .filter(returned_date__isnull=True, device__site__in=allowed)
         .select_related('device', 'device__device_model', 'device__category', 'employee')
         .order_by('-assigned_date')[:8]
     )
@@ -58,7 +60,7 @@ def dashboard(request):
     # Open maintenance records
     open_maintenance = (
         MaintenanceRecord.objects
-        .filter(returned_date__isnull=True)
+        .filter(returned_date__isnull=True, device__site__in=allowed)
         .select_related('device', 'device__device_model')
         .order_by('-sent_date')[:8]
     )
