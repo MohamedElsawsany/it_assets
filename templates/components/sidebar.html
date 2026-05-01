@@ -20,7 +20,7 @@
       <li class="sidebar-item">
         <a href="{% url 'dashboard' %}"
            class="sidebar-link {% if '/dashboard' in request.path or request.path == '/' %}active{% endif %}">
-          <i class="bi bi-squares-fill sidebar-icon"></i>
+          <i class="bi bi-speedometer2 sidebar-icon"></i>
           <span>{% trans "Dashboard" %}</span>
         </a>
       </li>
@@ -123,7 +123,7 @@
       <li class="sidebar-item">
         <a href="{% url 'users-list' %}"
            class="sidebar-link {% if '/accounts/users' in request.path %}active{% endif %}">
-          <i class="bi bi-shield-person sidebar-icon"></i>
+          <i class="bi bi-person-gear sidebar-icon"></i>
           <span>{% trans "Users" %}</span>
         </a>
       </li>

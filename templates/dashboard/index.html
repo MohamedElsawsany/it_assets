@@ -23,11 +23,9 @@
   <!-- Stats grid -->
   <div class="row g-3 mb-4">
 
-    <div class="col-xl-2 col-lg-4 col-sm-6">
+    <div class="col-xl-4 col-md-4 col-sm-6">
       <div class="stat-card stat-card-indigo">
-        <div class="stat-icon">
-          <i class="bi bi-people-fill"></i>
-        </div>
+        <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
         <div class="stat-body">
           <div class="stat-value">{{ stats.total_users|intcomma }}</div>
           <div class="stat-label">{% trans "Total Users" %}</div>
@@ -35,11 +33,9 @@
       </div>
     </div>
 
-    <div class="col-xl-2 col-lg-4 col-sm-6">
+    <div class="col-xl-4 col-md-4 col-sm-6">
       <div class="stat-card stat-card-green">
-        <div class="stat-icon">
-          <i class="bi bi-person-check-fill"></i>
-        </div>
+        <div class="stat-icon"><i class="bi bi-person-check-fill"></i></div>
         <div class="stat-body">
           <div class="stat-value">{{ stats.active_users|intcomma }}</div>
           <div class="stat-label">{% trans "Active Users" %}</div>
@@ -47,11 +43,9 @@
       </div>
     </div>
 
-    <div class="col-xl-2 col-lg-4 col-sm-6">
+    <div class="col-xl-4 col-md-4 col-sm-6">
       <div class="stat-card stat-card-blue">
-        <div class="stat-icon">
-          <i class="bi bi-laptop-fill"></i>
-        </div>
+        <div class="stat-icon"><i class="bi bi-laptop-fill"></i></div>
         <div class="stat-body">
           <div class="stat-value">{{ stats.total_devices|intcomma }}</div>
           <div class="stat-label">{% trans "Total Devices" %}</div>
@@ -59,11 +53,9 @@
       </div>
     </div>
 
-    <div class="col-xl-2 col-lg-4 col-sm-6">
+    <div class="col-xl-4 col-md-4 col-sm-6">
       <div class="stat-card stat-card-orange">
-        <div class="stat-icon">
-          <i class="bi bi-box-arrow-in-right"></i>
-        </div>
+        <div class="stat-icon"><i class="bi bi-box-arrow-in-right"></i></div>
         <div class="stat-body">
           <div class="stat-value">{{ stats.assigned_devices|intcomma }}</div>
           <div class="stat-label">{% trans "Assigned Devices" %}</div>
@@ -71,11 +63,9 @@
       </div>
     </div>
 
-    <div class="col-xl-2 col-lg-4 col-sm-6">
+    <div class="col-xl-4 col-md-4 col-sm-6">
       <div class="stat-card stat-card-red">
-        <div class="stat-icon">
-          <i class="bi bi-tools"></i>
-        </div>
+        <div class="stat-icon"><i class="bi bi-tools"></i></div>
         <div class="stat-body">
           <div class="stat-value">{{ stats.open_maintenance|intcomma }}</div>
           <div class="stat-label">{% trans "Open Maintenance" %}</div>
@@ -83,11 +73,9 @@
       </div>
     </div>
 
-    <div class="col-xl-2 col-lg-4 col-sm-6">
+    <div class="col-xl-4 col-md-4 col-sm-6">
       <div class="stat-card stat-card-teal">
-        <div class="stat-icon">
-          <i class="bi bi-person-badge-fill"></i>
-        </div>
+        <div class="stat-icon"><i class="bi bi-person-badge-fill"></i></div>
         <div class="stat-body">
           <div class="stat-value">{{ stats.total_employees|intcomma }}</div>
           <div class="stat-label">{% trans "Total Employees" %}</div>
@@ -97,68 +85,200 @@
 
   </div>
 
-  <!-- Quick actions -->
+  <!-- Middle row: Recent Assignments + Device Breakdown -->
+  <div class="row g-3 mb-4">
+
+    <!-- Recent Assignments -->
+    {% if rbac.assignments_view %}
+    <div class="col-lg-8">
+      <div class="card card-app h-100">
+        <div class="card-body pb-0">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <h6 class="fw-semibold mb-0">
+              <i class="bi bi-box-arrow-in-right text-primary me-2"></i>{% trans "Recent Active Assignments" %}
+            </h6>
+            <a href="{% url 'assignments-index' %}" class="btn btn-sm btn-outline-primary">
+              {% trans "View All" %} <i class="bi bi-arrow-end ms-1"></i>
+            </a>
+          </div>
+        </div>
+        {% if recent_assignments %}
+        <div class="table-responsive">
+          <table class="table table-hover app-table mb-0">
+            <thead>
+              <tr>
+                <th>{% trans "Device" %}</th>
+                <th>{% trans "Employee" %}</th>
+                <th>{% trans "Category" %}</th>
+                <th>{% trans "Assigned Date" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for a in recent_assignments %}
+              <tr>
+                <td>
+                  <span class="fw-medium font-monospace">{{ a.device.serial_number }}</span>
+                  <div class="text-muted small">{{ a.device.device_model }}</div>
+                </td>
+                <td>{{ a.employee.full_name }}</td>
+                <td><span class="badge bg-secondary-subtle text-secondary rounded-pill">{{ a.device.category.name }}</span></td>
+                <td class="text-muted small">{{ a.assigned_date|date:"Y-m-d" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="card-body text-center text-muted py-4">
+          <i class="bi bi-inbox display-6 d-block mb-2"></i>
+          {% trans "No active assignments." %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Device Flag Breakdown -->
+    <div class="col-lg-4">
+      <div class="card card-app h-100">
+        <div class="card-body">
+          <h6 class="fw-semibold mb-3">
+            <i class="bi bi-pie-chart-fill text-primary me-2"></i>{% trans "Device Status Breakdown" %}
+          </h6>
+          {% if flag_breakdown %}
+            {% for item in flag_breakdown %}
+            <div class="mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="small fw-medium">{{ item.label }}</span>
+                <span class="small text-muted">{{ item.count }} ({{ item.percent }}%)</span>
+              </div>
+              <div class="progress" style="height:7px;border-radius:999px;">
+                <div class="progress-bar" role="progressbar"
+                     style="width:{{ item.percent }}%;background-color:{{ item.color }};"
+                     aria-valuenow="{{ item.percent }}" aria-valuemin="0" aria-valuemax="100">
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+          <div class="text-center text-muted py-4">
+            <i class="bi bi-laptop display-6 d-block mb-2"></i>
+            {% trans "No devices yet." %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom row: Open Maintenance + Quick Actions -->
   <div class="row g-3">
 
-    {% if rbac.users_view %}
-    <div class="col-xl-3 col-lg-4 col-md-6">
-      <div class="quick-card">
-        <div class="quick-card-icon" style="background:#eef2ff;color:#4f46e5;">
-          <i class="bi bi-shield-person"></i>
-        </div>
-        <div class="quick-card-title">{% trans "Users" %}</div>
-        <p class="quick-card-text">{% trans "Manage system users and their access roles." %}</p>
-        <a href="{% url 'users-list' %}" class="btn btn-sm btn-primary">
-          {% trans "Manage Users" %} <i class="bi bi-arrow-end ms-1"></i>
-        </a>
-      </div>
-    </div>
-    {% endif %}
-
-    {% if rbac.devices_view %}
-    <div class="col-xl-3 col-lg-4 col-md-6">
-      <div class="quick-card">
-        <div class="quick-card-icon" style="background:#eff6ff;color:#2563eb;">
-          <i class="bi bi-laptop"></i>
-        </div>
-        <div class="quick-card-title">{% trans "Devices" %}</div>
-        <p class="quick-card-text">{% trans "Track and manage your IT devices inventory." %}</p>
-        <a href="{% url 'devices-index' %}" class="btn btn-sm btn-primary">
-          {% trans "View Devices" %} <i class="bi bi-arrow-end ms-1"></i>
-        </a>
-      </div>
-    </div>
-    {% endif %}
-
-    {% if rbac.assignments_view %}
-    <div class="col-xl-3 col-lg-4 col-md-6">
-      <div class="quick-card">
-        <div class="quick-card-icon" style="background:#fff7ed;color:#ea580c;">
-          <i class="bi bi-box-arrow-in-right"></i>
-        </div>
-        <div class="quick-card-title">{% trans "Assignments" %}</div>
-        <p class="quick-card-text">{% trans "View and manage device assignments to employees." %}</p>
-        <a href="{% url 'assignments-index' %}" class="btn btn-sm btn-primary">
-          {% trans "View Assignments" %} <i class="bi bi-arrow-end ms-1"></i>
-        </a>
-      </div>
-    </div>
-    {% endif %}
-
+    <!-- Open Maintenance -->
     {% if rbac.maintenance_view %}
-    <div class="col-xl-3 col-lg-4 col-md-6">
-      <div class="quick-card">
-        <div class="quick-card-icon" style="background:#fef2f2;color:#dc2626;">
-          <i class="bi bi-tools"></i>
+    <div class="col-lg-8">
+      <div class="card card-app h-100">
+        <div class="card-body pb-0">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <h6 class="fw-semibold mb-0">
+              <i class="bi bi-tools text-danger me-2"></i>{% trans "Open Maintenance Records" %}
+            </h6>
+            <a href="{% url 'maintenance-index' %}" class="btn btn-sm btn-outline-danger">
+              {% trans "View All" %} <i class="bi bi-arrow-end ms-1"></i>
+            </a>
+          </div>
         </div>
-        <div class="quick-card-title">{% trans "Maintenance" %}</div>
-        <p class="quick-card-text">{% trans "Monitor and track open maintenance records." %}</p>
-        <a href="{% url 'maintenance-index' %}" class="btn btn-sm btn-primary">
-          {% trans "View Maintenance" %} <i class="bi bi-arrow-end ms-1"></i>
-        </a>
+        {% if open_maintenance %}
+        <div class="table-responsive">
+          <table class="table table-hover app-table mb-0">
+            <thead>
+              <tr>
+                <th>{% trans "Device" %}</th>
+                <th>{% trans "Type" %}</th>
+                <th>{% trans "Issue" %}</th>
+                <th>{% trans "Sent Date" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for m in open_maintenance %}
+              <tr>
+                <td>
+                  <span class="fw-medium font-monospace">{{ m.device.serial_number }}</span>
+                  <div class="text-muted small">{{ m.device.device_model }}</div>
+                </td>
+                <td>
+                  {% if m.maintenance_type == 'External' %}
+                  <span class="badge bg-warning-subtle text-warning rounded-pill">{% trans "External" %}</span>
+                  {% else %}
+                  <span class="badge bg-info-subtle text-info rounded-pill">{% trans "Internal" %}</span>
+                  {% endif %}
+                </td>
+                <td class="text-truncate" style="max-width:200px;" title="{{ m.issue_description }}">{{ m.issue_description }}</td>
+                <td class="text-muted small">{{ m.sent_date|date:"Y-m-d" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="card-body text-center text-muted py-4">
+          <i class="bi bi-check-circle display-6 d-block mb-2 text-success"></i>
+          {% trans "No open maintenance records." %}
+        </div>
+        {% endif %}
       </div>
     </div>
     {% endif %}
+
+    <!-- Quick Actions -->
+    <div class="col-lg-4">
+      <div class="card card-app h-100">
+        <div class="card-body">
+          <h6 class="fw-semibold mb-3">
+            <i class="bi bi-lightning-charge-fill text-warning me-2"></i>{% trans "Quick Actions" %}
+          </h6>
+          <div class="d-grid gap-2">
+            {% if rbac.users_view %}
+            <a href="{% url 'users-list' %}" class="btn btn-outline-secondary text-start d-flex align-items-center gap-2">
+              <i class="bi bi-person-gear text-indigo" style="color:#4f46e5;"></i>
+              {% trans "Manage Users" %}
+            </a>
+            {% endif %}
+            {% if rbac.devices_view %}
+            <a href="{% url 'devices-index' %}" class="btn btn-outline-secondary text-start d-flex align-items-center gap-2">
+              <i class="bi bi-laptop" style="color:#2563eb;"></i>
+              {% trans "View Devices" %}
+            </a>
+            {% endif %}
+            {% if rbac.accessories_view %}
+            <a href="{% url 'accessories-index' %}" class="btn btn-outline-secondary text-start d-flex align-items-center gap-2">
+              <i class="bi bi-plug" style="color:#0d9488;"></i>
+              {% trans "View Accessories" %}
+            </a>
+            {% endif %}
+            {% if rbac.assignments_view %}
+            <a href="{% url 'assignments-index' %}" class="btn btn-outline-secondary text-start d-flex align-items-center gap-2">
+              <i class="bi bi-box-arrow-in-right" style="color:#ea580c;"></i>
+              {% trans "View Assignments" %}
+            </a>
+            {% endif %}
+            {% if rbac.maintenance_view %}
+            <a href="{% url 'maintenance-index' %}" class="btn btn-outline-secondary text-start d-flex align-items-center gap-2">
+              <i class="bi bi-tools" style="color:#dc2626;"></i>
+              {% trans "View Maintenance" %}
+            </a>
+            {% endif %}
+            {% if rbac.employees_view %}
+            <a href="{% url 'employees-index' %}" class="btn btn-outline-secondary text-start d-flex align-items-center gap-2">
+              <i class="bi bi-people" style="color:#16a34a;"></i>
+              {% trans "View Employees" %}
+            </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
 
   </div>
 
