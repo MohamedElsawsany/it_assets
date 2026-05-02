@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(python:*)",
-      "Bash(.venv/Scripts/python:*)"
+      "Bash(.venv/Scripts/python:*)",
+      "Bash(grep -E \"\\(models|views|forms|serializers|admin\\)\\\\.py$\")",
+      "Bash(ls:*)",
+      "Bash(grep -l \"{% trans\" /d/Projects/it_assets/templates/**/*.html)",
+      "Bash(grep -l \"{% blocktrans\" /d/Projects/it_assets/templates/**/*.html)"
     ]
   }
 }

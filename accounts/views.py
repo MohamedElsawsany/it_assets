@@ -4,7 +4,7 @@ from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.paginator import Paginator
 from django.http import JsonResponse
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext as _, gettext_lazy as _lazy
 from django.views.decorators.http import require_http_methods
 from django.db.models import Q
 
@@ -21,83 +21,83 @@ from .permissions import permission_required, has_permission, Perms
 # Only permissions relevant to the IT asset app are included.
 
 PERM_GROUPS = [
-    ('Inventory', [
-        ('Devices', [
-            ('View',               'inventory.view_device'),
-            ('Add',                'inventory.add_device'),
-            ('Edit',               'inventory.change_device'),
-            ('Delete',             'inventory.delete_device'),
-            ('Flag',               'inventory.flag_device'),
-            ('Retire',             'inventory.retire_device'),
-            ('Toggle Maintenance', 'inventory.toggle_maintenance'),
-            ('View Specs',         'inventory.view_device_specs'),
-            ('Export',             'inventory.export_device'),
-            ('View History',       'inventory.view_history_device'),
+    (_lazy('Inventory'), [
+        (_lazy('Devices'), [
+            (_lazy('View'),               'inventory.view_device'),
+            (_lazy('Add'),                'inventory.add_device'),
+            (_lazy('Edit'),               'inventory.change_device'),
+            (_lazy('Delete'),             'inventory.delete_device'),
+            (_lazy('Flag'),               'inventory.flag_device'),
+            (_lazy('Retire'),             'inventory.retire_device'),
+            (_lazy('Toggle Maintenance'), 'inventory.toggle_maintenance'),
+            (_lazy('View Specs'),         'inventory.view_device_specs'),
+            (_lazy('Export'),             'inventory.export_device'),
+            (_lazy('View History'),       'inventory.view_history_device'),
         ]),
-        ('Accessories', [
-            ('View',        'inventory.view_accessory'),
-            ('Add',         'inventory.add_accessory'),
-            ('Edit',        'inventory.change_accessory'),
-            ('Delete',      'inventory.delete_accessory'),
-            ('Link Device', 'inventory.link_device_accessory'),
+        (_lazy('Accessories'), [
+            (_lazy('View'),        'inventory.view_accessory'),
+            (_lazy('Add'),         'inventory.add_accessory'),
+            (_lazy('Edit'),        'inventory.change_accessory'),
+            (_lazy('Delete'),      'inventory.delete_accessory'),
+            (_lazy('Link Device'), 'inventory.link_device_accessory'),
         ]),
-        ('Lookups', [
-            ('View',   'inventory.view_devicecategory'),
-            ('Add',    'inventory.add_devicecategory'),
-            ('Edit',   'inventory.change_devicecategory'),
-            ('Delete', 'inventory.delete_devicecategory'),
-        ]),
-    ]),
-    ('Assignments', [
-        ('Assignments', [
-            ('View',            'assignments.view_deviceassignment'),
-            ('Add',             'assignments.add_deviceassignment'),
-            ('Edit',            'assignments.change_deviceassignment'),
-            ('Delete',          'assignments.delete_deviceassignment'),
-            ('Return Device',   'assignments.return_device'),
-            ('Generate Report', 'assignments.generate_report'),
-        ]),
-        ('Transfers', [
-            ('View',             'assignments.view_devicetransfer'),
-            ('Add',              'assignments.add_devicetransfer'),
-            ('Approve Transfer', 'assignments.approve_transfer'),
-            ('Delete',           'assignments.delete_devicetransfer'),
+        (_lazy('Lookups'), [
+            (_lazy('View'),   'inventory.view_devicecategory'),
+            (_lazy('Add'),    'inventory.add_devicecategory'),
+            (_lazy('Edit'),   'inventory.change_devicecategory'),
+            (_lazy('Delete'), 'inventory.delete_devicecategory'),
         ]),
     ]),
-    ('Maintenance', [
-        ('Records', [
-            ('View',      'maintenance.view_maintenancerecord'),
-            ('Add',       'maintenance.add_maintenancerecord'),
-            ('Edit',      'maintenance.change_maintenancerecord'),
-            ('Delete',    'maintenance.delete_maintenancerecord'),
-            ('Close',     'maintenance.close_maintenancerecord'),
-            ('View Cost', 'maintenance.view_cost'),
-            ('Export',    'maintenance.export_maintenancerecord'),
+    (_lazy('Assignments'), [
+        (_lazy('Assignments'), [
+            (_lazy('View'),            'assignments.view_deviceassignment'),
+            (_lazy('Add'),             'assignments.add_deviceassignment'),
+            (_lazy('Edit'),            'assignments.change_deviceassignment'),
+            (_lazy('Delete'),          'assignments.delete_deviceassignment'),
+            (_lazy('Return Device'),   'assignments.return_device'),
+            (_lazy('Generate Report'), 'assignments.generate_report'),
+        ]),
+        (_lazy('Transfers'), [
+            (_lazy('View'),             'assignments.view_devicetransfer'),
+            (_lazy('Add'),              'assignments.add_devicetransfer'),
+            (_lazy('Approve Transfer'), 'assignments.approve_transfer'),
+            (_lazy('Delete'),           'assignments.delete_devicetransfer'),
         ]),
     ]),
-    ('Organization', [
-        ('Employees', [
-            ('View',     'employees.view_employee'),
-            ('Add',      'employees.add_employee'),
-            ('Edit',     'employees.change_employee'),
-            ('Delete',   'employees.delete_employee'),
-            ('Transfer', 'employees.transfer_employee'),
-        ]),
-        ('Locations', [
-            ('View',   'locations.view_site'),
-            ('Add',    'locations.add_site'),
-            ('Edit',   'locations.change_site'),
-            ('Delete', 'locations.delete_site'),
+    (_lazy('Maintenance'), [
+        (_lazy('Records'), [
+            (_lazy('View'),      'maintenance.view_maintenancerecord'),
+            (_lazy('Add'),       'maintenance.add_maintenancerecord'),
+            (_lazy('Edit'),      'maintenance.change_maintenancerecord'),
+            (_lazy('Delete'),    'maintenance.delete_maintenancerecord'),
+            (_lazy('Close'),     'maintenance.close_maintenancerecord'),
+            (_lazy('View Cost'), 'maintenance.view_cost'),
+            (_lazy('Export'),    'maintenance.export_maintenancerecord'),
         ]),
     ]),
-    ('System', [
-        ('Users', [
-            ('View',           'accounts.view_user'),
-            ('Add',            'accounts.add_user'),
-            ('Edit',           'accounts.change_user'),
-            ('Delete',         'accounts.delete_user'),
-            ('Reset Password', 'accounts.reset_password_user'),
-            ('Activate',       'accounts.activate_user'),
+    (_lazy('Organization'), [
+        (_lazy('Employees'), [
+            (_lazy('View'),     'employees.view_employee'),
+            (_lazy('Add'),      'employees.add_employee'),
+            (_lazy('Edit'),     'employees.change_employee'),
+            (_lazy('Delete'),   'employees.delete_employee'),
+            (_lazy('Transfer'), 'employees.transfer_employee'),
+        ]),
+        (_lazy('Locations'), [
+            (_lazy('View'),   'locations.view_site'),
+            (_lazy('Add'),    'locations.add_site'),
+            (_lazy('Edit'),   'locations.change_site'),
+            (_lazy('Delete'), 'locations.delete_site'),
+        ]),
+    ]),
+    (_lazy('System'), [
+        (_lazy('Users'), [
+            (_lazy('View'),           'accounts.view_user'),
+            (_lazy('Add'),            'accounts.add_user'),
+            (_lazy('Edit'),           'accounts.change_user'),
+            (_lazy('Delete'),         'accounts.delete_user'),
+            (_lazy('Reset Password'), 'accounts.reset_password_user'),
+            (_lazy('Activate'),       'accounts.activate_user'),
         ]),
     ]),
 ]

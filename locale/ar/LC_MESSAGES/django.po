@@ -956,3 +956,305 @@ msgstr "الإنجليزية"
 
 msgid "Arabic"
 msgstr "العربية"
+
+# Sidebar — section labels
+msgid "Overview"
+msgstr "نظرة عامة"
+
+msgid "Inventory"
+msgstr "المخزون"
+
+msgid "Operations"
+msgstr "العمليات"
+
+msgid "Organization"
+msgstr "التنظيم"
+
+msgid "Transfers"
+msgstr "النقل"
+
+# Navbar
+msgid "Sign out"
+msgstr "تسجيل الخروج"
+
+# Login page
+msgid "Centralized control for all your IT assets, assignments, and maintenance."
+msgstr "تحكم مركزي في جميع أصول تقنية المعلومات والتعيينات والصيانة."
+
+msgid "Track devices & accessories in real-time"
+msgstr "تتبع الأجهزة والملحقات في الوقت الفعلي"
+
+msgid "Manage assignments across employees"
+msgstr "إدارة التعيينات عبر الموظفين"
+
+msgid "Role-based access control built-in"
+msgstr "تحكم في الوصول مدمج قائم على الأدوار"
+
+msgid "Welcome back"
+msgstr "مرحباً بعودتك"
+
+msgid "Sign in to your account to continue"
+msgstr "تسجيل الدخول إلى حسابك للمتابعة"
+
+msgid "Email address"
+msgstr "البريد الإلكتروني"
+
+msgid "you@company.com"
+msgstr "you@company.com"
+
+msgid "Toggle password visibility"
+msgstr "إظهار/إخفاء كلمة المرور"
+
+msgid "Sign in"
+msgstr "تسجيل الدخول"
+
+# Dashboard
+msgid "Recent Active Assignments"
+msgstr "التعيينات النشطة الأخيرة"
+
+msgid "View All"
+msgstr "عرض الكل"
+
+msgid "No active assignments."
+msgstr "لا توجد تعيينات نشطة."
+
+msgid "Device Status Breakdown"
+msgstr "تفصيل حالات الأجهزة"
+
+msgid "No devices yet."
+msgstr "لا توجد أجهزة بعد."
+
+msgid "Open Maintenance Records"
+msgstr "سجلات الصيانة المفتوحة"
+
+msgid "No open maintenance records."
+msgstr "لا توجد سجلات صيانة مفتوحة."
+
+msgid "Quick Actions"
+msgstr "الإجراءات السريعة"
+
+msgid "Manage Users"
+msgstr "إدارة المستخدمين"
+
+msgid "View Devices"
+msgstr "عرض الأجهزة"
+
+msgid "View Accessories"
+msgstr "عرض الملحقات"
+
+msgid "View Assignments"
+msgstr "عرض التعيينات"
+
+msgid "View Maintenance"
+msgstr "عرض الصيانة"
+
+msgid "View Employees"
+msgstr "عرض الموظفين"
+
+# Users page — modals and edit tabs
+msgid "User Details"
+msgstr "تفاصيل المستخدم"
+
+msgid "Full Name"
+msgstr "الاسم الكامل"
+
+msgid "Email"
+msgstr "البريد الإلكتروني"
+
+msgid "Created by"
+msgstr "أنشئ بواسطة"
+
+msgid "Last updated"
+msgstr "آخر تحديث"
+
+msgid "View"
+msgstr "عرض"
+
+msgid "Basic Info"
+msgstr "المعلومات الأساسية"
+
+msgid "Permissions"
+msgstr "الصلاحيات"
+
+msgid "Site Access"
+msgstr "صلاحية الوصول للمواقع"
+
+msgid "Primary Site"
+msgstr "الموقع الرئيسي"
+
+msgid "This user is a superuser and has unrestricted access to everything regardless of the checkboxes below."
+msgstr "هذا المستخدم مشرف عام ولديه وصول غير مقيد لكل شيء بغض النظر عن مربعات الاختيار أدناه."
+
+msgid "Click a group header to toggle all permissions in that group."
+msgstr "انقر على رأس المجموعة لتبديل جميع الصلاحيات في تلك المجموعة."
+
+msgid "Grant All"
+msgstr "منح الكل"
+
+msgid "Revoke All"
+msgstr "سحب الكل"
+
+msgid "All Branches"
+msgstr "جميع الفروع"
+
+msgid "Can see data from every branch."
+msgstr "يمكن رؤية بيانات جميع الفروع."
+
+msgid "Own Branch Only"
+msgstr "فرعه الخاص فقط"
+
+msgid "Can only see data from their own assigned branch."
+msgstr "يمكن رؤية بيانات فرعه المعين فقط."
+
+msgid "Specific Branches"
+msgstr "فروع محددة"
+
+msgid "Can only see data from the selected branches below."
+msgstr "يمكن رؤية بيانات الفروع المحددة أدناه فقط."
+
+msgid "Own Site"
+msgstr "موقعه الخاص"
+
+msgid "Select site"
+msgstr "اختر الموقع"
+
+msgid "Allowed Sites"
+msgstr "المواقع المسموح بها"
+
+# Devices page
+msgid "Device Details"
+msgstr "تفاصيل الجهاز"
+
+msgid "Specifications"
+msgstr "المواصفات"
+
+# Accessories page
+msgid "Accessory Details"
+msgstr "تفاصيل الملحق"
+
+msgid "Updated by"
+msgstr "حُدِّث بواسطة"
+
+# Assignments page
+msgid "Assignment Details"
+msgstr "تفاصيل التعيين"
+
+msgid "Assigned By"
+msgstr "عُيِّن بواسطة"
+
+msgid "Returned By"
+msgstr "أُرجع بواسطة"
+
+# Transfers page
+msgid "Transfer Details"
+msgstr "تفاصيل النقل"
+
+msgid "Transferred by"
+msgstr "نُقل بواسطة"
+
+msgid "Record created"
+msgstr "تاريخ الإنشاء"
+
+msgid "Failed to load transfer."
+msgstr "فشل تحميل بيانات النقل."
+
+# Employees page
+msgid "Details"
+msgstr "التفاصيل"
+
+msgid "Employee Details"
+msgstr "تفاصيل الموظف"
+
+msgid "Department Details"
+msgstr "تفاصيل القسم"
+
+# Locations page
+msgid "Governorate Details"
+msgstr "تفاصيل المحافظة"
+
+msgid "Site Details"
+msgstr "تفاصيل الموقع"
+
+# Maintenance page
+msgid "Maintenance Record Details"
+msgstr "تفاصيل سجل الصيانة"
+
+msgid "All Types"
+msgstr "جميع الأنواع"
+
+# Lookups page
+msgid "Item Details"
+msgstr "تفاصيل العنصر"
+
+# Messages — accounts (extra)
+msgid "Cannot delete: user has assignment records."
+msgstr "لا يمكن الحذف: المستخدم لديه سجلات تعيينات."
+
+msgid "Cannot delete: user has transfer records."
+msgstr "لا يمكن الحذف: المستخدم لديه سجلات نقل."
+
+msgid "Permissions saved."
+msgstr "تم حفظ الصلاحيات."
+
+msgid "Invalid permission IDs."
+msgstr "معرفات الصلاحيات غير صالحة."
+
+msgid "Invalid site scope."
+msgstr "نطاق الموقع غير صالح."
+
+msgid "Method not allowed."
+msgstr "هذه الطريقة غير مسموح بها."
+
+# Dashboard — maintenance type badges
+msgid "External"
+msgstr "خارجي"
+
+# Users — site access description
+msgid "Controls which branches' data this user can see and manage."
+msgstr "يتحكم في بيانات الفروع التي يمكن لهذا المستخدم رؤيتها وإدارتها."
+
+# Permission checklist labels (accounts/views.py PERM_GROUPS)
+msgid "Flag"
+msgstr "تغيير الحالة"
+
+msgid "Retire"
+msgstr "إتقاعد"
+
+msgid "Toggle Maintenance"
+msgstr "تفعيل/تعطيل الصيانة"
+
+msgid "View Specs"
+msgstr "عرض المواصفات"
+
+msgid "Export"
+msgstr "تصدير"
+
+msgid "View History"
+msgstr "عرض التاريخ"
+
+msgid "Link Device"
+msgstr "ربط جهاز"
+
+msgid "Return Device"
+msgstr "إرجاع جهاز"
+
+msgid "Generate Report"
+msgstr "إنشاء تقرير"
+
+msgid "Approve Transfer"
+msgstr "الموافقة على النقل"
+
+msgid "Records"
+msgstr "السجلات"
+
+msgid "View Cost"
+msgstr "عرض التكلفة"
+
+msgid "Transfer"
+msgstr "نقل"
+
+msgid "System"
+msgstr "النظام"
+
+msgid "Activate"
+msgstr "تفعيل"

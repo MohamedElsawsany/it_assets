@@ -290,9 +290,13 @@ function renderPagination(containerId, current, numPages, loadFn) {
   const show = new Set([1, 2, current - 1, current, current + 1, numPages - 1, numPages]);
   const pages = [...show].filter(p => p >= 1 && p <= numPages).sort((a, b) => a - b);
 
+  const isRtl = window.APP_DIR === 'rtl';
+  const prevArrow = isRtl ? '&rsaquo;' : '&lsaquo;';
+  const nextArrow = isRtl ? '&lsaquo;' : '&rsaquo;';
+
   let html = '<nav><ul class="pagination pagination-sm mb-0 flex-wrap">';
   html += `<li class="page-item${current === 1 ? ' disabled' : ''}">
-    <a class="page-link" href="#" data-page="${current - 1}">&lsaquo;</a></li>`;
+    <a class="page-link" href="#" data-page="${current - 1}">${prevArrow}</a></li>`;
 
   let prev = 0;
   for (const p of pages) {
