@@ -121,9 +121,10 @@
           </div>
           <hr class="my-3">
           <div class="row g-3 text-muted small">
-            <div class="col-md-4"><p class="mb-1">{% trans "Created by" %}</p><p class="fw-medium text-body mb-0" id="vu-created-by"></p></div>
-            <div class="col-md-4"><p class="mb-1">{% trans "Created" %}</p><p class="fw-medium text-body mb-0" id="vu-created-date"></p></div>
-            <div class="col-md-4"><p class="mb-1">{% trans "Last updated" %}</p><p class="fw-medium text-body mb-0" id="vu-updated-date"></p></div>
+            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Created by" %}</p><p class="fw-medium text-body mb-0" id="vu-created-by"></p></div>
+            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Created" %}</p><p class="fw-medium text-body mb-0" id="vu-created-date"></p></div>
+            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Updated by" %}</p><p class="fw-medium text-body mb-0" id="vu-updated-by"></p></div>
+            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Last updated" %}</p><p class="fw-medium text-body mb-0" id="vu-updated-date"></p></div>
           </div>
         </div>
       </div>
@@ -705,6 +706,7 @@ function openViewModal(userId) {
         : `<span class="badge bg-danger-subtle text-danger rounded-pill">${T.inactive}</span>`;
       document.getElementById('vu-created-by').textContent   = u.created_by || '—';
       document.getElementById('vu-created-date').textContent = u.created_date || '—';
+      document.getElementById('vu-updated-by').textContent   = u.updated_by || '—';
       document.getElementById('vu-updated-date').textContent = u.updated_date || '—';
       document.getElementById('viewUserLoader').classList.add('d-none');
       document.getElementById('viewUserContent').classList.remove('d-none');

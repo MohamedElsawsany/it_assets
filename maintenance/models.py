@@ -47,6 +47,10 @@ class MaintenanceRecord(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         related_name='created_maintenance_records', db_column='Created_By',
     )
+    updated_by   = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        related_name='updated_maintenance_records', null=True, blank=True,
+    )
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(auto_now=True, null=True, blank=True)
 

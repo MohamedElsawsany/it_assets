@@ -150,6 +150,13 @@
             </div>
             {% endif %}
           </div>
+          <hr class="my-3">
+          <div class="row g-3 text-muted small">
+            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Created by" %}</p><p class="fw-medium text-body mb-0" id="view-created-by"></p></div>
+            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Created" %}</p><p class="fw-medium text-body mb-0" id="view-created-date"></p></div>
+            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Updated by" %}</p><p class="fw-medium text-body mb-0" id="view-updated-by"></p></div>
+            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Last updated" %}</p><p class="fw-medium text-body mb-0" id="view-updated-date"></p></div>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -477,6 +484,10 @@ function openViewModal(pk) {
       if (costRow && data.show_cost) {
         document.getElementById('view-cost').textContent = r.cost !== undefined && r.cost !== '' ? r.cost : '—';
       }
+      document.getElementById('view-created-by').textContent  = r.created_by || '—';
+      document.getElementById('view-created-date').textContent = r.created_date || '—';
+      document.getElementById('view-updated-by').textContent  = r.updated_by || '—';
+      document.getElementById('view-updated-date').textContent = r.updated_date || '—';
       document.getElementById('viewLoader').classList.add('d-none');
       document.getElementById('viewContent').classList.remove('d-none');
     })

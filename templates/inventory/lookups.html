@@ -106,9 +106,10 @@
           <div class="row g-3" id="viewFields"></div>
           <hr class="my-3">
           <div class="row g-3 text-muted small">
-            <div class="col-md-4"><p class="mb-1">{% trans "Created by" %}</p><p class="fw-medium text-body mb-0" id="vl-created-by"></p></div>
-            <div class="col-md-4"><p class="mb-1">{% trans "Created" %}</p><p class="fw-medium text-body mb-0" id="vl-created-date"></p></div>
-            <div class="col-md-4"><p class="mb-1">{% trans "Last updated" %}</p><p class="fw-medium text-body mb-0" id="vl-updated-date"></p></div>
+            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Created by" %}</p><p class="fw-medium text-body mb-0" id="vl-created-by"></p></div>
+            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Created" %}</p><p class="fw-medium text-body mb-0" id="vl-created-date"></p></div>
+            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Updated by" %}</p><p class="fw-medium text-body mb-0" id="vl-updated-by"></p></div>
+            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Last updated" %}</p><p class="fw-medium text-body mb-0" id="vl-updated-date"></p></div>
           </div>
         </div>
       </div>
@@ -344,6 +345,7 @@ function openViewModal(pk) {
       document.getElementById('viewFields').innerHTML = fieldsHtml;
       document.getElementById('vl-created-by').textContent   = item.created_by || '—';
       document.getElementById('vl-created-date').textContent = item.created_date || '—';
+      document.getElementById('vl-updated-by').textContent   = item.updated_by || '—';
       document.getElementById('vl-updated-date').textContent = item.updated_date || '—';
       document.getElementById('viewLoader').classList.add('d-none');
       document.getElementById('viewContent').classList.remove('d-none');

@@ -87,7 +87,7 @@ def maintenance_detail(request, pk):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
     show_cost = has_permission(request.user, Perms.MAINTENANCE_VIEW_COST)
     rec = get_object_or_404(
-        MaintenanceRecord.objects.filter(device__site__in=request.user.get_allowed_sites()).select_related('device'),
+        MaintenanceRecord.objects.filter(device__site__in=request.user.get_allowed_sites()).select_related('device', 'created_by', 'updated_by'),
         pk=pk,
     )
     item = {
@@ -101,6 +101,10 @@ def maintenance_detail(request, pk):
         'returned_date': rec.returned_date.strftime('%Y-%m-%dT%H:%M') if rec.returned_date else '',
         'resolution_notes': rec.resolution_notes or '',
         'is_open': rec.is_open,
+        'created_by': rec.created_by.full_name if rec.created_by else '',
+        'created_date': rec.created_date.strftime('%Y-%m-%d %I:%M %p'),
+        'updated_by': rec.updated_by.full_name if rec.updated_by else '',
+        'updated_date': rec.updated_date.strftime('%Y-%m-%d %I:%M %p') if rec.updated_date else '',
     }
     if show_cost:
         item['cost'] = str(rec.cost) if rec.cost is not None else ''
@@ -143,7 +147,9 @@ def maintenance_edit(request, pk):
     rec = get_object_or_404(MaintenanceRecord, pk=pk)
     form = MaintenanceForm(request.POST, instance=rec)
     if form.is_valid():
-        form.save()
+        obj = form.save(commit=False)
+        obj.updated_by = request.user
+        obj.save()
         return JsonResponse({'success': True, 'message': _('Maintenance record updated successfully.')})
     errors = {f: [str(e) for e in v] for f, v in form.errors.items()}
     return JsonResponse({'success': False, 'errors': errors})
@@ -175,6 +181,7 @@ def maintenance_close(request, pk):
         rec.resolution_notes = form.cleaned_data.get('resolution_notes', '')
         if has_permission(request.user, Perms.MAINTENANCE_VIEW_COST):
             rec.cost = form.cleaned_data.get('cost')
+        rec.updated_by = request.user
         rec.save()
         # Restore device flag if this was the last open record for the device
         other_open = rec.device.maintenance_records.filter(returned_date__isnull=True).exclude(pk=rec.pk).exists()

@@ -56,11 +56,12 @@ def departments_data(request):
 def department_detail(request, pk):
     if not has_permission(request.user, Perms.EMPLOYEES_VIEW):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
-    dept = get_object_or_404(Department.objects.select_related('created_by'), pk=pk, deleted_date__isnull=True)
+    dept = get_object_or_404(Department.objects.select_related('created_by', 'updated_by'), pk=pk, deleted_date__isnull=True)
     return JsonResponse({'success': True, 'item': {
         'id': dept.pk, 'name': dept.name,
         'created_by': dept.created_by.full_name,
         'created_date': dept.created_date.strftime('%Y-%m-%d %I:%M %p'),
+        'updated_by': dept.updated_by.full_name if dept.updated_by else '',
         'updated_date': dept.updated_date.strftime('%Y-%m-%d %I:%M %p') if dept.updated_date else '',
     }})
 
@@ -88,7 +89,9 @@ def department_edit(request, pk):
     dept = get_object_or_404(Department, pk=pk, deleted_date__isnull=True)
     form = DepartmentForm(request.POST, instance=dept)
     if form.is_valid():
-        form.save()
+        obj = form.save(commit=False)
+        obj.updated_by = request.user
+        obj.save()
         return JsonResponse({'success': True, 'message': _('Department updated successfully.')})
     errors = {f: [str(e) for e in v] for f, v in form.errors.items()}
     return JsonResponse({'success': False, 'errors': errors})
@@ -155,7 +158,7 @@ def employee_detail(request, pk):
     emp = get_object_or_404(
         Employee.objects.filter(
             site__in=request.user.get_allowed_sites(),
-        ).select_related('department', 'site', 'created_by'),
+        ).select_related('department', 'site', 'created_by', 'updated_by'),
         pk=pk, deleted_date__isnull=True,
     )
     return JsonResponse({'success': True, 'item': {
@@ -165,6 +168,7 @@ def employee_detail(request, pk):
         'site_id': emp.site_id,             'site_name': emp.site.name,
         'created_by': emp.created_by.full_name,
         'created_date': emp.created_date.strftime('%Y-%m-%d %I:%M %p'),
+        'updated_by': emp.updated_by.full_name if emp.updated_by else '',
         'updated_date': emp.updated_date.strftime('%Y-%m-%d %I:%M %p') if emp.updated_date else '',
     }})
 
@@ -192,7 +196,9 @@ def employee_edit(request, pk):
     emp = get_object_or_404(Employee, pk=pk, deleted_date__isnull=True)
     form = EmployeeForm(request.POST, instance=emp)
     if form.is_valid():
-        form.save()
+        obj = form.save(commit=False)
+        obj.updated_by = request.user
+        obj.save()
         return JsonResponse({'success': True, 'message': _('Employee updated successfully.')})
     errors = {f: [str(e) for e in v] for f, v in form.errors.items()}
     return JsonResponse({'success': False, 'errors': errors})

@@ -54,11 +54,12 @@ def governorates_data(request):
 def governorate_detail(request, pk):
     if not has_permission(request.user, Perms.LOCATIONS_VIEW):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
-    gov = get_object_or_404(Governorate.objects.select_related('created_by'), pk=pk, deleted_date__isnull=True)
+    gov = get_object_or_404(Governorate.objects.select_related('created_by', 'updated_by'), pk=pk, deleted_date__isnull=True)
     return JsonResponse({'success': True, 'item': {
         'id': gov.pk, 'name': gov.name,
         'created_by': gov.created_by.full_name,
         'created_date': gov.created_date.strftime('%Y-%m-%d %I:%M %p'),
+        'updated_by': gov.updated_by.full_name if gov.updated_by else '',
         'updated_date': gov.updated_date.strftime('%Y-%m-%d %I:%M %p') if gov.updated_date else '',
     }})
 
@@ -86,7 +87,9 @@ def governorate_edit(request, pk):
     gov = get_object_or_404(Governorate, pk=pk, deleted_date__isnull=True)
     form = GovernorateForm(request.POST, instance=gov)
     if form.is_valid():
-        form.save()
+        obj = form.save(commit=False)
+        obj.updated_by = request.user
+        obj.save()
         return JsonResponse({'success': True, 'message': _('Governorate updated successfully.')})
     errors = {f: [str(e) for e in v] for f, v in form.errors.items()}
     return JsonResponse({'success': False, 'errors': errors})
@@ -139,13 +142,14 @@ def sites_data(request):
 def site_detail(request, pk):
     if not has_permission(request.user, Perms.LOCATIONS_VIEW):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
-    site = get_object_or_404(Site.objects.select_related('governorate', 'created_by'),
+    site = get_object_or_404(Site.objects.select_related('governorate', 'created_by', 'updated_by'),
                              pk=pk, deleted_date__isnull=True)
     return JsonResponse({'success': True, 'item': {
         'id': site.pk, 'name': site.name,
         'governorate_id': site.governorate_id, 'governorate_name': site.governorate.name,
         'created_by': site.created_by.full_name,
         'created_date': site.created_date.strftime('%Y-%m-%d %I:%M %p'),
+        'updated_by': site.updated_by.full_name if site.updated_by else '',
         'updated_date': site.updated_date.strftime('%Y-%m-%d %I:%M %p') if site.updated_date else '',
     }})
 
@@ -173,7 +177,9 @@ def site_edit(request, pk):
     site = get_object_or_404(Site, pk=pk, deleted_date__isnull=True)
     form = SiteForm(request.POST, instance=site)
     if form.is_valid():
-        form.save()
+        obj = form.save(commit=False)
+        obj.updated_by = request.user
+        obj.save()
         return JsonResponse({'success': True, 'message': _('Site updated successfully.')})
     errors = {f: [str(e) for e in v] for f, v in form.errors.items()}
     return JsonResponse({'success': False, 'errors': errors})

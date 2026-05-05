@@ -29,6 +29,10 @@ class DeviceCategory(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         related_name='created_device_categories', db_column='Created_By',
     )
+    updated_by   = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        related_name='updated_device_categories', null=True, blank=True,
+    )
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(auto_now=True, null=True, blank=True)
     deleted_date = models.DateTimeField(null=True, blank=True)
@@ -45,6 +49,10 @@ class Brand(models.Model):
     created_by   = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         related_name='created_brands', db_column='Created_By',
+    )
+    updated_by   = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        related_name='updated_brands', null=True, blank=True,
     )
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(auto_now=True, null=True, blank=True)
@@ -65,6 +73,10 @@ class DeviceModel(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         related_name='created_device_models', db_column='Created_By',
     )
+    updated_by   = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        related_name='updated_device_models', null=True, blank=True,
+    )
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(auto_now=True, null=True, blank=True)
     deleted_date = models.DateTimeField(null=True, blank=True)
@@ -84,6 +96,10 @@ class CPU(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         related_name='created_cpus', db_column='Created_By',
     )
+    updated_by   = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        related_name='updated_cpus', null=True, blank=True,
+    )
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(auto_now=True, null=True, blank=True)
     deleted_date = models.DateTimeField(null=True, blank=True)
@@ -102,6 +118,10 @@ class GPU(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         related_name='created_gpus', db_column='Created_By',
     )
+    updated_by   = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        related_name='updated_gpus', null=True, blank=True,
+    )
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(auto_now=True, null=True, blank=True)
     deleted_date = models.DateTimeField(null=True, blank=True)
@@ -118,6 +138,10 @@ class OperatingSystem(models.Model):
     created_by   = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         related_name='created_operating_systems', db_column='Created_By',
+    )
+    updated_by   = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        related_name='updated_operating_systems', null=True, blank=True,
     )
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(auto_now=True, null=True, blank=True)
@@ -168,6 +192,10 @@ class Device(models.Model):
     created_by   = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         related_name='created_devices', db_column='Created_By',
+    )
+    updated_by   = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        related_name='updated_devices', null=True, blank=True,
     )
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(auto_now=True, null=True, blank=True)
@@ -223,6 +251,10 @@ class AccessoryType(models.Model):
     created_by   = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         related_name='created_accessory_types',
+    )
+    updated_by   = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        related_name='updated_accessory_types', null=True, blank=True,
     )
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(auto_now=True, null=True, blank=True)

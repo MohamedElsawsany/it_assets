@@ -22,6 +22,10 @@ class Governorate(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         related_name='created_governorates', db_column='Created_By',
     )
+    updated_by   = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        related_name='updated_governorates', null=True, blank=True,
+    )
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(auto_now=True, null=True, blank=True)
     deleted_date = models.DateTimeField(null=True, blank=True)
@@ -41,6 +45,10 @@ class Site(models.Model):
     created_by   = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         related_name='created_sites', db_column='Created_By',
+    )
+    updated_by   = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        related_name='updated_sites', null=True, blank=True,
     )
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(auto_now=True, null=True, blank=True)

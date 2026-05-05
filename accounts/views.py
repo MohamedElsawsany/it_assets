@@ -162,7 +162,7 @@ def user_detail(request, user_id):
     if not has_permission(request.user, Perms.USERS_VIEW):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
 
-    user = get_object_or_404(User.objects.select_related('site', 'created_by'), pk=user_id, deleted_date__isnull=True)
+    user = get_object_or_404(User.objects.select_related('site', 'created_by', 'updated_by'), pk=user_id, deleted_date__isnull=True)
     return JsonResponse({
         'success': True,
         'user': {
@@ -182,6 +182,7 @@ def user_detail(request, user_id):
             # Audit
             'created_by':   user.created_by.full_name if user.created_by else '',
             'created_date': user.created_date.strftime('%Y-%m-%d %I:%M %p') if user.created_date else '',
+            'updated_by':   user.updated_by.full_name if user.updated_by else '',
             'updated_date': user.updated_date.strftime('%Y-%m-%d %I:%M %p') if user.updated_date else '',
         }
     })
@@ -213,7 +214,9 @@ def user_edit(request, user_id):
     user = get_object_or_404(User, pk=user_id, deleted_date__isnull=True)
     form = UserEditForm(request.POST, instance=user)
     if form.is_valid():
-        form.save()
+        obj = form.save(commit=False)
+        obj.updated_by = request.user
+        obj.save()
         return JsonResponse({'success': True, 'message': _('User updated successfully.')})
 
     errors = {field: [str(e) for e in errs] for field, errs in form.errors.items()}

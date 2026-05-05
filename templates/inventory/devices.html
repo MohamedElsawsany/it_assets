@@ -143,6 +143,13 @@
               <p class="fw-medium mb-0" id="view-notes"></p>
             </div>
           </div>
+          <hr class="my-3">
+          <div class="row g-3 text-muted small">
+            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Created by" %}</p><p class="fw-medium text-body mb-0" id="view-created-by"></p></div>
+            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Created" %}</p><p class="fw-medium text-body mb-0" id="view-created-date"></p></div>
+            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Updated by" %}</p><p class="fw-medium text-body mb-0" id="view-updated-by"></p></div>
+            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Last updated" %}</p><p class="fw-medium text-body mb-0" id="view-updated-date"></p></div>
+          </div>
           {% if show_specs %}
           <div id="viewSpecsSection" class="d-none">
             <hr class="my-3">
@@ -645,6 +652,10 @@ function openViewModal(pk) {
       document.getElementById('view-site').textContent        = d.site_name;
       document.getElementById('view-flag').textContent        = d.flag_name || d.flag;
       document.getElementById('view-notes').textContent       = d.notes || '—';
+      document.getElementById('view-created-by').textContent  = d.created_by || '—';
+      document.getElementById('view-created-date').textContent = d.created_date || '—';
+      document.getElementById('view-updated-by').textContent  = d.updated_by || '—';
+      document.getElementById('view-updated-date').textContent = d.updated_date || '—';
       const specsSection = document.getElementById('viewSpecsSection');
       if (specsSection) {
         if (d.cpu_name !== undefined) {

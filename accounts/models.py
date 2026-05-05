@@ -80,6 +80,11 @@ class User(AbstractBaseUser, PermissionsMixin):
         null=True, blank=True,
         db_column='Created_By',
     )
+    updated_by   = models.ForeignKey(
+        'self', on_delete=models.SET_NULL,
+        related_name='updated_users',
+        null=True, blank=True,
+    )
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(auto_now=True, null=True, blank=True)
     deleted_date = models.DateTimeField(null=True, blank=True)

@@ -95,11 +95,12 @@ def lookup_item_detail(request, lookup_type, pk):
     if not has_permission(request.user, Perms.LOOKUPS_VIEW):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
     model, _, _, serialize = _get_lookup(lookup_type)
-    obj = get_object_or_404(model.objects.select_related('created_by'), pk=pk, deleted_date__isnull=True)
+    obj = get_object_or_404(model.objects.select_related('created_by', 'updated_by'), pk=pk, deleted_date__isnull=True)
     item = serialize(obj)
     item.update({
         'created_by': obj.created_by.full_name if obj.created_by else '',
         'created_date': obj.created_date.strftime('%Y-%m-%d %I:%M %p'),
+        'updated_by': obj.updated_by.full_name if obj.updated_by else '',
         'updated_date': obj.updated_date.strftime('%Y-%m-%d %I:%M %p') if obj.updated_date else '',
     })
     return JsonResponse({'success': True, 'item': item})
@@ -130,7 +131,9 @@ def lookup_edit(request, lookup_type, pk):
     obj = get_object_or_404(model, pk=pk, deleted_date__isnull=True)
     form = form_cls(request.POST, instance=obj)
     if form.is_valid():
-        form.save()
+        item = form.save(commit=False)
+        item.updated_by = request.user
+        item.save()
         return JsonResponse({'success': True, 'message': _('Item updated successfully.')})
     errors = {f: [str(e) for e in v] for f, v in form.errors.items()}
     return JsonResponse({'success': False, 'errors': errors})
@@ -248,7 +251,7 @@ def device_detail(request, pk):
         Device.objects.filter(
             site__in=request.user.get_allowed_sites(),
         ).select_related('category', 'brand', 'device_model', 'site',
-                         'cpu', 'gpu', 'operating_system', 'created_by'),
+                         'cpu', 'gpu', 'operating_system', 'created_by', 'updated_by'),
         pk=pk, deleted_date__isnull=True,
     )
     show_specs = has_permission(request.user, Perms.DEVICES_VIEW_SPECS)
@@ -262,6 +265,7 @@ def device_detail(request, pk):
         'notes': d.notes or '',
         'created_by': d.created_by.full_name,
         'created_date': d.created_date.strftime('%Y-%m-%d %I:%M %p'),
+        'updated_by': d.updated_by.full_name if d.updated_by else '',
         'updated_date': d.updated_date.strftime('%Y-%m-%d %I:%M %p') if d.updated_date else '',
     }
     if show_specs:
@@ -302,7 +306,9 @@ def device_edit(request, pk):
     device = get_object_or_404(Device, pk=pk, deleted_date__isnull=True)
     form = DeviceForm(request.POST, instance=device)
     if form.is_valid():
-        form.save()
+        obj = form.save(commit=False)
+        obj.updated_by = request.user
+        obj.save()
         return JsonResponse({'success': True, 'message': _('Device updated successfully.')})
     errors = {f: [str(e) for e in v] for f, v in form.errors.items()}
     return JsonResponse({'success': False, 'errors': errors})
