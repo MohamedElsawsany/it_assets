@@ -42,8 +42,8 @@ class Command(BaseCommand):
     # Clear
     # ──────────────────────────────────────────────────────────────────────────
     def _clear(self):
-        from maintenance.models import MaintenanceRecord
-        from assignments.models import DeviceAssignment, DeviceTransfer
+        from maintenance.models import MaintenanceRecord, AccessoryMaintenanceRecord
+        from assignments.models import DeviceAssignment, AccessoryAssignment, DeviceTransfer
         from inventory.models import Accessory, Device
         from employees.models import Employee, Department
         from locations.models import Site, Governorate
@@ -55,7 +55,9 @@ class Command(BaseCommand):
 
         self.stdout.write('Clearing existing data…')
         # Delete in dependency order (children before parents)
+        AccessoryMaintenanceRecord.objects.all().delete()
         MaintenanceRecord.objects.all().delete()
+        AccessoryAssignment.objects.all().delete()
         DeviceAssignment.objects.all().delete()
         DeviceTransfer.objects.all().delete()
         Accessory.objects.all().delete()
@@ -179,20 +181,20 @@ class Command(BaseCommand):
         from accounts.models import User
 
         user_data = [
-            ('it.admin',     'Ahmed',   'Nasser',  User.IT_ADMIN,          None),
-            ('supervisor',   'Sara',    'Mansour', User.IT_SUPERVISOR,     0),
-            ('inv.manager',  'Khaled',  'Ali',     User.INVENTORY_MANAGER, 1),
-            ('site.mgr1',    'Mona',    'Hassan',  User.SITE_MANAGER,      2),
-            ('site.mgr2',    'Omar',    'Ibrahim', User.SITE_MANAGER,      3),
-            ('maint.tech1',  'Youssef', 'Farouk',  User.MAINTENANCE_TECH,  4),
-            ('maint.tech2',  'Dina',    'Khalil',  User.MAINTENANCE_TECH,  5),
-            ('auditor',      'Layla',   'Sayed',   User.AUDITOR,           6),
-            ('viewer',       'Tamer',   'Hamdy',   User.VIEWER,            7),
+            ('it.admin',     'Ahmed',   'Nasser',  None),
+            ('supervisor',   'Sara',    'Mansour', 0),
+            ('inv.manager',  'Khaled',  'Ali',     1),
+            ('site.mgr1',    'Mona',    'Hassan',  2),
+            ('site.mgr2',    'Omar',    'Ibrahim', 3),
+            ('maint.tech1',  'Youssef', 'Farouk',  4),
+            ('maint.tech2',  'Dina',    'Khalil',  5),
+            ('auditor',      'Layla',   'Sayed',   6),
+            ('viewer',       'Tamer',   'Hamdy',   7),
         ]
 
         admin = User.objects.filter(is_superuser=True).first()
         users = []
-        for username, fname, lname, role, site_idx in user_data:
+        for username, fname, lname, site_idx in user_data:
             email = f'{username}@itassets.local'
             site = sites[site_idx] if site_idx is not None else None
             u, created = User.objects.get_or_create(
@@ -200,7 +202,6 @@ class Command(BaseCommand):
                 defaults={
                     'first_name': fname,
                     'last_name': lname,
-                    'role': role,
                     'site': site,
                     'is_active': True,
                     'created_by': admin,
@@ -429,15 +430,14 @@ class Command(BaseCommand):
         for i, dev in enumerate(available_devices):
             emp = employees[i % len(employees)]
             assigned_date = self._ago(random.randint(10, 300))
-            DeviceAssignment.objects.get_or_create(
-                device=dev, returned_date__isnull=True,
-                defaults={
-                    'employee':      emp,
-                    'assigned_date': assigned_date,
-                    'notes':         f'Assigned for {emp.department.name} work',
-                    'assigned_by':   assigner,
-                },
-            )
+            if not DeviceAssignment.objects.filter(device=dev, returned_date__isnull=True).exists():
+                DeviceAssignment.objects.create(
+                    device=dev,
+                    employee=emp,
+                    assigned_date=assigned_date,
+                    notes=f'Assigned for {emp.department.name} work',
+                    assigned_by=assigner,
+                )
             dev.flag = DeviceFlag.ASSIGNED
             dev.save(update_fields=['flag'])
             count += 1
@@ -495,7 +495,7 @@ class Command(BaseCommand):
         from maintenance.models import MaintenanceRecord
         from inventory.models import DeviceFlag
 
-        tech = next((u for u in users if u.role == 'maintenance_tech'), users[0])
+        tech = users[5]  # maint.tech1
 
         maint_types   = ['Internal', 'External', 'Internal', 'External', 'Internal']
         vendors       = ['TechFix Egypt', 'IT Solutions Co.', 'Cairo Repair Center', None]
