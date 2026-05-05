@@ -13,149 +13,243 @@
   <div class="page-header">
     <div>
       <h4 class="page-title">{% trans "Maintenance Records" %}</h4>
-      <p class="page-subtitle">{% trans "Track device maintenance and repairs." %}</p>
+      <p class="page-subtitle">{% trans "Track device and accessory maintenance and repairs." %}</p>
     </div>
     {% if rbac.maintenance_create %}
     <div>
       <button class="btn btn-primary d-flex align-items-center gap-2" onclick="openCreateModal()">
-        <i class="bi bi-plus-lg"></i><span>{% trans "New Record" %}</span>
+        <i class="bi bi-plus-lg"></i><span id="newRecordLabel">{% trans "New Record" %}</span>
       </button>
     </div>
     {% endif %}
   </div>
 
-  <!-- Filter bar -->
-  <div class="card card-app mb-3">
-    <div class="card-body py-3">
-      <div class="row g-2 align-items-end">
-        <div class="col-md-4">
-          <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-search"></i></span>
-            <input type="text" class="form-control" id="searchInput"
-                   placeholder="{% trans 'Search by serial, vendor, issue…' %}"
-                   oninput="debounceLoad()">
+  <!-- Tabs -->
+  <ul class="nav nav-tabs mb-3" id="maintenanceTabs">
+    <li class="nav-item">
+      <button class="nav-link active" id="tab-devices" onclick="switchTab('devices')">
+        <i class="bi bi-pc-display me-1"></i>{% trans "Devices" %}
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="tab-accessories" onclick="switchTab('accessories')">
+        <i class="bi bi-headphones me-1"></i>{% trans "Accessories" %}
+      </button>
+    </li>
+  </ul>
+
+  <!-- ── DEVICES TAB ── -->
+  <div id="pane-devices">
+
+    <!-- Filter bar -->
+    <div class="card card-app mb-3">
+      <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-4">
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input type="text" class="form-control" id="dev-searchInput"
+                     placeholder="{% trans 'Search by serial, vendor, issue…' %}"
+                     oninput="devDebounce()">
+            </div>
+          </div>
+          <div class="col-md-2">
+            <select class="form-select" id="dev-statusFilter" onchange="loadDevMaintenance()">
+              <option value="">{% trans "All Status" %}</option>
+              <option value="open">{% trans "Open" %}</option>
+              <option value="closed">{% trans "Closed" %}</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <select class="form-select" id="dev-typeFilter" onchange="loadDevMaintenance()">
+              <option value="">{% trans "All Types" %}</option>
+              {% for value, label in type_choices %}
+              <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-outline-secondary w-100" onclick="devResetFilters()">
+              <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Reset" %}
+            </button>
           </div>
         </div>
-        <div class="col-md-2">
-          <select class="form-select" id="statusFilter" onchange="loadMaintenance()">
-            <option value="">{% trans "All Status" %}</option>
-            <option value="open">{% trans "Open" %}</option>
-            <option value="closed">{% trans "Closed" %}</option>
-          </select>
-        </div>
-        <div class="col-md-3">
-          <select class="form-select" id="typeFilter" onchange="loadMaintenance()">
-            <option value="">{% trans "All Types" %}</option>
-            {% for value, label in type_choices %}
-            <option value="{{ value }}">{{ label }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="col-md-2">
-          <button class="btn btn-outline-secondary w-100" onclick="resetFilters()">
-            <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Reset" %}
-          </button>
-        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Table -->
-  <div class="card card-app">
-    <div class="card-body p-0">
-      <div id="tableLoader" class="text-center py-5 d-none">
-        <div class="spinner-border text-primary" role="status"></div>
-      </div>
-      <div id="tableWrapper" class="table-responsive">
-        <table class="table table-hover app-table mb-0">
-          <thead>
-            <tr>
-              <th style="width:50px">#</th>
-              <th>{% trans "Device" %}</th>
-              <th>{% trans "Type" %}</th>
-              <th>{% trans "Vendor" %}</th>
-              <th>{% trans "Issue" %}</th>
-              <th>{% trans "Sent Date" %}</th>
-              <th>{% trans "Returned Date" %}</th>
-              {% if rbac.maintenance_view_cost %}<th>{% trans "Cost" %}</th>{% endif %}
-              <th>{% trans "Status" %}</th>
-              <th class="text-end" style="width:160px">{% trans "Actions" %}</th>
-            </tr>
-          </thead>
-          <tbody id="maintenanceTableBody"></tbody>
-        </table>
-      </div>
-      <div id="emptyState" class="text-center py-5 d-none">
-        <i class="bi bi-tools display-6 text-muted"></i>
-        <p class="mt-3 text-muted">{% trans "No maintenance records found." %}</p>
-      </div>
-      <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
-        <span class="text-muted small" id="recordCount"></span>
-        <div id="pagination"></div>
+    <!-- Table -->
+    <div class="card card-app">
+      <div class="card-body p-0">
+        <div id="dev-tableLoader" class="text-center py-5 d-none">
+          <div class="spinner-border text-primary" role="status"></div>
+        </div>
+        <div id="dev-tableWrapper" class="table-responsive">
+          <table class="table table-hover app-table mb-0">
+            <thead>
+              <tr>
+                <th style="width:50px">#</th>
+                <th>{% trans "Device" %}</th>
+                <th>{% trans "Type" %}</th>
+                <th>{% trans "Vendor" %}</th>
+                <th>{% trans "Issue" %}</th>
+                <th>{% trans "Sent Date" %}</th>
+                <th>{% trans "Returned Date" %}</th>
+                {% if rbac.maintenance_view_cost %}<th>{% trans "Cost" %}</th>{% endif %}
+                <th>{% trans "Status" %}</th>
+                <th class="text-end" style="width:160px">{% trans "Actions" %}</th>
+              </tr>
+            </thead>
+            <tbody id="dev-maintenanceTableBody"></tbody>
+          </table>
+        </div>
+        <div id="dev-emptyState" class="text-center py-5 d-none">
+          <i class="bi bi-tools display-6 text-muted"></i>
+          <p class="mt-3 text-muted">{% trans "No maintenance records found." %}</p>
+        </div>
+        <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
+          <span class="text-muted small" id="dev-recordCount"></span>
+          <div id="dev-pagination"></div>
+        </div>
       </div>
     </div>
-  </div>
+  </div><!-- /pane-devices -->
+
+  <!-- ── ACCESSORIES TAB ── -->
+  <div id="pane-accessories" class="d-none">
+
+    <!-- Filter bar -->
+    <div class="card card-app mb-3">
+      <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-4">
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input type="text" class="form-control" id="acc-searchInput"
+                     placeholder="{% trans 'Search by type, serial, vendor, issue…' %}"
+                     oninput="accDebounce()">
+            </div>
+          </div>
+          <div class="col-md-2">
+            <select class="form-select" id="acc-statusFilter" onchange="loadAccMaintenance()">
+              <option value="">{% trans "All Status" %}</option>
+              <option value="open">{% trans "Open" %}</option>
+              <option value="closed">{% trans "Closed" %}</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <select class="form-select" id="acc-typeFilter" onchange="loadAccMaintenance()">
+              <option value="">{% trans "All Types" %}</option>
+              {% for value, label in type_choices %}
+              <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-outline-secondary w-100" onclick="accResetFilters()">
+              <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Reset" %}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card card-app">
+      <div class="card-body p-0">
+        <div id="acc-tableLoader" class="text-center py-5 d-none">
+          <div class="spinner-border text-primary" role="status"></div>
+        </div>
+        <div id="acc-tableWrapper" class="table-responsive">
+          <table class="table table-hover app-table mb-0">
+            <thead>
+              <tr>
+                <th style="width:50px">#</th>
+                <th>{% trans "Accessory" %}</th>
+                <th>{% trans "Type" %}</th>
+                <th>{% trans "Vendor" %}</th>
+                <th>{% trans "Issue" %}</th>
+                <th>{% trans "Sent Date" %}</th>
+                <th>{% trans "Returned Date" %}</th>
+                {% if rbac.maintenance_view_cost %}<th>{% trans "Cost" %}</th>{% endif %}
+                <th>{% trans "Status" %}</th>
+                <th class="text-end" style="width:160px">{% trans "Actions" %}</th>
+              </tr>
+            </thead>
+            <tbody id="acc-maintenanceTableBody"></tbody>
+          </table>
+        </div>
+        <div id="acc-emptyState" class="text-center py-5 d-none">
+          <i class="bi bi-headphones display-6 text-muted"></i>
+          <p class="mt-3 text-muted">{% trans "No maintenance records found." %}</p>
+        </div>
+        <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
+          <span class="text-muted small" id="acc-recordCount"></span>
+          <div id="acc-pagination"></div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /pane-accessories -->
 
 </div>
 
 
-<!-- ===== VIEW MODAL ===== -->
-<div class="modal fade" id="viewModal" tabindex="-1">
+<!-- ===== DEVICE VIEW MODAL ===== -->
+<div class="modal fade" id="devViewModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-tools me-2 text-secondary"></i>{% trans "Maintenance Record Details" %}</h5>
+        <h5 class="modal-title"><i class="bi bi-tools me-2 text-secondary"></i>{% trans "Device Maintenance Details" %}</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <div id="viewLoader" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
-        <div id="viewContent" class="d-none">
+        <div id="devViewLoader" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+        <div id="devViewContent" class="d-none">
           <div class="row g-3">
             <div class="col-md-6">
               <p class="text-muted small mb-1">{% trans "Device" %}</p>
-              <p class="fw-medium font-monospace mb-0" id="view-device"></p>
+              <p class="fw-medium font-monospace mb-0" id="dev-view-device"></p>
             </div>
             <div class="col-md-6">
               <p class="text-muted small mb-1">{% trans "Status" %}</p>
-              <p class="mb-0" id="view-status"></p>
+              <p class="mb-0" id="dev-view-status"></p>
             </div>
             <div class="col-md-6">
               <p class="text-muted small mb-1">{% trans "Type" %}</p>
-              <p class="fw-medium mb-0" id="view-type"></p>
+              <p class="fw-medium mb-0" id="dev-view-type"></p>
             </div>
             <div class="col-md-6">
               <p class="text-muted small mb-1">{% trans "Vendor" %}</p>
-              <p class="fw-medium mb-0" id="view-vendor"></p>
+              <p class="fw-medium mb-0" id="dev-view-vendor"></p>
             </div>
             <div class="col-md-6">
               <p class="text-muted small mb-1">{% trans "Sent Date" %}</p>
-              <p class="fw-medium mb-0" id="view-sent"></p>
+              <p class="fw-medium mb-0" id="dev-view-sent"></p>
             </div>
             <div class="col-md-6">
               <p class="text-muted small mb-1">{% trans "Returned Date" %}</p>
-              <p class="fw-medium mb-0" id="view-returned"></p>
+              <p class="fw-medium mb-0" id="dev-view-returned"></p>
             </div>
             <div class="col-12">
               <p class="text-muted small mb-1">{% trans "Issue Description" %}</p>
-              <p class="fw-medium mb-0 white-space-pre-wrap" id="view-issue"></p>
+              <p class="fw-medium mb-0 white-space-pre-wrap" id="dev-view-issue"></p>
             </div>
-            <div class="col-12" id="view-notes-row">
+            <div class="col-12">
               <p class="text-muted small mb-1">{% trans "Resolution Notes" %}</p>
-              <p class="fw-medium mb-0 white-space-pre-wrap" id="view-notes"></p>
+              <p class="fw-medium mb-0 white-space-pre-wrap" id="dev-view-notes"></p>
             </div>
             {% if rbac.maintenance_view_cost %}
-            <div class="col-md-4" id="view-cost-row">
+            <div class="col-md-4" id="dev-view-cost-row">
               <p class="text-muted small mb-1">{% trans "Cost" %}</p>
-              <p class="fw-medium mb-0" id="view-cost"></p>
+              <p class="fw-medium mb-0" id="dev-view-cost"></p>
             </div>
             {% endif %}
           </div>
           <hr class="my-3">
           <div class="row g-3 text-muted small">
-            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Created by" %}</p><p class="fw-medium text-body mb-0" id="view-created-by"></p></div>
-            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Created" %}</p><p class="fw-medium text-body mb-0" id="view-created-date"></p></div>
-            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Updated by" %}</p><p class="fw-medium text-body mb-0" id="view-updated-by"></p></div>
-            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Last updated" %}</p><p class="fw-medium text-body mb-0" id="view-updated-date"></p></div>
+            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Created by" %}</p><p class="fw-medium text-body mb-0" id="dev-view-created-by"></p></div>
+            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Created" %}</p><p class="fw-medium text-body mb-0" id="dev-view-created-date"></p></div>
+            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Updated by" %}</p><p class="fw-medium text-body mb-0" id="dev-view-updated-by"></p></div>
+            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Last updated" %}</p><p class="fw-medium text-body mb-0" id="dev-view-updated-date"></p></div>
           </div>
         </div>
       </div>
@@ -167,15 +261,15 @@
 </div>
 
 
-<!-- ===== CREATE MODAL ===== -->
-<div class="modal fade" id="createModal" tabindex="-1">
+<!-- ===== DEVICE CREATE MODAL ===== -->
+<div class="modal fade" id="devCreateModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-tools me-2 text-primary"></i>{% trans "New Maintenance Record" %}</h5>
+        <h5 class="modal-title"><i class="bi bi-tools me-2 text-primary"></i>{% trans "New Device Maintenance Record" %}</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <form id="createForm" novalidate>
+      <form id="devCreateForm" novalidate>
         {% csrf_token %}
         <div class="modal-body">
           <div class="row g-3">
@@ -186,14 +280,14 @@
             </div>
             <div class="col-md-6">
               <label class="form-label">{% trans "Maintenance Type" %} <span class="text-danger">*</span></label>
-              <select class="form-select" name="maintenance_type" required onchange="toggleVendor(this.value)">
+              <select class="form-select" name="maintenance_type" required onchange="toggleVendor('devCreateForm', this.value)">
                 {% for value, label in type_choices %}
                 <option value="{{ value }}">{{ label }}</option>
                 {% endfor %}
               </select>
               <div class="invalid-feedback"></div>
             </div>
-            <div class="col-md-6" id="vendorField">
+            <div class="col-md-6" id="devCreateVendorField">
               <label class="form-label">{% trans "Vendor Name" %}</label>
               <input type="text" class="form-control" name="vendor_name">
               <div class="invalid-feedback"></div>
@@ -212,7 +306,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
-          <button type="submit" class="btn btn-primary" id="createSubmitBtn">
+          <button type="submit" class="btn btn-primary" id="devCreateSubmitBtn">
             <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Create" %}</span>
             <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
           </button>
@@ -223,20 +317,20 @@
 </div>
 
 
-<!-- ===== EDIT MODAL ===== -->
-<div class="modal fade" id="editModal" tabindex="-1">
+<!-- ===== DEVICE EDIT MODAL ===== -->
+<div class="modal fade" id="devEditModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-pencil me-2 text-primary"></i>{% trans "Edit Maintenance Record" %}</h5>
+        <h5 class="modal-title"><i class="bi bi-pencil me-2 text-primary"></i>{% trans "Edit Device Maintenance Record" %}</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <form id="editForm" novalidate>
+      <form id="devEditForm" novalidate>
         {% csrf_token %}
-        <input type="hidden" id="editRecordId">
+        <input type="hidden" id="devEditRecordId">
         <div class="modal-body">
-          <div id="editLoader" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
-          <div id="editContent" class="d-none">
+          <div id="devEditLoader" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+          <div id="devEditContent" class="d-none">
             <div class="row g-3">
               <div class="col-md-6">
                 <label class="form-label">{% trans "Device" %} <span class="text-danger">*</span></label>
@@ -245,14 +339,14 @@
               </div>
               <div class="col-md-6">
                 <label class="form-label">{% trans "Maintenance Type" %} <span class="text-danger">*</span></label>
-                <select class="form-select" name="maintenance_type" required onchange="toggleVendorEdit(this.value)">
+                <select class="form-select" name="maintenance_type" required onchange="toggleVendor('devEditForm', this.value)">
                   {% for value, label in type_choices %}
                   <option value="{{ value }}">{{ label }}</option>
                   {% endfor %}
                 </select>
                 <div class="invalid-feedback"></div>
               </div>
-              <div class="col-md-6" id="vendorFieldEdit">
+              <div class="col-md-6" id="devEditVendorField">
                 <label class="form-label">{% trans "Vendor Name" %}</label>
                 <input type="text" class="form-control" name="vendor_name">
                 <div class="invalid-feedback"></div>
@@ -272,7 +366,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
-          <button type="submit" class="btn btn-primary" id="editSubmitBtn">
+          <button type="submit" class="btn btn-primary" id="devEditSubmitBtn">
             <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Save Changes" %}</span>
             <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
           </button>
@@ -283,17 +377,17 @@
 </div>
 
 
-<!-- ===== CLOSE MODAL ===== -->
-<div class="modal fade" id="closeModal" tabindex="-1">
+<!-- ===== DEVICE CLOSE MODAL ===== -->
+<div class="modal fade" id="devCloseModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-check-circle me-2 text-success"></i>{% trans "Close Maintenance Record" %}</h5>
+        <h5 class="modal-title"><i class="bi bi-check-circle me-2 text-success"></i>{% trans "Close Device Maintenance Record" %}</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <form id="closeForm" novalidate>
+      <form id="devCloseForm" novalidate>
         {% csrf_token %}
-        <input type="hidden" id="closeRecordId">
+        <input type="hidden" id="devCloseRecordId">
         <div class="modal-body">
           <div class="mb-3">
             <label class="form-label">{% trans "Return Date" %} <span class="text-danger">*</span></label>
@@ -314,7 +408,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
-          <button type="submit" class="btn btn-success" id="closeSubmitBtn">
+          <button type="submit" class="btn btn-success" id="devCloseSubmitBtn">
             <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Close Record" %}</span>
             <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
           </button>
@@ -325,8 +419,8 @@
 </div>
 
 
-<!-- ===== DELETE MODAL ===== -->
-<div class="modal fade" id="deleteModal" tabindex="-1">
+<!-- ===== DEVICE DELETE MODAL ===== -->
+<div class="modal fade" id="devDeleteModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header border-0 pb-0">
@@ -335,12 +429,263 @@
       <div class="modal-body text-center pt-0 pb-4">
         <div class="delete-icon-wrapper mb-3"><i class="bi bi-trash3 text-danger"></i></div>
         <h5 class="fw-semibold">{% trans "Delete Record" %}</h5>
-        <p class="text-muted"><strong id="deleteRecordLabel"></strong><br>
+        <p class="text-muted"><strong id="devDeleteRecordLabel"></strong><br>
           <small>{% trans "This action cannot be undone." %}</small></p>
       </div>
       <div class="modal-footer justify-content-center border-0 pt-0">
         <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
-        <button type="button" class="btn btn-danger px-4" id="confirmDeleteBtn">
+        <button type="button" class="btn btn-danger px-4" id="devConfirmDeleteBtn">
+          <span class="btn-text"><i class="bi bi-trash3 me-1"></i>{% trans "Delete" %}</span>
+          <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Deleting…" %}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== ACCESSORY VIEW MODAL ===== -->
+<div class="modal fade" id="accViewModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-headphones me-2 text-secondary"></i>{% trans "Accessory Maintenance Details" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="accViewLoader" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+        <div id="accViewContent" class="d-none">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Accessory" %}</p>
+              <p class="fw-medium mb-0" id="acc-view-accessory"></p>
+            </div>
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Status" %}</p>
+              <p class="mb-0" id="acc-view-status"></p>
+            </div>
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Type" %}</p>
+              <p class="fw-medium mb-0" id="acc-view-type"></p>
+            </div>
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Vendor" %}</p>
+              <p class="fw-medium mb-0" id="acc-view-vendor"></p>
+            </div>
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Sent Date" %}</p>
+              <p class="fw-medium mb-0" id="acc-view-sent"></p>
+            </div>
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Returned Date" %}</p>
+              <p class="fw-medium mb-0" id="acc-view-returned"></p>
+            </div>
+            <div class="col-12">
+              <p class="text-muted small mb-1">{% trans "Issue Description" %}</p>
+              <p class="fw-medium mb-0 white-space-pre-wrap" id="acc-view-issue"></p>
+            </div>
+            <div class="col-12">
+              <p class="text-muted small mb-1">{% trans "Resolution Notes" %}</p>
+              <p class="fw-medium mb-0 white-space-pre-wrap" id="acc-view-notes"></p>
+            </div>
+            {% if rbac.maintenance_view_cost %}
+            <div class="col-md-4" id="acc-view-cost-row">
+              <p class="text-muted small mb-1">{% trans "Cost" %}</p>
+              <p class="fw-medium mb-0" id="acc-view-cost"></p>
+            </div>
+            {% endif %}
+          </div>
+          <hr class="my-3">
+          <div class="row g-3 text-muted small">
+            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Created by" %}</p><p class="fw-medium text-body mb-0" id="acc-view-created-by"></p></div>
+            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Created" %}</p><p class="fw-medium text-body mb-0" id="acc-view-created-date"></p></div>
+            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Updated by" %}</p><p class="fw-medium text-body mb-0" id="acc-view-updated-by"></p></div>
+            <div class="col-6 col-md-3"><p class="mb-1">{% trans "Last updated" %}</p><p class="fw-medium text-body mb-0" id="acc-view-updated-date"></p></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Close" %}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== ACCESSORY CREATE MODAL ===== -->
+<div class="modal fade" id="accCreateModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-headphones me-2 text-primary"></i>{% trans "New Accessory Maintenance Record" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="accCreateForm" novalidate>
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Accessory" %} <span class="text-danger">*</span></label>
+              <select class="form-select" name="accessory" required><option value=""></option></select>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Maintenance Type" %} <span class="text-danger">*</span></label>
+              <select class="form-select" name="maintenance_type" required onchange="toggleVendor('accCreateForm', this.value)">
+                {% for value, label in type_choices %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6" id="accCreateVendorField">
+              <label class="form-label">{% trans "Vendor Name" %}</label>
+              <input type="text" class="form-control" name="vendor_name">
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Sent Date" %} <span class="text-danger">*</span></label>
+              <input type="datetime-local" class="form-control" name="sent_date" required>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-12">
+              <label class="form-label">{% trans "Issue Description" %} <span class="text-danger">*</span></label>
+              <textarea class="form-control" name="issue_description" rows="3" required></textarea>
+              <div class="invalid-feedback"></div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-primary" id="accCreateSubmitBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Create" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== ACCESSORY EDIT MODAL ===== -->
+<div class="modal fade" id="accEditModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil me-2 text-primary"></i>{% trans "Edit Accessory Maintenance Record" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="accEditForm" novalidate>
+        {% csrf_token %}
+        <input type="hidden" id="accEditRecordId">
+        <div class="modal-body">
+          <div id="accEditLoader" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+          <div id="accEditContent" class="d-none">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">{% trans "Accessory" %} <span class="text-danger">*</span></label>
+                <select class="form-select" name="accessory" required><option value=""></option></select>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{% trans "Maintenance Type" %} <span class="text-danger">*</span></label>
+                <select class="form-select" name="maintenance_type" required onchange="toggleVendor('accEditForm', this.value)">
+                  {% for value, label in type_choices %}
+                  <option value="{{ value }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6" id="accEditVendorField">
+                <label class="form-label">{% trans "Vendor Name" %}</label>
+                <input type="text" class="form-control" name="vendor_name">
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">{% trans "Sent Date" %} <span class="text-danger">*</span></label>
+                <input type="datetime-local" class="form-control" name="sent_date" required>
+                <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-12">
+                <label class="form-label">{% trans "Issue Description" %} <span class="text-danger">*</span></label>
+                <textarea class="form-control" name="issue_description" rows="3" required></textarea>
+                <div class="invalid-feedback"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-primary" id="accEditSubmitBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Save Changes" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== ACCESSORY CLOSE MODAL ===== -->
+<div class="modal fade" id="accCloseModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-check-circle me-2 text-success"></i>{% trans "Close Accessory Maintenance Record" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="accCloseForm" novalidate>
+        {% csrf_token %}
+        <input type="hidden" id="accCloseRecordId">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">{% trans "Return Date" %} <span class="text-danger">*</span></label>
+            <input type="datetime-local" class="form-control" name="returned_date" required>
+            <div class="invalid-feedback"></div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{% trans "Resolution Notes" %}</label>
+            <textarea class="form-control" name="resolution_notes" rows="3"></textarea>
+          </div>
+          {% if rbac.maintenance_view_cost %}
+          <div class="mb-3">
+            <label class="form-label">{% trans "Cost" %}</label>
+            <input type="number" class="form-control" name="cost" step="0.01" min="0">
+            <div class="invalid-feedback"></div>
+          </div>
+          {% endif %}
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-success" id="accCloseSubmitBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Close Record" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== ACCESSORY DELETE MODAL ===== -->
+<div class="modal fade" id="accDeleteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center pt-0 pb-4">
+        <div class="delete-icon-wrapper mb-3"><i class="bi bi-trash3 text-danger"></i></div>
+        <h5 class="fw-semibold">{% trans "Delete Record" %}</h5>
+        <p class="text-muted"><strong id="accDeleteRecordLabel"></strong><br>
+          <small>{% trans "This action cannot be undone." %}</small></p>
+      </div>
+      <div class="modal-footer justify-content-center border-0 pt-0">
+        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+        <button type="button" class="btn btn-danger px-4" id="accConfirmDeleteBtn">
           <span class="btn-text"><i class="bi bi-trash3 me-1"></i>{% trans "Delete" %}</span>
           <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Deleting…" %}</span>
         </button>
@@ -359,12 +704,19 @@ const CAN_DELETE = {{ rbac.maintenance_delete|yesno:"true,false" }};
 const CAN_CLOSE  = {{ rbac.maintenance_close|yesno:"true,false" }};
 const SHOW_COST  = {{ rbac.maintenance_view_cost|yesno:"true,false" }};
 
-const URL_DATA   = '{% url "maintenance-data" %}';
-const URL_CREATE = '{% url "maintenance-create" %}';
-const detailUrl  = pk => `/maintenance/${pk}/`;
-const editUrl    = pk => `/maintenance/${pk}/edit/`;
-const closeUrl   = pk => `/maintenance/${pk}/close/`;
-const deleteUrl  = pk => `/maintenance/${pk}/delete/`;
+const DEV_URL_DATA   = '{% url "maintenance-data" %}';
+const DEV_URL_CREATE = '{% url "maintenance-create" %}';
+const devDetailUrl   = pk => `/maintenance/${pk}/`;
+const devEditUrl     = pk => `/maintenance/${pk}/edit/`;
+const devCloseUrl    = pk => `/maintenance/${pk}/close/`;
+const devDeleteUrl   = pk => `/maintenance/${pk}/delete/`;
+
+const ACC_URL_DATA   = '{% url "acc-maintenance-data" %}';
+const ACC_URL_CREATE = '{% url "acc-maintenance-create" %}';
+const accDetailUrl   = pk => `/maintenance/accessories/${pk}/`;
+const accEditUrl     = pk => `/maintenance/accessories/${pk}/edit/`;
+const accCloseUrl    = pk => `/maintenance/accessories/${pk}/close/`;
+const accDeleteUrl   = pk => `/maintenance/accessories/${pk}/delete/`;
 
 const T = {
   records: '{% trans "records" %}',
@@ -372,58 +724,114 @@ const T = {
   closed:  '{% trans "Closed" %}',
 };
 
-let deleteTargetId = null;
-let debounceTimer  = null;
-let currentPage    = 1;
+let activeTab        = 'devices';
+let accLoaded        = false;
 
-const viewModal   = new bootstrap.Modal('#viewModal');
-const createModal = new bootstrap.Modal('#createModal');
-const editModal   = new bootstrap.Modal('#editModal');
-const closeModal  = new bootstrap.Modal('#closeModal');
-const deleteModal = new bootstrap.Modal('#deleteModal');
+let devDeleteId = null;
+let accDeleteId = null;
+let devDebounceTimer = null;
+let accDebounceTimer = null;
+let devCurrentPage = 1;
+let accCurrentPage = 1;
 
-function loadMaintenance(page) {
-  currentPage = page || 1;
-  const search = document.getElementById('searchInput').value.trim();
-  const status = document.getElementById('statusFilter').value;
-  const type   = document.getElementById('typeFilter').value;
+const devViewModal   = new bootstrap.Modal('#devViewModal');
+const devCreateModal = new bootstrap.Modal('#devCreateModal');
+const devEditModal   = new bootstrap.Modal('#devEditModal');
+const devCloseModal  = new bootstrap.Modal('#devCloseModal');
+const devDeleteModal = new bootstrap.Modal('#devDeleteModal');
+
+const accViewModal   = new bootstrap.Modal('#accViewModal');
+const accCreateModal = new bootstrap.Modal('#accCreateModal');
+const accEditModal   = new bootstrap.Modal('#accEditModal');
+const accCloseModal  = new bootstrap.Modal('#accCloseModal');
+const accDeleteModal = new bootstrap.Modal('#accDeleteModal');
+
+/* ── Tab switching ── */
+function switchTab(tab) {
+  activeTab = tab;
+  document.getElementById('pane-devices').classList.toggle('d-none', tab !== 'devices');
+  document.getElementById('pane-accessories').classList.toggle('d-none', tab !== 'accessories');
+  document.getElementById('tab-devices').classList.toggle('active', tab === 'devices');
+  document.getElementById('tab-accessories').classList.toggle('active', tab === 'accessories');
+
+  const lbl = document.getElementById('newRecordLabel');
+  if (lbl) lbl.textContent = tab === 'devices' ? '{% trans "New Record" %}' : '{% trans "New Record" %}';
+
+  if (tab === 'accessories' && !accLoaded) {
+    accLoaded = true;
+    loadAccMaintenance();
+  }
+}
+
+function openCreateModal() {
+  if (activeTab === 'devices') openDevCreateModal();
+  else openAccCreateModal();
+}
+
+/* ── Shared helpers ── */
+function toggleVendor(formId, val) {
+  const vendorFieldId = formId === 'devCreateForm' ? 'devCreateVendorField'
+    : formId === 'devEditForm'   ? 'devEditVendorField'
+    : formId === 'accCreateForm' ? 'accCreateVendorField'
+    : 'accEditVendorField';
+  document.getElementById(vendorFieldId).style.display = val === 'External' ? '' : 'none';
+}
+
+function badgeHtml(isOpen) {
+  return isOpen
+    ? `<span class="badge rounded-pill bg-warning-subtle text-warning">${T.open}</span>`
+    : `<span class="badge rounded-pill bg-success-subtle text-success">${T.closed}</span>`;
+}
+
+/* ══════════════════════════════════════════════════════
+   DEVICES
+══════════════════════════════════════════════════════ */
+function loadDevMaintenance(page) {
+  devCurrentPage = page || 1;
+  const search = document.getElementById('dev-searchInput').value.trim();
+  const status = document.getElementById('dev-statusFilter').value;
+  const type   = document.getElementById('dev-typeFilter').value;
   const params = new URLSearchParams();
   if (search) params.set('search', search);
   if (status) params.set('status', status);
   if (type)   params.set('type', type);
-  params.set('page', currentPage);
-  document.getElementById('tableLoader').classList.remove('d-none');
-  document.getElementById('tableWrapper').classList.add('d-none');
-  ajaxGet(`${URL_DATA}?${params}`)
+  params.set('page', devCurrentPage);
+  document.getElementById('dev-tableLoader').classList.remove('d-none');
+  document.getElementById('dev-tableWrapper').classList.add('d-none');
+  ajaxGet(`${DEV_URL_DATA}?${params}`)
     .then(data => {
-      renderTable(data.items, data.show_cost);
-      document.getElementById('recordCount').textContent = `${data.total} ${T.records}`;
-      renderPagination('pagination', data.page, data.num_pages, loadMaintenance);
+      if (!data.success) { showToast(data.message || '{% trans "Failed to load records." %}', 'danger'); return; }
+      renderDevTable(data.items, data.show_cost);
+      document.getElementById('dev-recordCount').textContent = `${data.total} ${T.records}`;
+      renderPagination('dev-pagination', data.page, data.num_pages, loadDevMaintenance);
     })
     .catch(() => showToast('{% trans "Failed to load records." %}', 'danger'))
-    .finally(() => { document.getElementById('tableLoader').classList.add('d-none'); document.getElementById('tableWrapper').classList.remove('d-none'); });
+    .finally(() => {
+      document.getElementById('dev-tableLoader').classList.add('d-none');
+      document.getElementById('dev-tableWrapper').classList.remove('d-none');
+    });
 }
 
-function debounceLoad() { currentPage = 1; clearTimeout(debounceTimer); debounceTimer = setTimeout(loadMaintenance, 400); }
-function resetFilters() {
-  currentPage = 1;
-  document.getElementById('searchInput').value = '';
-  document.getElementById('statusFilter').value = '';
-  document.getElementById('typeFilter').value = '';
-  loadMaintenance();
+function devDebounce() { devCurrentPage = 1; clearTimeout(devDebounceTimer); devDebounceTimer = setTimeout(loadDevMaintenance, 400); }
+function devResetFilters() {
+  devCurrentPage = 1;
+  document.getElementById('dev-searchInput').value = '';
+  document.getElementById('dev-statusFilter').value = '';
+  document.getElementById('dev-typeFilter').value = '';
+  loadDevMaintenance();
 }
 
-function renderTable(items, showCost) {
-  const tbody = document.getElementById('maintenanceTableBody');
-  const empty = document.getElementById('emptyState');
-  if (!items.length) {
+function renderDevTable(items, showCost) {
+  const tbody = document.getElementById('dev-maintenanceTableBody');
+  const empty = document.getElementById('dev-emptyState');
+  if (!items || !items.length) {
     tbody.innerHTML = '';
     empty.classList.remove('d-none');
-    document.getElementById('tableWrapper').classList.add('d-none');
+    document.getElementById('dev-tableWrapper').classList.add('d-none');
     return;
   }
   empty.classList.add('d-none');
-  document.getElementById('tableWrapper').classList.remove('d-none');
+  document.getElementById('dev-tableWrapper').classList.remove('d-none');
   tbody.innerHTML = items.map((r, i) => `
     <tr>
       <td class="text-muted small">${i + 1}</td>
@@ -434,162 +842,327 @@ function renderTable(items, showCost) {
       <td class="text-muted small">${r.sent_date}</td>
       <td class="text-muted small">${r.returned_date || '<span class="text-muted">—</span>'}</td>
       ${showCost ? `<td class="text-muted small">${r.cost !== undefined && r.cost !== '' ? escHtml(r.cost) : '—'}</td>` : ''}
-      <td>
-        <span class="badge rounded-pill ${r.is_open ? 'bg-warning-subtle text-warning' : 'bg-success-subtle text-success'}">
-          ${r.is_open ? T.open : T.closed}
-        </span>
-      </td>
+      <td>${badgeHtml(r.is_open)}</td>
       <td class="text-end">
         <div class="d-flex gap-1 justify-content-end">
-          <button class="btn btn-sm btn-icon btn-outline-secondary" onclick="openViewModal(${r.id})" title="{% trans 'View' %}"><i class="bi bi-eye"></i></button>
-          ${CAN_EDIT ? `<button class="btn btn-sm btn-icon btn-outline-primary" onclick="openEditModal(${r.id})" title="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></button>` : ''}
-          ${CAN_CLOSE && r.is_open ? `<button class="btn btn-sm btn-icon btn-outline-success" onclick="openCloseModal(${r.id})" title="{% trans 'Close' %}"><i class="bi bi-check-circle"></i></button>` : ''}
-          ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDeleteModal(${r.id},'${escHtml(r.device_serial)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
+          <button class="btn btn-sm btn-icon btn-outline-secondary" onclick="openDevViewModal(${r.id})" title="{% trans 'View' %}"><i class="bi bi-eye"></i></button>
+          ${CAN_EDIT ? `<button class="btn btn-sm btn-icon btn-outline-primary" onclick="openDevEditModal(${r.id})" title="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></button>` : ''}
+          ${CAN_CLOSE && r.is_open ? `<button class="btn btn-sm btn-icon btn-outline-success" onclick="openDevCloseModal(${r.id})" title="{% trans 'Close' %}"><i class="bi bi-check-circle"></i></button>` : ''}
+          ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDevDeleteModal(${r.id},'${escHtml(r.device_serial)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
         </div>
       </td>
     </tr>
   `).join('');
 }
 
-function toggleVendor(val) {
-  document.getElementById('vendorField').style.display = val === 'External' ? '' : 'none';
-}
-function toggleVendorEdit(val) {
-  document.getElementById('vendorFieldEdit').style.display = val === 'External' ? '' : 'none';
-}
-
-/* View */
-function openViewModal(pk) {
-  document.getElementById('viewLoader').classList.remove('d-none');
-  document.getElementById('viewContent').classList.add('d-none');
-  viewModal.show();
-  ajaxGet(detailUrl(pk))
+function openDevViewModal(pk) {
+  document.getElementById('devViewLoader').classList.remove('d-none');
+  document.getElementById('devViewContent').classList.add('d-none');
+  devViewModal.show();
+  ajaxGet(devDetailUrl(pk))
     .then(data => {
-      if (!data.success) { showToast(data.message, 'danger'); viewModal.hide(); return; }
+      if (!data.success) { showToast(data.message, 'danger'); devViewModal.hide(); return; }
       const r = data.item;
-      document.getElementById('view-device').textContent   = r.device_serial;
-      document.getElementById('view-type').textContent     = r.maintenance_type_display;
-      document.getElementById('view-vendor').textContent   = r.vendor_name || '—';
-      document.getElementById('view-sent').textContent     = r.sent_date ? r.sent_date.replace('T', ' ') : '—';
-      document.getElementById('view-returned').textContent = r.returned_date ? r.returned_date.replace('T', ' ') : '—';
-      document.getElementById('view-issue').textContent    = r.issue_description;
-      document.getElementById('view-notes').textContent    = r.resolution_notes || '—';
-      const statusEl = document.getElementById('view-status');
-      if (r.is_open) {
-        statusEl.innerHTML = `<span class="badge rounded-pill bg-warning-subtle text-warning">${T.open}</span>`;
-      } else {
-        statusEl.innerHTML = `<span class="badge rounded-pill bg-success-subtle text-success">${T.closed}</span>`;
-      }
-      const costRow = document.getElementById('view-cost-row');
-      if (costRow && data.show_cost) {
-        document.getElementById('view-cost').textContent = r.cost !== undefined && r.cost !== '' ? r.cost : '—';
-      }
-      document.getElementById('view-created-by').textContent  = r.created_by || '—';
-      document.getElementById('view-created-date').textContent = r.created_date || '—';
-      document.getElementById('view-updated-by').textContent  = r.updated_by || '—';
-      document.getElementById('view-updated-date').textContent = r.updated_date || '—';
-      document.getElementById('viewLoader').classList.add('d-none');
-      document.getElementById('viewContent').classList.remove('d-none');
+      document.getElementById('dev-view-device').textContent   = r.device_serial;
+      document.getElementById('dev-view-type').textContent     = r.maintenance_type_display;
+      document.getElementById('dev-view-vendor').textContent   = r.vendor_name || '—';
+      document.getElementById('dev-view-sent').textContent     = r.sent_date ? r.sent_date.replace('T', ' ') : '—';
+      document.getElementById('dev-view-returned').textContent = r.returned_date ? r.returned_date.replace('T', ' ') : '—';
+      document.getElementById('dev-view-issue').textContent    = r.issue_description;
+      document.getElementById('dev-view-notes').textContent    = r.resolution_notes || '—';
+      document.getElementById('dev-view-status').innerHTML     = badgeHtml(r.is_open);
+      const costRow = document.getElementById('dev-view-cost-row');
+      if (costRow && data.show_cost) document.getElementById('dev-view-cost').textContent = r.cost !== undefined && r.cost !== '' ? r.cost : '—';
+      document.getElementById('dev-view-created-by').textContent   = r.created_by || '—';
+      document.getElementById('dev-view-created-date').textContent = r.created_date || '—';
+      document.getElementById('dev-view-updated-by').textContent   = r.updated_by || '—';
+      document.getElementById('dev-view-updated-date').textContent = r.updated_date || '—';
+      document.getElementById('devViewLoader').classList.add('d-none');
+      document.getElementById('devViewContent').classList.remove('d-none');
     })
-    .catch(() => { showToast('{% trans "Failed to load record." %}', 'danger'); viewModal.hide(); });
+    .catch(() => { showToast('{% trans "Failed to load record." %}', 'danger'); devViewModal.hide(); });
 }
 
-/* Create */
-function openCreateModal() {
-  document.getElementById('createForm').reset();
-  resetFormSelects(document.getElementById('createForm'));
-  clearFormErrors(document.getElementById('createForm'));
+function openDevCreateModal() {
+  document.getElementById('devCreateForm').reset();
+  resetFormSelects(document.getElementById('devCreateForm'));
+  clearFormErrors(document.getElementById('devCreateForm'));
   const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-  document.getElementById('createForm').querySelector('[name=sent_date]').value = now.toISOString().slice(0,16);
-  toggleVendor(document.getElementById('createForm').querySelector('[name=maintenance_type]').value);
-  createModal.show();
+  document.getElementById('devCreateForm').querySelector('[name=sent_date]').value = now.toISOString().slice(0,16);
+  toggleVendor('devCreateForm', document.getElementById('devCreateForm').querySelector('[name=maintenance_type]').value);
+  devCreateModal.show();
 }
-document.getElementById('createForm').addEventListener('submit', function(e) {
+document.getElementById('devCreateForm').addEventListener('submit', function(e) {
   e.preventDefault();
-  const btn = document.getElementById('createSubmitBtn');
+  const btn = document.getElementById('devCreateSubmitBtn');
   clearFormErrors(this); setButtonLoading(btn, true);
-  ajaxPost(URL_CREATE, new FormData(this))
-    .then(data => { if (data.success) { createModal.hide(); showToast(data.message, 'success'); loadMaintenance(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+  ajaxPost(DEV_URL_CREATE, new FormData(this))
+    .then(data => { if (data.success) { devCreateModal.hide(); showToast(data.message, 'success'); loadDevMaintenance(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
     .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
     .finally(() => setButtonLoading(btn, false));
 });
 
-/* Edit */
-function openEditModal(pk) {
-  document.getElementById('editLoader').classList.remove('d-none');
-  document.getElementById('editContent').classList.add('d-none');
-  document.getElementById('editRecordId').value = pk;
-  clearFormErrors(document.getElementById('editForm'));
-  editModal.show();
-  ajaxGet(detailUrl(pk))
+function openDevEditModal(pk) {
+  document.getElementById('devEditLoader').classList.remove('d-none');
+  document.getElementById('devEditContent').classList.add('d-none');
+  document.getElementById('devEditRecordId').value = pk;
+  clearFormErrors(document.getElementById('devEditForm'));
+  devEditModal.show();
+  ajaxGet(devDetailUrl(pk))
     .then(data => {
-      if (!data.success) { showToast(data.message, 'danger'); editModal.hide(); return; }
+      if (!data.success) { showToast(data.message, 'danger'); devEditModal.hide(); return; }
       const r = data.item;
-      const f = document.getElementById('editForm');
-      setSelect2Value($('#editForm [name=device]'), r.device_id, r.device_serial);
+      const f = document.getElementById('devEditForm');
+      setSelect2Value($('#devEditForm [name=device]'), r.device_id, r.device_serial);
       f.querySelector('[name=maintenance_type]').value  = r.maintenance_type;
       f.querySelector('[name=vendor_name]').value       = r.vendor_name || '';
       f.querySelector('[name=sent_date]').value         = r.sent_date;
       f.querySelector('[name=issue_description]').value = r.issue_description;
-      toggleVendorEdit(r.maintenance_type);
-      document.getElementById('editLoader').classList.add('d-none');
-      document.getElementById('editContent').classList.remove('d-none');
+      toggleVendor('devEditForm', r.maintenance_type);
+      document.getElementById('devEditLoader').classList.add('d-none');
+      document.getElementById('devEditContent').classList.remove('d-none');
     })
-    .catch(() => { showToast('{% trans "Failed to load record." %}', 'danger'); editModal.hide(); });
+    .catch(() => { showToast('{% trans "Failed to load record." %}', 'danger'); devEditModal.hide(); });
 }
-document.getElementById('editForm').addEventListener('submit', function(e) {
+document.getElementById('devEditForm').addEventListener('submit', function(e) {
   e.preventDefault();
-  const pk  = document.getElementById('editRecordId').value;
-  const btn = document.getElementById('editSubmitBtn');
+  const pk  = document.getElementById('devEditRecordId').value;
+  const btn = document.getElementById('devEditSubmitBtn');
   clearFormErrors(this); setButtonLoading(btn, true);
-  ajaxPost(editUrl(pk), new FormData(this))
-    .then(data => { if (data.success) { editModal.hide(); showToast(data.message, 'success'); loadMaintenance(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+  ajaxPost(devEditUrl(pk), new FormData(this))
+    .then(data => { if (data.success) { devEditModal.hide(); showToast(data.message, 'success'); loadDevMaintenance(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
     .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
     .finally(() => setButtonLoading(btn, false));
 });
 
-/* Close */
-function openCloseModal(pk) {
-  document.getElementById('closeForm').reset();
-  clearFormErrors(document.getElementById('closeForm'));
-  document.getElementById('closeRecordId').value = pk;
+function openDevCloseModal(pk) {
+  document.getElementById('devCloseForm').reset();
+  clearFormErrors(document.getElementById('devCloseForm'));
+  document.getElementById('devCloseRecordId').value = pk;
   const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-  document.getElementById('closeForm').querySelector('[name=returned_date]').value = now.toISOString().slice(0,16);
-  closeModal.show();
+  document.getElementById('devCloseForm').querySelector('[name=returned_date]').value = now.toISOString().slice(0,16);
+  devCloseModal.show();
 }
-document.getElementById('closeForm').addEventListener('submit', function(e) {
+document.getElementById('devCloseForm').addEventListener('submit', function(e) {
   e.preventDefault();
-  const pk  = document.getElementById('closeRecordId').value;
-  const btn = document.getElementById('closeSubmitBtn');
+  const pk  = document.getElementById('devCloseRecordId').value;
+  const btn = document.getElementById('devCloseSubmitBtn');
   clearFormErrors(this); setButtonLoading(btn, true);
-  ajaxPost(closeUrl(pk), new FormData(this))
-    .then(data => { if (data.success) { closeModal.hide(); showToast(data.message, 'success'); loadMaintenance(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+  ajaxPost(devCloseUrl(pk), new FormData(this))
+    .then(data => { if (data.success) { devCloseModal.hide(); showToast(data.message, 'success'); loadDevMaintenance(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
     .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
     .finally(() => setButtonLoading(btn, false));
 });
 
-/* Delete */
-function openDeleteModal(pk, label) {
-  deleteTargetId = pk;
-  document.getElementById('deleteRecordLabel').textContent = label;
-  deleteModal.show();
+function openDevDeleteModal(pk, label) {
+  devDeleteId = pk;
+  document.getElementById('devDeleteRecordLabel').textContent = label;
+  devDeleteModal.show();
 }
-document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
-  if (!deleteTargetId) return;
+document.getElementById('devConfirmDeleteBtn').addEventListener('click', function() {
+  if (!devDeleteId) return;
   const btn = this;
   setButtonLoading(btn, true);
-  ajaxPost(deleteUrl(deleteTargetId), new FormData())
-    .then(data => { if (data.success) { deleteModal.hide(); showToast(data.message, 'success'); loadMaintenance(); } else { showToast(data.message, 'danger'); } })
+  ajaxPost(devDeleteUrl(devDeleteId), new FormData())
+    .then(data => { if (data.success) { devDeleteModal.hide(); showToast(data.message, 'success'); loadDevMaintenance(); } else { showToast(data.message, 'danger'); } })
     .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
-    .finally(() => { setButtonLoading(btn, false); deleteTargetId = null; });
+    .finally(() => { setButtonLoading(btn, false); devDeleteId = null; });
+});
+
+/* ══════════════════════════════════════════════════════
+   ACCESSORIES
+══════════════════════════════════════════════════════ */
+function loadAccMaintenance(page) {
+  accCurrentPage = page || 1;
+  const search = document.getElementById('acc-searchInput').value.trim();
+  const status = document.getElementById('acc-statusFilter').value;
+  const type   = document.getElementById('acc-typeFilter').value;
+  const params = new URLSearchParams();
+  if (search) params.set('search', search);
+  if (status) params.set('status', status);
+  if (type)   params.set('type', type);
+  params.set('page', accCurrentPage);
+  document.getElementById('acc-tableLoader').classList.remove('d-none');
+  document.getElementById('acc-tableWrapper').classList.add('d-none');
+  ajaxGet(`${ACC_URL_DATA}?${params}`)
+    .then(data => {
+      if (!data.success) { showToast(data.message || '{% trans "Failed to load records." %}', 'danger'); return; }
+      renderAccTable(data.items, data.show_cost);
+      document.getElementById('acc-recordCount').textContent = `${data.total} ${T.records}`;
+      renderPagination('acc-pagination', data.page, data.num_pages, loadAccMaintenance);
+    })
+    .catch(() => showToast('{% trans "Failed to load records." %}', 'danger'))
+    .finally(() => {
+      document.getElementById('acc-tableLoader').classList.add('d-none');
+      document.getElementById('acc-tableWrapper').classList.remove('d-none');
+    });
+}
+
+function accDebounce() { accCurrentPage = 1; clearTimeout(accDebounceTimer); accDebounceTimer = setTimeout(loadAccMaintenance, 400); }
+function accResetFilters() {
+  accCurrentPage = 1;
+  document.getElementById('acc-searchInput').value = '';
+  document.getElementById('acc-statusFilter').value = '';
+  document.getElementById('acc-typeFilter').value = '';
+  loadAccMaintenance();
+}
+
+function renderAccTable(items, showCost) {
+  const tbody = document.getElementById('acc-maintenanceTableBody');
+  const empty = document.getElementById('acc-emptyState');
+  if (!items || !items.length) {
+    tbody.innerHTML = '';
+    empty.classList.remove('d-none');
+    document.getElementById('acc-tableWrapper').classList.add('d-none');
+    return;
+  }
+  empty.classList.add('d-none');
+  document.getElementById('acc-tableWrapper').classList.remove('d-none');
+  tbody.innerHTML = items.map((r, i) => `
+    <tr>
+      <td class="text-muted small">${i + 1}</td>
+      <td class="fw-medium">${escHtml(r.accessory_label)}</td>
+      <td><span class="badge bg-${r.maintenance_type === 'External' ? 'info' : 'secondary'}-subtle text-${r.maintenance_type === 'External' ? 'info' : 'secondary'} rounded-pill">${escHtml(r.maintenance_type_display)}</span></td>
+      <td>${r.vendor_name ? escHtml(r.vendor_name) : '<span class="text-muted">—</span>'}</td>
+      <td class="text-muted small" title="${escHtml(r.issue_description)}">${escHtml(r.issue_description)}</td>
+      <td class="text-muted small">${r.sent_date}</td>
+      <td class="text-muted small">${r.returned_date || '<span class="text-muted">—</span>'}</td>
+      ${showCost ? `<td class="text-muted small">${r.cost !== undefined && r.cost !== '' ? escHtml(r.cost) : '—'}</td>` : ''}
+      <td>${badgeHtml(r.is_open)}</td>
+      <td class="text-end">
+        <div class="d-flex gap-1 justify-content-end">
+          <button class="btn btn-sm btn-icon btn-outline-secondary" onclick="openAccViewModal(${r.id})" title="{% trans 'View' %}"><i class="bi bi-eye"></i></button>
+          ${CAN_EDIT ? `<button class="btn btn-sm btn-icon btn-outline-primary" onclick="openAccEditModal(${r.id})" title="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></button>` : ''}
+          ${CAN_CLOSE && r.is_open ? `<button class="btn btn-sm btn-icon btn-outline-success" onclick="openAccCloseModal(${r.id})" title="{% trans 'Close' %}"><i class="bi bi-check-circle"></i></button>` : ''}
+          ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openAccDeleteModal(${r.id},'${escHtml(r.accessory_label)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openAccViewModal(pk) {
+  document.getElementById('accViewLoader').classList.remove('d-none');
+  document.getElementById('accViewContent').classList.add('d-none');
+  accViewModal.show();
+  ajaxGet(accDetailUrl(pk))
+    .then(data => {
+      if (!data.success) { showToast(data.message, 'danger'); accViewModal.hide(); return; }
+      const r = data.item;
+      document.getElementById('acc-view-accessory').textContent = r.accessory_label;
+      document.getElementById('acc-view-type').textContent      = r.maintenance_type_display;
+      document.getElementById('acc-view-vendor').textContent    = r.vendor_name || '—';
+      document.getElementById('acc-view-sent').textContent      = r.sent_date ? r.sent_date.replace('T', ' ') : '—';
+      document.getElementById('acc-view-returned').textContent  = r.returned_date ? r.returned_date.replace('T', ' ') : '—';
+      document.getElementById('acc-view-issue').textContent     = r.issue_description;
+      document.getElementById('acc-view-notes').textContent     = r.resolution_notes || '—';
+      document.getElementById('acc-view-status').innerHTML      = badgeHtml(r.is_open);
+      const costRow = document.getElementById('acc-view-cost-row');
+      if (costRow && data.show_cost) document.getElementById('acc-view-cost').textContent = r.cost !== undefined && r.cost !== '' ? r.cost : '—';
+      document.getElementById('acc-view-created-by').textContent   = r.created_by || '—';
+      document.getElementById('acc-view-created-date').textContent = r.created_date || '—';
+      document.getElementById('acc-view-updated-by').textContent   = r.updated_by || '—';
+      document.getElementById('acc-view-updated-date').textContent = r.updated_date || '—';
+      document.getElementById('accViewLoader').classList.add('d-none');
+      document.getElementById('accViewContent').classList.remove('d-none');
+    })
+    .catch(() => { showToast('{% trans "Failed to load record." %}', 'danger'); accViewModal.hide(); });
+}
+
+function openAccCreateModal() {
+  document.getElementById('accCreateForm').reset();
+  resetFormSelects(document.getElementById('accCreateForm'));
+  clearFormErrors(document.getElementById('accCreateForm'));
+  const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  document.getElementById('accCreateForm').querySelector('[name=sent_date]').value = now.toISOString().slice(0,16);
+  toggleVendor('accCreateForm', document.getElementById('accCreateForm').querySelector('[name=maintenance_type]').value);
+  accCreateModal.show();
+}
+document.getElementById('accCreateForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('accCreateSubmitBtn');
+  clearFormErrors(this); setButtonLoading(btn, true);
+  ajaxPost(ACC_URL_CREATE, new FormData(this))
+    .then(data => { if (data.success) { accCreateModal.hide(); showToast(data.message, 'success'); loadAccMaintenance(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+function openAccEditModal(pk) {
+  document.getElementById('accEditLoader').classList.remove('d-none');
+  document.getElementById('accEditContent').classList.add('d-none');
+  document.getElementById('accEditRecordId').value = pk;
+  clearFormErrors(document.getElementById('accEditForm'));
+  accEditModal.show();
+  ajaxGet(accDetailUrl(pk))
+    .then(data => {
+      if (!data.success) { showToast(data.message, 'danger'); accEditModal.hide(); return; }
+      const r = data.item;
+      const f = document.getElementById('accEditForm');
+      setSelect2Value($('#accEditForm [name=accessory]'), r.accessory_id, r.accessory_label);
+      f.querySelector('[name=maintenance_type]').value  = r.maintenance_type;
+      f.querySelector('[name=vendor_name]').value       = r.vendor_name || '';
+      f.querySelector('[name=sent_date]').value         = r.sent_date;
+      f.querySelector('[name=issue_description]').value = r.issue_description;
+      toggleVendor('accEditForm', r.maintenance_type);
+      document.getElementById('accEditLoader').classList.add('d-none');
+      document.getElementById('accEditContent').classList.remove('d-none');
+    })
+    .catch(() => { showToast('{% trans "Failed to load record." %}', 'danger'); accEditModal.hide(); });
+}
+document.getElementById('accEditForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const pk  = document.getElementById('accEditRecordId').value;
+  const btn = document.getElementById('accEditSubmitBtn');
+  clearFormErrors(this); setButtonLoading(btn, true);
+  ajaxPost(accEditUrl(pk), new FormData(this))
+    .then(data => { if (data.success) { accEditModal.hide(); showToast(data.message, 'success'); loadAccMaintenance(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+function openAccCloseModal(pk) {
+  document.getElementById('accCloseForm').reset();
+  clearFormErrors(document.getElementById('accCloseForm'));
+  document.getElementById('accCloseRecordId').value = pk;
+  const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  document.getElementById('accCloseForm').querySelector('[name=returned_date]').value = now.toISOString().slice(0,16);
+  accCloseModal.show();
+}
+document.getElementById('accCloseForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const pk  = document.getElementById('accCloseRecordId').value;
+  const btn = document.getElementById('accCloseSubmitBtn');
+  clearFormErrors(this); setButtonLoading(btn, true);
+  ajaxPost(accCloseUrl(pk), new FormData(this))
+    .then(data => { if (data.success) { accCloseModal.hide(); showToast(data.message, 'success'); loadAccMaintenance(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+function openAccDeleteModal(pk, label) {
+  accDeleteId = pk;
+  document.getElementById('accDeleteRecordLabel').textContent = label;
+  accDeleteModal.show();
+}
+document.getElementById('accConfirmDeleteBtn').addEventListener('click', function() {
+  if (!accDeleteId) return;
+  const btn = this;
+  setButtonLoading(btn, true);
+  ajaxPost(accDeleteUrl(accDeleteId), new FormData())
+    .then(data => { if (data.success) { accDeleteModal.hide(); showToast(data.message, 'success'); loadAccMaintenance(); } else { showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => { setButtonLoading(btn, false); accDeleteId = null; });
 });
 
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', () => {
   const S = '— {% trans "Select" %} —';
-  initSelect2($('#createForm [name=device]'), 'devices', null, S);
-  initSelect2($('#editForm [name=device]'),   'devices', null, S);
-  loadMaintenance();
+  initSelect2($('#devCreateForm [name=device]'),    'devices',     null, S);
+  initSelect2($('#devEditForm [name=device]'),      'devices',     null, S);
+  initSelect2($('#accCreateForm [name=accessory]'), 'accessories', null, S);
+  initSelect2($('#accEditForm [name=accessory]'),   'accessories', null, S);
+  loadDevMaintenance();
 });
 </script>
 {% endblock %}

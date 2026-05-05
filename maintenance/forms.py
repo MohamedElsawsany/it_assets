@@ -1,6 +1,6 @@
 from django import forms
 from django.utils.translation import gettext_lazy as _
-from .models import MaintenanceRecord
+from .models import MaintenanceRecord, AccessoryMaintenanceRecord
 
 
 class MaintenanceForm(forms.ModelForm):
@@ -19,6 +19,29 @@ class MaintenanceForm(forms.ModelForm):
         }
         labels = {
             'device':            _('Device'),
+            'issue_description': _('Issue Description'),
+            'maintenance_type':  _('Maintenance Type'),
+            'vendor_name':       _('Vendor Name'),
+            'sent_date':         _('Sent Date'),
+        }
+
+
+class AccessoryMaintenanceForm(forms.ModelForm):
+    class Meta:
+        model   = AccessoryMaintenanceRecord
+        fields  = ['accessory', 'issue_description', 'maintenance_type', 'vendor_name', 'sent_date']
+        widgets = {
+            'accessory':         forms.Select(attrs={'class': 'form-select'}),
+            'issue_description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'maintenance_type':  forms.Select(attrs={'class': 'form-select'}),
+            'vendor_name':       forms.TextInput(attrs={'class': 'form-control'}),
+            'sent_date':         forms.DateTimeInput(
+                attrs={'class': 'form-control', 'type': 'datetime-local'},
+                format='%Y-%m-%dT%H:%M',
+            ),
+        }
+        labels = {
+            'accessory':         _('Accessory'),
             'issue_description': _('Issue Description'),
             'maintenance_type':  _('Maintenance Type'),
             'vendor_name':       _('Vendor Name'),

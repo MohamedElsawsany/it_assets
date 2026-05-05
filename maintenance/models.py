@@ -69,3 +69,49 @@ class MaintenanceRecord(models.Model):
     @property
     def is_open(self):
         return self.returned_date is None
+
+
+class AccessoryMaintenanceRecord(models.Model):
+
+    class MaintenanceType(models.TextChoices):
+        INTERNAL = 'Internal', _('Internal')
+        EXTERNAL = 'External', _('External (Vendor)')
+
+    accessory         = models.ForeignKey('inventory.Accessory', on_delete=models.PROTECT, related_name='maintenance_records')
+    previous_flag     = models.CharField(max_length=50, blank=True, default='', help_text='Accessory flag before entering maintenance; restored on close')
+    issue_description = models.TextField()
+    maintenance_type  = models.CharField(
+        max_length=20,
+        choices=MaintenanceType.choices,
+        default=MaintenanceType.INTERNAL,
+    )
+    vendor_name      = models.CharField(max_length=255, null=True, blank=True)
+    sent_date        = models.DateTimeField()
+    returned_date    = models.DateTimeField(null=True, blank=True)
+    resolution_notes = models.TextField(null=True, blank=True)
+    cost             = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        null=True, blank=True,
+        validators=[MinValueValidator(0)],
+    )
+    created_by  = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+        related_name='created_acc_maintenance_records',
+    )
+    updated_by  = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        related_name='updated_acc_maintenance_records', null=True, blank=True,
+    )
+    created_date = models.DateTimeField(auto_now_add=True)
+    updated_date = models.DateTimeField(auto_now=True, null=True, blank=True)
+
+    class Meta:
+        db_table = 'Accessory_Maintenance_Records'
+
+    def __str__(self):
+        status = 'Open' if not self.returned_date else 'Closed'
+        return f'[{status}] {self.accessory} — {self.sent_date.date()}'
+
+    @property
+    def is_open(self):
+        return self.returned_date is None
