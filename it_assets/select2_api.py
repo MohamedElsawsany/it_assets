@@ -16,7 +16,7 @@ from django.db.models import Q
 from django.http import JsonResponse
 
 from inventory.models import (Brand, DeviceCategory, DeviceModel, CPU, GPU,
-                               OperatingSystem, AccessoryType, Device)
+                               OperatingSystem, AccessoryType, Device, Accessory)
 from locations.models import Governorate, Site
 from employees.models import Department, Employee
 
@@ -45,6 +45,7 @@ def select2_data(request, entity):
         'sites':           _sites,
         'governorates':    _governorates,
         'devices':         _devices,
+        'accessories':     _accessories,
         'employees':       _employees,
         'departments':     _departments,
     }
@@ -162,6 +163,26 @@ def _devices(q, start, end, request):
     total = qs.count()
     items = [{'id': o.pk, 'text': f'{o.serial_number} ({o.category.name} · {o.brand.name} · {o.device_model.name})'}
              for o in qs[start:end]]
+    return items, total
+
+
+def _accessories(q, start, end, request):
+    qs = Accessory.objects.filter(deleted_date__isnull=True).select_related('accessory_type', 'brand')
+    if q:
+        qs = qs.filter(
+            Q(accessory_type__name__icontains=q) |
+            Q(serial_number__icontains=q) |
+            Q(brand__name__icontains=q)
+        )
+    qs = qs.order_by('accessory_type__name', 'serial_number')
+    total = qs.count()
+    items = []
+    for o in qs[start:end]:
+        label = o.accessory_type.name
+        if o.brand:
+            label += f' ({o.brand.name})'
+        label += f' — {o.serial_number}' if o.serial_number else ' — (No S/N)'
+        items.append({'id': o.pk, 'text': label})
     return items, total
 
 

@@ -296,3 +296,7 @@ class Accessory(models.Model):
 
     def __str__(self):
         return f'{self.accessory_type.name} — {self.serial_number or "No S/N"}'
+
+    @property
+    def current_assignment(self):
+        return self.accessory_assignments.filter(returned_date__isnull=True).first()

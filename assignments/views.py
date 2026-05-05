@@ -9,11 +9,11 @@ from django.db.models import Q
 PAGE_SIZE = 10
 
 from accounts.permissions import permission_required, has_permission, Perms
-from inventory.models import Device, DeviceFlag
+from inventory.models import Device, Accessory, DeviceFlag
 from employees.models import Employee
 from locations.models import Site
-from .models import DeviceAssignment, DeviceTransfer
-from .forms import AssignmentForm, ReturnDeviceForm, TransferForm
+from .models import DeviceAssignment, AccessoryAssignment, DeviceTransfer
+from .forms import AssignmentForm, AccessoryAssignmentForm, ReturnDeviceForm, TransferForm
 
 
 # ── Assignments ───────────────────────────────────────────────────────────────
@@ -21,11 +21,7 @@ from .forms import AssignmentForm, ReturnDeviceForm, TransferForm
 @login_required
 @permission_required(Perms.ASSIGNMENTS_VIEW)
 def assignments_index(request):
-    allowed = request.user.get_allowed_sites()
-    return render(request, 'assignments/index.html', {
-        'devices':   Device.objects.filter(deleted_date__isnull=True, site__in=allowed).order_by('serial_number'),
-        'employees': Employee.objects.filter(deleted_date__isnull=True, site__in=allowed).select_related('site').order_by('first_name'),
-    })
+    return render(request, 'assignments/index.html')
 
 
 @login_required
@@ -176,6 +172,130 @@ def assignment_return(request, pk):
     return JsonResponse({'success': False, 'errors': errors})
 
 
+
+
+# ── Accessory Assignments ─────────────────────────────────────────────────────
+
+@login_required
+@permission_required(Perms.ASSIGNMENTS_VIEW)
+def acc_assignments_data(request):
+    search   = request.GET.get('search', '').strip()
+    status_f = request.GET.get('status', '').strip()
+    qs = AccessoryAssignment.objects.filter(
+        accessory__site__in=request.user.get_allowed_sites(),
+    ).select_related(
+        'accessory', 'accessory__accessory_type', 'accessory__brand',
+        'employee', 'assigned_by', 'returned_by',
+    )
+    if search:
+        qs = qs.filter(
+            Q(accessory__serial_number__icontains=search) |
+            Q(accessory__accessory_type__name__icontains=search) |
+            Q(employee__first_name__icontains=search) |
+            Q(employee__last_name__icontains=search)
+        )
+    if status_f == 'active':
+        qs = qs.filter(returned_date__isnull=True)
+    elif status_f == 'returned':
+        qs = qs.filter(returned_date__isnull=False)
+    qs = qs.order_by('-assigned_date')
+    paginator = Paginator(qs, PAGE_SIZE)
+    try:
+        page_num = int(request.GET.get('page', 1))
+    except (ValueError, TypeError):
+        page_num = 1
+    page_obj = paginator.get_page(page_num)
+    items = [
+        {'id': a.pk,
+         'accessory_id': a.accessory_id,
+         'accessory_type': a.accessory.accessory_type.name,
+         'accessory_brand': a.accessory.brand.name if a.accessory.brand else '',
+         'accessory_serial': a.accessory.serial_number or '',
+         'employee_id': a.employee_id,
+         'employee_name': a.employee.full_name,
+         'assigned_date': a.assigned_date.strftime('%Y-%m-%d'),
+         'assigned_by': a.assigned_by.full_name,
+         'returned_date': a.returned_date.strftime('%Y-%m-%d') if a.returned_date else '',
+         'returned_by': a.returned_by.full_name if a.returned_by else '',
+         'is_active': a.is_active,
+         'notes': a.notes or ''}
+        for a in page_obj
+    ]
+    return JsonResponse({'success': True, 'items': items, 'total': paginator.count,
+                         'page': page_obj.number, 'num_pages': paginator.num_pages})
+
+
+@login_required
+def acc_assignment_detail(request, pk):
+    if not has_permission(request.user, Perms.ASSIGNMENTS_VIEW):
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+    a = get_object_or_404(
+        AccessoryAssignment.objects.filter(
+            accessory__site__in=request.user.get_allowed_sites(),
+        ).select_related(
+            'accessory', 'accessory__accessory_type', 'accessory__brand',
+            'employee', 'assigned_by', 'returned_by',
+        ), pk=pk)
+    return JsonResponse({'success': True, 'item': {
+        'id': a.pk,
+        'accessory_id': a.accessory_id,
+        'accessory_type': a.accessory.accessory_type.name,
+        'accessory_brand': a.accessory.brand.name if a.accessory.brand else '',
+        'accessory_serial': a.accessory.serial_number or '',
+        'employee_id': a.employee_id,
+        'employee_name': a.employee.full_name,
+        'assigned_date': a.assigned_date.strftime('%Y-%m-%dT%H:%M'),
+        'returned_date': a.returned_date.strftime('%Y-%m-%dT%H:%M') if a.returned_date else '',
+        'is_active': a.is_active,
+        'notes': a.notes or '',
+        'assigned_by': a.assigned_by.full_name,
+        'returned_by': a.returned_by.full_name if a.returned_by else '',
+        'created_date': a.created_date.strftime('%Y-%m-%d %I:%M %p'),
+    }})
+
+
+@login_required
+@require_http_methods(['POST'])
+def acc_assignment_create(request):
+    if not has_permission(request.user, Perms.ASSIGNMENTS_CREATE):
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+    form = AccessoryAssignmentForm(request.POST)
+    if form.is_valid():
+        accessory = form.cleaned_data['accessory']
+        if AccessoryAssignment.objects.filter(accessory=accessory, returned_date__isnull=True).exists():
+            return JsonResponse({'success': False, 'errors': {
+                'accessory': [_('This accessory is already assigned and has not been returned yet.')]
+            }})
+        obj = form.save(commit=False)
+        obj.assigned_by = request.user
+        obj.save()
+        obj.accessory.flag = DeviceFlag.ASSIGNED
+        obj.accessory.save(update_fields=['flag'])
+        return JsonResponse({'success': True, 'message': _('Accessory assigned successfully.')})
+    errors = {f: [str(e) for e in v] for f, v in form.errors.items()}
+    return JsonResponse({'success': False, 'errors': errors})
+
+
+@login_required
+@require_http_methods(['POST'])
+def acc_assignment_return(request, pk):
+    if not has_permission(request.user, Perms.ASSIGNMENTS_RETURN):
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+    a = get_object_or_404(AccessoryAssignment, pk=pk)
+    if not a.is_active:
+        return JsonResponse({'success': False, 'message': _('Assignment is already returned.')})
+    form = ReturnDeviceForm(request.POST)
+    if form.is_valid():
+        a.returned_date = form.cleaned_data['returned_date']
+        a.returned_by   = request.user
+        if form.cleaned_data.get('notes'):
+            a.notes = (a.notes or '') + '\n[Return] ' + form.cleaned_data['notes']
+        a.save()
+        a.accessory.flag = DeviceFlag.AVAILABLE
+        a.accessory.save(update_fields=['flag'])
+        return JsonResponse({'success': True, 'message': _('Accessory returned successfully.')})
+    errors = {f: [str(e) for e in v] for f, v in form.errors.items()}
+    return JsonResponse({'success': False, 'errors': errors})
 
 
 # ── Transfers ─────────────────────────────────────────────────────────────────

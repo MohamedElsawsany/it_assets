@@ -3,7 +3,8 @@
     "allow": [
       "Bash(python manage.py makemigrations inventory maintenance employees locations accounts)",
       "Bash(python manage.py migrate)",
-      "Bash(python manage.py check)"
+      "Bash(python manage.py check)",
+      "Bash(python manage.py makemigrations assignments)"
     ]
   }
 }

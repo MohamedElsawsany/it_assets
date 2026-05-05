@@ -103,6 +103,13 @@ class Perms:
     ASSIGNMENTS_RETURN       = 'assignments.return_device'
     ASSIGNMENTS_EXPORT       = 'assignments.generate_report'
 
+    # ── Accessory Assignments ─────────────────────────────────────────────────
+    ACC_ASSIGNMENTS_VIEW   = 'assignments.view_accessoryassignment'
+    ACC_ASSIGNMENTS_CREATE = 'assignments.add_accessoryassignment'
+    ACC_ASSIGNMENTS_EDIT   = 'assignments.change_accessoryassignment'
+    ACC_ASSIGNMENTS_DELETE = 'assignments.delete_accessoryassignment'
+    ACC_ASSIGNMENTS_RETURN = 'assignments.return_accessory'
+
     # ── Transfers ─────────────────────────────────────────────────────────────
     TRANSFERS_VIEW           = 'assignments.view_devicetransfer'
     TRANSFERS_CREATE         = 'assignments.add_devicetransfer'
@@ -138,6 +145,9 @@ class Perms:
 
         ASSIGNMENTS_VIEW, ASSIGNMENTS_CREATE, ASSIGNMENTS_EDIT,
         ASSIGNMENTS_DELETE, ASSIGNMENTS_RETURN, ASSIGNMENTS_EXPORT,
+
+        ACC_ASSIGNMENTS_VIEW, ACC_ASSIGNMENTS_CREATE, ACC_ASSIGNMENTS_EDIT,
+        ACC_ASSIGNMENTS_DELETE, ACC_ASSIGNMENTS_RETURN,
 
         TRANSFERS_VIEW, TRANSFERS_CREATE, TRANSFERS_APPROVE, TRANSFERS_DELETE,
 

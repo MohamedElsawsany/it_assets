@@ -1,7 +1,7 @@
 """
 assignments/models.py
 ─────────────────────
-Models: DeviceAssignment, DeviceTransfer, DeliveredDeviceHistory
+Models: DeviceAssignment, AccessoryAssignment, DeviceTransfer, DeliveredDeviceHistory
 
 RBAC permissions
 ────────────────
@@ -9,6 +9,7 @@ Auto-created by Django (add / change / delete / view) for every model.
 
 Custom:
   assignments.return_device      – record that a device was returned
+  assignments.return_accessory   – record that an accessory was returned
   assignments.approve_transfer   – approve a pending site transfer
   assignments.generate_report    – export / print assignment reports
 """
@@ -49,6 +50,43 @@ class DeviceAssignment(models.Model):
     def __str__(self):
         status = 'Active' if not self.returned_date else 'Returned'
         return f'[{status}] {self.device} → {self.employee}'
+
+    @property
+    def is_active(self):
+        return self.returned_date is None
+
+
+class AccessoryAssignment(models.Model):
+    """Active custody record for accessories — NULL returned_date means still assigned."""
+    accessory     = models.ForeignKey('inventory.Accessory',  on_delete=models.PROTECT, related_name='accessory_assignments')
+    employee      = models.ForeignKey('employees.Employee',   on_delete=models.PROTECT, related_name='accessory_assignments')
+    assigned_date = models.DateTimeField()
+    returned_date = models.DateTimeField(
+        null=True, blank=True,
+        help_text='NULL = accessory still with employee',
+    )
+    notes       = models.TextField(null=True, blank=True)
+    assigned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+        related_name='assigned_accessories', db_column='Assigned_By',
+    )
+    returned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+        related_name='returned_accessories', db_column='Returned_By',
+        null=True, blank=True,
+    )
+    created_date = models.DateTimeField(auto_now_add=True)
+    updated_date = models.DateTimeField(auto_now=True, null=True, blank=True)
+
+    class Meta:
+        db_table = 'Accessory_Assignments'
+        permissions = [
+            ('return_accessory', 'Can record that an accessory has been returned by an employee'),
+        ]
+
+    def __str__(self):
+        status = 'Active' if not self.returned_date else 'Returned'
+        return f'[{status}] {self.accessory} → {self.employee}'
 
     @property
     def is_active(self):

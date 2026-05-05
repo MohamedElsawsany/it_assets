@@ -100,6 +100,11 @@ def user_permissions(request):
         'assignments_return': hp(Perms.ASSIGNMENTS_RETURN),
         'assignments_export': hp(Perms.ASSIGNMENTS_EXPORT),
 
+        # ── Accessory Assignments ─────────────────────────────────────────────────
+        'acc_assignments_view':   hp(Perms.ACC_ASSIGNMENTS_VIEW),
+        'acc_assignments_create': hp(Perms.ACC_ASSIGNMENTS_CREATE),
+        'acc_assignments_return': hp(Perms.ACC_ASSIGNMENTS_RETURN),
+
         # ── Transfers ─────────────────────────────────────────────────────────
         'transfers_view':    hp(Perms.TRANSFERS_VIEW),
         'transfers_create':  hp(Perms.TRANSFERS_CREATE),

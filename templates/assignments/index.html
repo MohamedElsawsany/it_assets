@@ -12,77 +12,163 @@
 
   <div class="page-header">
     <div>
-      <h4 class="page-title">{% trans "Device Assignments" %}</h4>
-      <p class="page-subtitle">{% trans "Track which devices are assigned to which employees." %}</p>
+      <h4 class="page-title">{% trans "Assignments" %}</h4>
+      <p class="page-subtitle">{% trans "Track which devices and accessories are assigned to employees." %}</p>
     </div>
-    {% if rbac.assignments_create %}
-    <div>
-      <button class="btn btn-primary d-flex align-items-center gap-2" onclick="openCreateModal()">
-        <i class="bi bi-plus-lg"></i><span>{% trans "New Assignment" %}</span>
+    <div class="d-flex gap-2">
+      {% if rbac.assignments_create %}
+      <button class="btn btn-primary d-flex align-items-center gap-2" id="btnNewDeviceAssignment" onclick="openDevCreateModal()">
+        <i class="bi bi-plus-lg"></i><span>{% trans "New Device Assignment" %}</span>
       </button>
+      <button class="btn btn-primary d-flex align-items-center gap-2 d-none" id="btnNewAccAssignment" onclick="openAccCreateModal()">
+        <i class="bi bi-plus-lg"></i><span>{% trans "New Accessory Assignment" %}</span>
+      </button>
+      {% endif %}
     </div>
-    {% endif %}
   </div>
 
-  <!-- Filter bar -->
-  <div class="card card-app mb-3">
-    <div class="card-body py-3">
-      <div class="row g-2 align-items-end">
-        <div class="col-md-5">
-          <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-search"></i></span>
-            <input type="text" class="form-control" id="searchInput"
-                   placeholder="{% trans 'Search by device serial or employee name…' %}"
-                   oninput="debounceLoad()">
+  <!-- Tabs -->
+  <ul class="nav nav-tabs mb-3" id="assignmentTabs">
+    <li class="nav-item">
+      <a class="nav-link active" id="tab-devices" href="#" onclick="switchTab('devices'); return false;">
+        <i class="bi bi-laptop me-1"></i>{% trans "Devices" %}
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id="tab-accessories" href="#" onclick="switchTab('accessories'); return false;">
+        <i class="bi bi-mouse me-1"></i>{% trans "Accessories" %}
+      </a>
+    </li>
+  </ul>
+
+  <!-- ═══ DEVICES TAB ═══ -->
+  <div id="pane-devices">
+    <!-- Filter bar -->
+    <div class="card card-app mb-3">
+      <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-5">
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input type="text" class="form-control" id="devSearchInput"
+                     placeholder="{% trans 'Search by device serial or employee name…' %}"
+                     oninput="debounceLoadDev()">
+            </div>
+          </div>
+          <div class="col-md-3">
+            <select class="form-select" id="devStatusFilter" onchange="loadDevAssignments()">
+              <option value="">{% trans "All Status" %}</option>
+              <option value="active">{% trans "Active" %}</option>
+              <option value="returned">{% trans "Returned" %}</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-outline-secondary w-100" onclick="resetDevFilters()">
+              <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Reset" %}
+            </button>
           </div>
         </div>
-        <div class="col-md-3">
-          <select class="form-select" id="statusFilter" onchange="loadAssignments()">
-            <option value="">{% trans "All Status" %}</option>
-            <option value="active">{% trans "Active" %}</option>
-            <option value="returned">{% trans "Returned" %}</option>
-          </select>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card card-app">
+      <div class="card-body p-0">
+        <div id="devTableLoader" class="text-center py-5 d-none">
+          <div class="spinner-border text-primary" role="status"></div>
         </div>
-        <div class="col-md-2">
-          <button class="btn btn-outline-secondary w-100" onclick="resetFilters()">
-            <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Reset" %}
-          </button>
+        <div id="devTableWrapper" class="table-responsive">
+          <table class="table table-hover app-table mb-0">
+            <thead>
+              <tr>
+                <th style="width:50px">#</th>
+                <th>{% trans "Device" %}</th>
+                <th>{% trans "Employee" %}</th>
+                <th>{% trans "Assigned Date" %}</th>
+                <th>{% trans "Assigned By" %}</th>
+                <th>{% trans "Returned Date" %}</th>
+                <th>{% trans "Returned By" %}</th>
+                <th>{% trans "Status" %}</th>
+                <th class="text-end" style="width:100px">{% trans "Actions" %}</th>
+              </tr>
+            </thead>
+            <tbody id="devTableBody"></tbody>
+          </table>
+        </div>
+        <div id="devEmptyState" class="text-center py-5 d-none">
+          <i class="bi bi-laptop display-6 text-muted"></i>
+          <p class="mt-3 text-muted">{% trans "No device assignments found." %}</p>
+        </div>
+        <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
+          <span class="text-muted small" id="devRecordCount"></span>
+          <div id="devPagination"></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Table -->
-  <div class="card card-app">
-    <div class="card-body p-0">
-      <div id="tableLoader" class="text-center py-5 d-none">
-        <div class="spinner-border text-primary" role="status"></div>
+  <!-- ═══ ACCESSORIES TAB ═══ -->
+  <div id="pane-accessories" class="d-none">
+    <!-- Filter bar -->
+    <div class="card card-app mb-3">
+      <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-5">
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input type="text" class="form-control" id="accSearchInput"
+                     placeholder="{% trans 'Search by accessory type, serial or employee name…' %}"
+                     oninput="debounceLoadAcc()">
+            </div>
+          </div>
+          <div class="col-md-3">
+            <select class="form-select" id="accStatusFilter" onchange="loadAccAssignments()">
+              <option value="">{% trans "All Status" %}</option>
+              <option value="active">{% trans "Active" %}</option>
+              <option value="returned">{% trans "Returned" %}</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-outline-secondary w-100" onclick="resetAccFilters()">
+              <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Reset" %}
+            </button>
+          </div>
+        </div>
       </div>
-      <div id="tableWrapper" class="table-responsive">
-        <table class="table table-hover app-table mb-0">
-          <thead>
-            <tr>
-              <th style="width:50px">#</th>
-              <th>{% trans "Device" %}</th>
-              <th>{% trans "Employee" %}</th>
-              <th>{% trans "Assigned Date" %}</th>
-              <th>{% trans "Assigned By" %}</th>
-              <th>{% trans "Returned Date" %}</th>
-              <th>{% trans "Returned By" %}</th>
-              <th>{% trans "Status" %}</th>
-              <th class="text-end" style="width:100px">{% trans "Actions" %}</th>
-            </tr>
-          </thead>
-          <tbody id="assignmentsTableBody"></tbody>
-        </table>
-      </div>
-      <div id="emptyState" class="text-center py-5 d-none">
-        <i class="bi bi-box-arrow-in-right display-6 text-muted"></i>
-        <p class="mt-3 text-muted">{% trans "No assignments found." %}</p>
-      </div>
-      <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
-        <span class="text-muted small" id="recordCount"></span>
-        <div id="pagination"></div>
+    </div>
+
+    <!-- Table -->
+    <div class="card card-app">
+      <div class="card-body p-0">
+        <div id="accTableLoader" class="text-center py-5 d-none">
+          <div class="spinner-border text-primary" role="status"></div>
+        </div>
+        <div id="accTableWrapper" class="table-responsive">
+          <table class="table table-hover app-table mb-0">
+            <thead>
+              <tr>
+                <th style="width:50px">#</th>
+                <th>{% trans "Accessory" %}</th>
+                <th>{% trans "Employee" %}</th>
+                <th>{% trans "Assigned Date" %}</th>
+                <th>{% trans "Assigned By" %}</th>
+                <th>{% trans "Returned Date" %}</th>
+                <th>{% trans "Returned By" %}</th>
+                <th>{% trans "Status" %}</th>
+                <th class="text-end" style="width:100px">{% trans "Actions" %}</th>
+              </tr>
+            </thead>
+            <tbody id="accTableBody"></tbody>
+          </table>
+        </div>
+        <div id="accEmptyState" class="text-center py-5 d-none">
+          <i class="bi bi-mouse display-6 text-muted"></i>
+          <p class="mt-3 text-muted">{% trans "No accessory assignments found." %}</p>
+        </div>
+        <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
+          <span class="text-muted small" id="accRecordCount"></span>
+          <div id="accPagination"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -90,65 +176,59 @@
 </div>
 
 
-<!-- ===== VIEW MODAL ===== -->
-<div class="modal fade" id="viewModal" tabindex="-1">
+<!-- ═══════════════ DEVICE MODALS ═══════════════ -->
+
+<!-- View -->
+<div class="modal fade" id="devViewModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-box-arrow-in-right me-2 text-secondary"></i>{% trans "Assignment Details" %}</h5>
+        <h5 class="modal-title"><i class="bi bi-laptop me-2 text-secondary"></i>{% trans "Device Assignment Details" %}</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <div id="viewLoader" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
-        <div id="viewContent" class="d-none">
-
-          <!-- Device & Employee -->
+        <div id="devViewLoader" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+        <div id="devViewContent" class="d-none">
           <div class="row g-3 mb-3">
             <div class="col-md-6">
               <p class="text-muted small mb-1">{% trans "Device" %}</p>
-              <p class="fw-semibold font-monospace mb-0" id="v-device-serial"></p>
-              <p class="text-muted small mb-0" id="v-device-info"></p>
+              <p class="fw-semibold font-monospace mb-0" id="dv-device-serial"></p>
+              <p class="text-muted small mb-0" id="dv-device-info"></p>
             </div>
             <div class="col-md-6">
               <p class="text-muted small mb-1">{% trans "Employee" %}</p>
-              <p class="fw-semibold mb-0" id="v-employee"></p>
+              <p class="fw-semibold mb-0" id="dv-employee"></p>
             </div>
             <div class="col-md-6">
               <p class="text-muted small mb-1">{% trans "Status" %}</p>
-              <p class="mb-0" id="v-status"></p>
+              <p class="mb-0" id="dv-status"></p>
             </div>
             <div class="col-12">
               <p class="text-muted small mb-1">{% trans "Notes" %}</p>
-              <p class="fw-medium mb-0" id="v-notes"></p>
+              <p class="fw-medium mb-0 white-space-pre-wrap" id="dv-notes"></p>
             </div>
           </div>
-
           <hr class="my-3">
-
-          <!-- Assignment audit row -->
           <div class="row g-3 mb-2">
             <div class="col-md-6">
               <p class="text-muted small mb-1">{% trans "Assigned Date" %}</p>
-              <p class="fw-medium mb-0" id="v-assigned-date"></p>
+              <p class="fw-medium mb-0" id="dv-assigned-date"></p>
             </div>
             <div class="col-md-6">
               <p class="text-muted small mb-1">{% trans "Assigned By" %}</p>
-              <p class="fw-medium mb-0" id="v-assigned-by"></p>
+              <p class="fw-medium mb-0" id="dv-assigned-by"></p>
             </div>
           </div>
-
-          <!-- Return audit row -->
-          <div class="row g-3" id="v-return-row">
+          <div class="row g-3" id="dv-return-row">
             <div class="col-md-6">
               <p class="text-muted small mb-1">{% trans "Returned Date" %}</p>
-              <p class="fw-medium mb-0" id="v-returned-date"></p>
+              <p class="fw-medium mb-0" id="dv-returned-date"></p>
             </div>
             <div class="col-md-6">
               <p class="text-muted small mb-1">{% trans "Returned By" %}</p>
-              <p class="fw-medium mb-0" id="v-returned-by"></p>
+              <p class="fw-medium mb-0" id="dv-returned-by"></p>
             </div>
           </div>
-
         </div>
       </div>
       <div class="modal-footer">
@@ -158,16 +238,15 @@
   </div>
 </div>
 
-
-<!-- ===== CREATE MODAL ===== -->
-<div class="modal fade" id="createModal" tabindex="-1">
+<!-- Create -->
+<div class="modal fade" id="devCreateModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-plus-lg me-2 text-primary"></i>{% trans "New Assignment" %}</h5>
+        <h5 class="modal-title"><i class="bi bi-plus-lg me-2 text-primary"></i>{% trans "New Device Assignment" %}</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <form id="createForm" novalidate>
+      <form id="devCreateForm" novalidate>
         {% csrf_token %}
         <div class="modal-body">
           <div class="row g-3">
@@ -189,13 +268,12 @@
             <div class="col-md-6">
               <label class="form-label">{% trans "Notes" %}</label>
               <textarea class="form-control" name="notes" rows="2"></textarea>
-              <div class="invalid-feedback"></div>
             </div>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
-          <button type="submit" class="btn btn-primary" id="createSubmitBtn">
+          <button type="submit" class="btn btn-primary" id="devCreateSubmitBtn">
             <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Assign" %}</span>
             <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
           </button>
@@ -205,18 +283,17 @@
   </div>
 </div>
 
-
-<!-- ===== RETURN MODAL ===== -->
-<div class="modal fade" id="returnModal" tabindex="-1">
+<!-- Return -->
+<div class="modal fade" id="devReturnModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title"><i class="bi bi-box-arrow-in-left me-2 text-success"></i>{% trans "Return Device" %}</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <form id="returnForm" novalidate>
+      <form id="devReturnForm" novalidate>
         {% csrf_token %}
-        <input type="hidden" id="returnAssignmentId">
+        <input type="hidden" id="devReturnId">
         <div class="modal-body">
           <p class="text-muted mb-3">{% trans "Record the return of this device." %}</p>
           <div class="mb-3">
@@ -231,7 +308,150 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
-          <button type="submit" class="btn btn-success" id="returnSubmitBtn">
+          <button type="submit" class="btn btn-success" id="devReturnSubmitBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Confirm Return" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ ACCESSORY MODALS ═══════════════ -->
+
+<!-- View -->
+<div class="modal fade" id="accViewModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-mouse me-2 text-secondary"></i>{% trans "Accessory Assignment Details" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="accViewLoader" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+        <div id="accViewContent" class="d-none">
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Accessory" %}</p>
+              <p class="fw-semibold mb-0" id="av-type"></p>
+              <p class="text-muted small mb-0" id="av-info"></p>
+            </div>
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Employee" %}</p>
+              <p class="fw-semibold mb-0" id="av-employee"></p>
+            </div>
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Status" %}</p>
+              <p class="mb-0" id="av-status"></p>
+            </div>
+            <div class="col-12">
+              <p class="text-muted small mb-1">{% trans "Notes" %}</p>
+              <p class="fw-medium mb-0 white-space-pre-wrap" id="av-notes"></p>
+            </div>
+          </div>
+          <hr class="my-3">
+          <div class="row g-3 mb-2">
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Assigned Date" %}</p>
+              <p class="fw-medium mb-0" id="av-assigned-date"></p>
+            </div>
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Assigned By" %}</p>
+              <p class="fw-medium mb-0" id="av-assigned-by"></p>
+            </div>
+          </div>
+          <div class="row g-3" id="av-return-row">
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Returned Date" %}</p>
+              <p class="fw-medium mb-0" id="av-returned-date"></p>
+            </div>
+            <div class="col-md-6">
+              <p class="text-muted small mb-1">{% trans "Returned By" %}</p>
+              <p class="fw-medium mb-0" id="av-returned-by"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Close" %}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create -->
+<div class="modal fade" id="accCreateModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-plus-lg me-2 text-primary"></i>{% trans "New Accessory Assignment" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="accCreateForm" novalidate>
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Accessory" %} <span class="text-danger">*</span></label>
+              <select class="form-select" name="accessory" required><option value=""></option></select>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Employee" %} <span class="text-danger">*</span></label>
+              <select class="form-select" name="employee" required><option value=""></option></select>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Assigned Date" %} <span class="text-danger">*</span></label>
+              <input type="datetime-local" class="form-control" name="assigned_date" required>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% trans "Notes" %}</label>
+              <textarea class="form-control" name="notes" rows="2"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-primary" id="accCreateSubmitBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Assign" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Return -->
+<div class="modal fade" id="accReturnModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-box-arrow-in-left me-2 text-success"></i>{% trans "Return Accessory" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="accReturnForm" novalidate>
+        {% csrf_token %}
+        <input type="hidden" id="accReturnId">
+        <div class="modal-body">
+          <p class="text-muted mb-3">{% trans "Record the return of this accessory." %}</p>
+          <div class="mb-3">
+            <label class="form-label">{% trans "Return Date" %} <span class="text-danger">*</span></label>
+            <input type="datetime-local" class="form-control" name="returned_date" required>
+            <div class="invalid-feedback"></div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{% trans "Notes" %}</label>
+            <textarea class="form-control" name="notes" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-success" id="accReturnSubmitBtn">
             <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Confirm Return" %}</span>
             <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
           </button>
@@ -246,67 +466,103 @@
 
 {% block extra_js %}
 <script>
-const CAN_RETURN = {{ rbac.assignments_return|yesno:"true,false" }};
+const CAN_DEV_RETURN = {{ rbac.assignments_return|yesno:"true,false" }};
+const CAN_ACC_RETURN = {{ rbac.assignments_return|yesno:"true,false" }};
 
-const URL_DATA   = '{% url "assignments-data" %}';
-const URL_CREATE = '{% url "assignment-create" %}';
-const detailUrl  = pk => `/assignments/${pk}/`;
-const returnUrl  = pk => `/assignments/${pk}/return/`;
+const URL_DEV_DATA   = '{% url "assignments-data" %}';
+const URL_DEV_CREATE = '{% url "assignment-create" %}';
+const devDetailUrl   = pk => `/assignments/${pk}/`;
+const devReturnUrl   = pk => `/assignments/${pk}/return/`;
+
+const URL_ACC_DATA   = '{% url "acc-assignments-data" %}';
+const URL_ACC_CREATE = '{% url "acc-assignment-create" %}';
+const accDetailUrl   = pk => `/assignments/accessories/${pk}/`;
+const accReturnUrl   = pk => `/assignments/accessories/${pk}/return/`;
 
 const T = {
   records:  '{% trans "records" %}',
   active:   '{% trans "Active" %}',
   returned: '{% trans "Returned" %}',
   dash:     '—',
+  noSN:     '{% trans "No S/N" %}',
 };
 
-let debounceTimer = null;
-let currentPage   = 1;
+const devViewModal   = new bootstrap.Modal('#devViewModal');
+const devCreateModal = new bootstrap.Modal('#devCreateModal');
+const devReturnModal = new bootstrap.Modal('#devReturnModal');
+const accViewModal   = new bootstrap.Modal('#accViewModal');
+const accCreateModal = new bootstrap.Modal('#accCreateModal');
+const accReturnModal = new bootstrap.Modal('#accReturnModal');
 
-const viewModal   = new bootstrap.Modal('#viewModal');
-const createModal = new bootstrap.Modal('#createModal');
-const returnModal = new bootstrap.Modal('#returnModal');
+let activeTab = 'devices';
 
-function loadAssignments(page) {
-  currentPage = page || 1;
-  const search = document.getElementById('searchInput').value.trim();
-  const status = document.getElementById('statusFilter').value;
+/* ── Tab switching ── */
+function switchTab(tab) {
+  activeTab = tab;
+  document.getElementById('pane-devices').classList.toggle('d-none', tab !== 'devices');
+  document.getElementById('pane-accessories').classList.toggle('d-none', tab !== 'accessories');
+  document.getElementById('tab-devices').classList.toggle('active', tab === 'devices');
+  document.getElementById('tab-accessories').classList.toggle('active', tab === 'accessories');
+
+  const btnDev = document.getElementById('btnNewDeviceAssignment');
+  const btnAcc = document.getElementById('btnNewAccAssignment');
+  if (btnDev) btnDev.classList.toggle('d-none', tab !== 'devices');
+  if (btnAcc) btnAcc.classList.toggle('d-none', tab !== 'accessories');
+
+  if (tab === 'accessories' && !accLoaded) loadAccAssignments();
+}
+
+/* ══════════════════════════════════════════════════════════
+   DEVICES
+══════════════════════════════════════════════════════════ */
+let devPage = 1, devTimer = null;
+
+function loadDevAssignments(page) {
+  devPage = page || 1;
+  const search = document.getElementById('devSearchInput').value.trim();
+  const status = document.getElementById('devStatusFilter').value;
   const params = new URLSearchParams();
   if (search) params.set('search', search);
   if (status) params.set('status', status);
-  params.set('page', currentPage);
-  document.getElementById('tableLoader').classList.remove('d-none');
-  document.getElementById('tableWrapper').classList.add('d-none');
-  ajaxGet(`${URL_DATA}?${params}`)
+  params.set('page', devPage);
+  document.getElementById('devTableLoader').classList.remove('d-none');
+  document.getElementById('devTableWrapper').classList.add('d-none');
+  ajaxGet(`${URL_DEV_DATA}?${params}`)
     .then(data => {
-      renderTable(data.items);
-      document.getElementById('recordCount').textContent = `${data.total} ${T.records}`;
-      renderPagination('pagination', data.page, data.num_pages, loadAssignments);
+      if (!data.success) { showToast(data.message || '{% trans "Permission denied." %}', 'danger'); return; }
+      renderDevTable(data.items);
+      document.getElementById('devRecordCount').textContent = `${data.total} ${T.records}`;
+      renderPagination('devPagination', data.page, data.num_pages, loadDevAssignments);
     })
     .catch(() => showToast('{% trans "Failed to load assignments." %}', 'danger'))
     .finally(() => {
-      document.getElementById('tableLoader').classList.add('d-none');
-      document.getElementById('tableWrapper').classList.remove('d-none');
+      document.getElementById('devTableLoader').classList.add('d-none');
+      document.getElementById('devTableWrapper').classList.remove('d-none');
     });
 }
 
-function debounceLoad() { currentPage = 1; clearTimeout(debounceTimer); debounceTimer = setTimeout(loadAssignments, 400); }
-function resetFilters() { currentPage = 1; document.getElementById('searchInput').value = ''; document.getElementById('statusFilter').value = ''; loadAssignments(); }
+function debounceLoadDev() { devPage = 1; clearTimeout(devTimer); devTimer = setTimeout(loadDevAssignments, 400); }
+function resetDevFilters() {
+  devPage = 1;
+  document.getElementById('devSearchInput').value = '';
+  document.getElementById('devStatusFilter').value = '';
+  loadDevAssignments();
+}
 
-function renderTable(items) {
-  const tbody = document.getElementById('assignmentsTableBody');
-  const empty = document.getElementById('emptyState');
+function renderDevTable(items) {
+  const tbody = document.getElementById('devTableBody');
+  const empty = document.getElementById('devEmptyState');
   if (!items.length) {
     tbody.innerHTML = '';
     empty.classList.remove('d-none');
-    document.getElementById('tableWrapper').classList.add('d-none');
+    document.getElementById('devTableWrapper').classList.add('d-none');
     return;
   }
   empty.classList.add('d-none');
-  document.getElementById('tableWrapper').classList.remove('d-none');
+  document.getElementById('devTableWrapper').classList.remove('d-none');
   tbody.innerHTML = items.map((a, i) => `
     <tr>
-      <td class="text-muted">${(currentPage - 1) * 10 + i + 1}</td>
+      <td class="text-muted">${(devPage - 1) * 10 + i + 1}</td>
       <td>
         <div class="fw-semibold font-monospace" style="font-size:.82rem;">${escHtml(a.device_serial)}</div>
         <div class="text-muted" style="font-size:.75rem;">${escHtml(a.device_category)} · ${escHtml(a.device_brand)} ${escHtml(a.device_model)}</div>
@@ -323,11 +579,11 @@ function renderTable(items) {
       </td>
       <td class="text-end">
         <div class="d-flex gap-1 justify-content-end">
-          <button class="btn btn-sm btn-icon btn-outline-secondary" onclick="openViewModal(${a.id})" title="{% trans 'View' %}">
+          <button class="btn btn-sm btn-icon btn-outline-secondary" onclick="openDevViewModal(${a.id})" title="{% trans 'View' %}">
             <i class="bi bi-eye"></i>
           </button>
-          ${CAN_RETURN && a.is_active ? `
-          <button class="btn btn-sm btn-icon btn-outline-success" onclick="openReturnModal(${a.id})" title="{% trans 'Return' %}">
+          ${CAN_DEV_RETURN && a.is_active ? `
+          <button class="btn btn-sm btn-icon btn-outline-success" onclick="openDevReturnModal(${a.id})" title="{% trans 'Return' %}">
             <i class="bi bi-box-arrow-in-left"></i>
           </button>` : ''}
         </div>
@@ -336,83 +592,236 @@ function renderTable(items) {
   `).join('');
 }
 
-/* ── View ── */
-function openViewModal(pk) {
-  document.getElementById('viewLoader').classList.remove('d-none');
-  document.getElementById('viewContent').classList.add('d-none');
-  viewModal.show();
-  ajaxGet(detailUrl(pk))
+function openDevViewModal(pk) {
+  document.getElementById('devViewLoader').classList.remove('d-none');
+  document.getElementById('devViewContent').classList.add('d-none');
+  devViewModal.show();
+  ajaxGet(devDetailUrl(pk))
     .then(data => {
-      if (!data.success) { showToast(data.message, 'danger'); viewModal.hide(); return; }
+      if (!data.success) { showToast(data.message, 'danger'); devViewModal.hide(); return; }
       const a = data.item;
-      document.getElementById('v-device-serial').textContent = a.device_serial;
-      document.getElementById('v-device-info').textContent   = `${a.device_category} · ${a.device_brand} ${a.device_model}`;
-      document.getElementById('v-employee').textContent      = a.employee_name;
-      document.getElementById('v-status').innerHTML = a.is_active
+      document.getElementById('dv-device-serial').textContent = a.device_serial;
+      document.getElementById('dv-device-info').textContent   = `${a.device_category} · ${a.device_brand} ${a.device_model}`;
+      document.getElementById('dv-employee').textContent      = a.employee_name;
+      document.getElementById('dv-status').innerHTML = a.is_active
         ? `<span class="badge rounded-pill bg-success-subtle text-success">${T.active}</span>`
         : `<span class="badge rounded-pill bg-secondary-subtle text-secondary">${T.returned}</span>`;
-      document.getElementById('v-notes').textContent       = a.notes || T.dash;
-      document.getElementById('v-assigned-date').textContent = a.assigned_date ? a.assigned_date.replace('T', ' ') : T.dash;
-      document.getElementById('v-assigned-by').textContent   = a.assigned_by || T.dash;
-      document.getElementById('v-returned-date').textContent = a.returned_date ? a.returned_date.replace('T', ' ') : T.dash;
-      document.getElementById('v-returned-by').textContent   = a.returned_by || T.dash;
-      document.getElementById('viewLoader').classList.add('d-none');
-      document.getElementById('viewContent').classList.remove('d-none');
+      document.getElementById('dv-notes').textContent         = a.notes || T.dash;
+      document.getElementById('dv-assigned-date').textContent = a.assigned_date ? a.assigned_date.replace('T', ' ') : T.dash;
+      document.getElementById('dv-assigned-by').textContent   = a.assigned_by || T.dash;
+      document.getElementById('dv-returned-date').textContent = a.returned_date ? a.returned_date.replace('T', ' ') : T.dash;
+      document.getElementById('dv-returned-by').textContent   = a.returned_by || T.dash;
+      document.getElementById('devViewLoader').classList.add('d-none');
+      document.getElementById('devViewContent').classList.remove('d-none');
     })
-    .catch(() => { showToast('{% trans "Failed to load assignment." %}', 'danger'); viewModal.hide(); });
+    .catch(() => { showToast('{% trans "Failed to load assignment." %}', 'danger'); devViewModal.hide(); });
 }
 
-/* ── Create ── */
-function openCreateModal() {
-  document.getElementById('createForm').reset();
-  resetFormSelects(document.getElementById('createForm'));
-  clearFormErrors(document.getElementById('createForm'));
+function openDevCreateModal() {
+  document.getElementById('devCreateForm').reset();
+  resetFormSelects(document.getElementById('devCreateForm'));
+  clearFormErrors(document.getElementById('devCreateForm'));
   const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-  document.getElementById('createForm').querySelector('[name=assigned_date]').value = now.toISOString().slice(0, 16);
-  createModal.show();
+  document.getElementById('devCreateForm').querySelector('[name=assigned_date]').value = now.toISOString().slice(0, 16);
+  devCreateModal.show();
 }
-document.getElementById('createForm').addEventListener('submit', function(e) {
+document.getElementById('devCreateForm').addEventListener('submit', function(e) {
   e.preventDefault();
-  const btn = document.getElementById('createSubmitBtn');
+  const btn = document.getElementById('devCreateSubmitBtn');
   clearFormErrors(this); setButtonLoading(btn, true);
-  ajaxPost(URL_CREATE, new FormData(this))
+  ajaxPost(URL_DEV_CREATE, new FormData(this))
     .then(data => {
-      if (data.success) { createModal.hide(); showToast(data.message, 'success'); loadAssignments(); }
+      if (data.success) { devCreateModal.hide(); showToast(data.message, 'success'); loadDevAssignments(); }
       else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); }
     })
     .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
     .finally(() => setButtonLoading(btn, false));
 });
 
-/* ── Return ── */
-function openReturnModal(pk) {
-  document.getElementById('returnForm').reset();
-  clearFormErrors(document.getElementById('returnForm'));
-  document.getElementById('returnAssignmentId').value = pk;
+function openDevReturnModal(pk) {
+  document.getElementById('devReturnForm').reset();
+  clearFormErrors(document.getElementById('devReturnForm'));
+  document.getElementById('devReturnId').value = pk;
   const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-  document.getElementById('returnForm').querySelector('[name=returned_date]').value = now.toISOString().slice(0, 16);
-  returnModal.show();
+  document.getElementById('devReturnForm').querySelector('[name=returned_date]').value = now.toISOString().slice(0, 16);
+  devReturnModal.show();
 }
-document.getElementById('returnForm').addEventListener('submit', function(e) {
+document.getElementById('devReturnForm').addEventListener('submit', function(e) {
   e.preventDefault();
-  const pk  = document.getElementById('returnAssignmentId').value;
-  const btn = document.getElementById('returnSubmitBtn');
+  const pk  = document.getElementById('devReturnId').value;
+  const btn = document.getElementById('devReturnSubmitBtn');
   clearFormErrors(this); setButtonLoading(btn, true);
-  ajaxPost(returnUrl(pk), new FormData(this))
+  ajaxPost(devReturnUrl(pk), new FormData(this))
     .then(data => {
-      if (data.success) { returnModal.hide(); showToast(data.message, 'success'); loadAssignments(); }
+      if (data.success) { devReturnModal.hide(); showToast(data.message, 'success'); loadDevAssignments(); }
       else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); }
     })
     .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
     .finally(() => setButtonLoading(btn, false));
 });
+
+
+/* ══════════════════════════════════════════════════════════
+   ACCESSORIES
+══════════════════════════════════════════════════════════ */
+let accPage = 1, accTimer = null, accLoaded = false;
+
+function loadAccAssignments(page) {
+  accLoaded = true;
+  accPage = page || 1;
+  const search = document.getElementById('accSearchInput').value.trim();
+  const status = document.getElementById('accStatusFilter').value;
+  const params = new URLSearchParams();
+  if (search) params.set('search', search);
+  if (status) params.set('status', status);
+  params.set('page', accPage);
+  document.getElementById('accTableLoader').classList.remove('d-none');
+  document.getElementById('accTableWrapper').classList.add('d-none');
+  ajaxGet(`${URL_ACC_DATA}?${params}`)
+    .then(data => {
+      if (!data.success) { showToast(data.message || '{% trans "Permission denied." %}', 'danger'); return; }
+      renderAccTable(data.items);
+      document.getElementById('accRecordCount').textContent = `${data.total} ${T.records}`;
+      renderPagination('accPagination', data.page, data.num_pages, loadAccAssignments);
+    })
+    .catch(() => showToast('{% trans "Failed to load accessory assignments." %}', 'danger'))
+    .finally(() => {
+      document.getElementById('accTableLoader').classList.add('d-none');
+      document.getElementById('accTableWrapper').classList.remove('d-none');
+    });
+}
+
+function debounceLoadAcc() { accPage = 1; clearTimeout(accTimer); accTimer = setTimeout(loadAccAssignments, 400); }
+function resetAccFilters() {
+  accPage = 1;
+  document.getElementById('accSearchInput').value = '';
+  document.getElementById('accStatusFilter').value = '';
+  loadAccAssignments();
+}
+
+function renderAccTable(items) {
+  const tbody = document.getElementById('accTableBody');
+  const empty = document.getElementById('accEmptyState');
+  if (!items.length) {
+    tbody.innerHTML = '';
+    empty.classList.remove('d-none');
+    document.getElementById('accTableWrapper').classList.add('d-none');
+    return;
+  }
+  empty.classList.add('d-none');
+  document.getElementById('accTableWrapper').classList.remove('d-none');
+  tbody.innerHTML = items.map((a, i) => {
+    const sn = a.accessory_serial || T.noSN;
+    const brand = a.accessory_brand ? ` (${escHtml(a.accessory_brand)})` : '';
+    return `
+    <tr>
+      <td class="text-muted">${(accPage - 1) * 10 + i + 1}</td>
+      <td>
+        <div class="fw-semibold">${escHtml(a.accessory_type)}${brand}</div>
+        <div class="text-muted font-monospace" style="font-size:.75rem;">${escHtml(sn)}</div>
+      </td>
+      <td class="fw-medium">${escHtml(a.employee_name)}</td>
+      <td>${a.assigned_date}</td>
+      <td>${escHtml(a.assigned_by)}</td>
+      <td>${a.returned_date || `<span class="text-muted">${T.dash}</span>`}</td>
+      <td>${a.returned_by ? escHtml(a.returned_by) : `<span class="text-muted">${T.dash}</span>`}</td>
+      <td>
+        <span class="badge rounded-pill ${a.is_active ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'}">
+          ${a.is_active ? T.active : T.returned}
+        </span>
+      </td>
+      <td class="text-end">
+        <div class="d-flex gap-1 justify-content-end">
+          <button class="btn btn-sm btn-icon btn-outline-secondary" onclick="openAccViewModal(${a.id})" title="{% trans 'View' %}">
+            <i class="bi bi-eye"></i>
+          </button>
+          ${CAN_ACC_RETURN && a.is_active ? `
+          <button class="btn btn-sm btn-icon btn-outline-success" onclick="openAccReturnModal(${a.id})" title="{% trans 'Return' %}">
+            <i class="bi bi-box-arrow-in-left"></i>
+          </button>` : ''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openAccViewModal(pk) {
+  document.getElementById('accViewLoader').classList.remove('d-none');
+  document.getElementById('accViewContent').classList.add('d-none');
+  accViewModal.show();
+  ajaxGet(accDetailUrl(pk))
+    .then(data => {
+      if (!data.success) { showToast(data.message, 'danger'); accViewModal.hide(); return; }
+      const a = data.item;
+      document.getElementById('av-type').textContent          = a.accessory_type;
+      document.getElementById('av-info').textContent          = [a.accessory_brand, a.accessory_serial || T.noSN].filter(Boolean).join(' — ');
+      document.getElementById('av-employee').textContent      = a.employee_name;
+      document.getElementById('av-status').innerHTML = a.is_active
+        ? `<span class="badge rounded-pill bg-success-subtle text-success">${T.active}</span>`
+        : `<span class="badge rounded-pill bg-secondary-subtle text-secondary">${T.returned}</span>`;
+      document.getElementById('av-notes').textContent         = a.notes || T.dash;
+      document.getElementById('av-assigned-date').textContent = a.assigned_date ? a.assigned_date.replace('T', ' ') : T.dash;
+      document.getElementById('av-assigned-by').textContent   = a.assigned_by || T.dash;
+      document.getElementById('av-returned-date').textContent = a.returned_date ? a.returned_date.replace('T', ' ') : T.dash;
+      document.getElementById('av-returned-by').textContent   = a.returned_by || T.dash;
+      document.getElementById('accViewLoader').classList.add('d-none');
+      document.getElementById('accViewContent').classList.remove('d-none');
+    })
+    .catch(() => { showToast('{% trans "Failed to load assignment." %}', 'danger'); accViewModal.hide(); });
+}
+
+function openAccCreateModal() {
+  document.getElementById('accCreateForm').reset();
+  resetFormSelects(document.getElementById('accCreateForm'));
+  clearFormErrors(document.getElementById('accCreateForm'));
+  const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  document.getElementById('accCreateForm').querySelector('[name=assigned_date]').value = now.toISOString().slice(0, 16);
+  accCreateModal.show();
+}
+document.getElementById('accCreateForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('accCreateSubmitBtn');
+  clearFormErrors(this); setButtonLoading(btn, true);
+  ajaxPost(URL_ACC_CREATE, new FormData(this))
+    .then(data => {
+      if (data.success) { accCreateModal.hide(); showToast(data.message, 'success'); loadAccAssignments(); }
+      else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); }
+    })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+function openAccReturnModal(pk) {
+  document.getElementById('accReturnForm').reset();
+  clearFormErrors(document.getElementById('accReturnForm'));
+  document.getElementById('accReturnId').value = pk;
+  const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  document.getElementById('accReturnForm').querySelector('[name=returned_date]').value = now.toISOString().slice(0, 16);
+  accReturnModal.show();
+}
+document.getElementById('accReturnForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const pk  = document.getElementById('accReturnId').value;
+  const btn = document.getElementById('accReturnSubmitBtn');
+  clearFormErrors(this); setButtonLoading(btn, true);
+  ajaxPost(accReturnUrl(pk), new FormData(this))
+    .then(data => {
+      if (data.success) { accReturnModal.hide(); showToast(data.message, 'success'); loadAccAssignments(); }
+      else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); }
+    })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
 
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', () => {
   const S = '— {% trans "Select" %} —';
-  initSelect2($('#createForm [name=device]'),   'devices',   null, S);
-  initSelect2($('#createForm [name=employee]'), 'employees', null, S);
-  loadAssignments();
+  initSelect2($('#devCreateForm [name=device]'),   'devices',     null, S);
+  initSelect2($('#devCreateForm [name=employee]'), 'employees',   null, S);
+  initSelect2($('#accCreateForm [name=accessory]'),'accessories', null, S);
+  initSelect2($('#accCreateForm [name=employee]'), 'employees',   null, S);
+  loadDevAssignments();
 });
 </script>
 {% endblock %}
