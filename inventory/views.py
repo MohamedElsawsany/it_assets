@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
-from django.db.models import Q
+from django.db.models import Q, Exists, OuterRef
 
 PAGE_SIZE = 10
 
@@ -16,6 +16,11 @@ from .models import (Brand, DeviceCategory, DeviceModel, CPU, GPU,
 from .forms import (BrandForm, DeviceCategoryForm, DeviceModelForm, CPUForm, GPUForm,
                     OperatingSystemForm, AccessoryTypeForm,
                     DeviceForm, ChangeFlagForm, AccessoryForm)
+
+# System-managed flags that must only change through their dedicated flows
+_SYSTEM_FLAGS = {DeviceFlag.ASSIGNED, DeviceFlag.UNDER_MAINTENANCE}
+# Flags a user may freely set through the "change flag" action
+_FREE_FLAGS = {DeviceFlag.AVAILABLE, DeviceFlag.LOST, DeviceFlag.RETIRED}
 
 
 # ── Lookup registry ───────────────────────────────────────────────────────────
@@ -173,12 +178,17 @@ def lookup_delete(request, lookup_type, pk):
 @permission_required(Perms.DEVICES_VIEW)
 def devices_index(request):
     show_specs = has_permission(request.user, Perms.DEVICES_VIEW_SPECS)
+    # Only free flags for create/edit modals — assigned/under_maintenance are system-managed
+    create_edit_flag_choices = [(v, l) for v, l in DeviceFlag.choices if v in _FREE_FLAGS]
+    from maintenance.models import MaintenanceRecord
     return render(request, 'inventory/devices.html', {
         'sites':      request.user.get_allowed_sites().filter(deleted_date__isnull=True).order_by('name'),
         'categories': DeviceCategory.objects.filter(deleted_date__isnull=True).order_by('name'),
         'brands':     Brand.objects.filter(deleted_date__isnull=True).order_by('name'),
         'models':     DeviceModel.objects.filter(deleted_date__isnull=True).select_related('brand').order_by('name'),
         'flag_choices': DeviceFlag.choices,
+        'create_edit_flag_choices': create_edit_flag_choices,
+        'type_choices': MaintenanceRecord.MaintenanceType.choices,
         'cpus':       CPU.objects.filter(deleted_date__isnull=True).order_by('name'),
         'gpus':       GPU.objects.filter(deleted_date__isnull=True).order_by('name'),
         'os_list':    OperatingSystem.objects.filter(deleted_date__isnull=True).order_by('name'),
@@ -195,10 +205,15 @@ def devices_data(request):
     flag_id  = request.GET.get('flag', '').strip()
     show_specs = has_permission(request.user, Perms.DEVICES_VIEW_SPECS)
 
+    from assignments.models import DeviceAssignment
     qs = Device.objects.filter(
         deleted_date__isnull=True,
         site__in=request.user.get_allowed_sites(),
-    ).select_related('category', 'brand', 'device_model', 'site')
+    ).select_related('category', 'brand', 'device_model', 'site').annotate(
+        has_active_assignment=Exists(
+            DeviceAssignment.objects.filter(device=OuterRef('pk'), returned_date__isnull=True)
+        )
+    )
     if search:
         qs = qs.filter(
             Q(serial_number__icontains=search) |
@@ -227,6 +242,7 @@ def devices_data(request):
             'site_id': d.site_id, 'site_name': d.site.name,
             'flag': d.flag, 'flag_name': d.get_flag_display(),
             'maintenance_mode': d.maintenance_mode,
+            'has_active_assignment': d.has_active_assignment,
             'created_date': d.created_date.strftime('%Y-%m-%d'),
         }
         if show_specs:
@@ -307,6 +323,9 @@ def device_edit(request, pk):
     form = DeviceForm(request.POST, instance=device)
     if form.is_valid():
         obj = form.save(commit=False)
+        # Preserve system-managed flags — they are only changed through assignment/maintenance flows
+        if device.flag in _SYSTEM_FLAGS:
+            obj.flag = device.flag
         obj.updated_by = request.user
         obj.save()
         return JsonResponse({'success': True, 'message': _('Device updated successfully.')})
@@ -350,13 +369,28 @@ def device_change_flag(request, pk):
     if not has_permission(request.user, Perms.DEVICES_CHANGE_FLAG):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
     device = get_object_or_404(Device, pk=pk, deleted_date__isnull=True)
+    # Block all flag changes while under maintenance
+    if device.flag == DeviceFlag.UNDER_MAINTENANCE:
+        return JsonResponse({'success': False,
+                             'message': _('Device is under active maintenance. Close the maintenance record first.')})
     form = ChangeFlagForm(request.POST)
     if form.is_valid():
-        device.flag = form.cleaned_data['flag']
+        new_flag = form.cleaned_data['flag']
+        # System-managed flags must go through their dedicated flows
+        if new_flag == DeviceFlag.UNDER_MAINTENANCE:
+            return JsonResponse({'success': False,
+                                 'message': _('Use the Maintenance page to put a device under maintenance.')})
+        if new_flag == DeviceFlag.ASSIGNED:
+            return JsonResponse({'success': False,
+                                 'message': _('Use the Assignments page to assign a device to an employee.')})
+        # Block clearing an active assignment without returning it
+        if device.assignments.filter(returned_date__isnull=True).exists():
+            return JsonResponse({'success': False,
+                                 'message': _('Device is currently assigned to an employee. Return it first.')})
+        device.flag = new_flag
         device.save()
         return JsonResponse({'success': True, 'message': _('Device flag updated.'),
-                             'flag': device.flag,
-                             'flag_name': device.get_flag_display()})
+                             'flag': device.flag, 'flag_name': device.get_flag_display()})
     errors = {f: [str(e) for e in v] for f, v in form.errors.items()}
     return JsonResponse({'success': False, 'errors': errors})
 
@@ -388,11 +422,15 @@ def device_toggle_maintenance(request, pk):
 @permission_required(Perms.ACCESSORIES_VIEW)
 def accessories_index(request):
     allowed = request.user.get_allowed_sites()
+    create_edit_flag_choices = [(v, l) for v, l in DeviceFlag.choices if v in _FREE_FLAGS]
+    from maintenance.models import MaintenanceRecord
     return render(request, 'inventory/accessories.html', {
         'types':        AccessoryType.objects.filter(deleted_date__isnull=True).order_by('name'),
         'brands':       Brand.objects.filter(deleted_date__isnull=True).order_by('name'),
         'sites':        allowed.filter(deleted_date__isnull=True).order_by('name'),
         'flag_choices': DeviceFlag.choices,
+        'create_edit_flag_choices': create_edit_flag_choices,
+        'type_choices': MaintenanceRecord.MaintenanceType.choices,
         'devices':      Device.objects.filter(deleted_date__isnull=True, site__in=allowed).order_by('serial_number'),
     })
 
@@ -404,10 +442,15 @@ def accessories_data(request):
     type_id = request.GET.get('type', '').strip()
     site_id = request.GET.get('site', '').strip()
     flag_id = request.GET.get('flag', '').strip()
+    from assignments.models import AccessoryAssignment
     qs = Accessory.objects.filter(
         deleted_date__isnull=True,
         site__in=request.user.get_allowed_sites(),
-    ).select_related('accessory_type', 'brand', 'site')
+    ).select_related('accessory_type', 'brand', 'site').annotate(
+        has_active_assignment=Exists(
+            AccessoryAssignment.objects.filter(accessory=OuterRef('pk'), returned_date__isnull=True)
+        )
+    )
     if search:
         qs = qs.filter(
             Q(serial_number__icontains=search) |
@@ -430,6 +473,7 @@ def accessories_data(request):
          'brand_id': a.brand_id or '', 'brand_name': a.brand.name if a.brand else '',
          'site_id': a.site_id, 'site_name': a.site.name,
          'flag': a.flag, 'flag_name': a.get_flag_display(),
+         'has_active_assignment': a.has_active_assignment,
          'created_date': a.created_date.strftime('%Y-%m-%d')}
         for a in page_obj
     ]
@@ -486,9 +530,42 @@ def accessory_edit(request, pk):
     form = AccessoryForm(request.POST, instance=a)
     if form.is_valid():
         obj = form.save(commit=False)
+        # Preserve system-managed flags
+        if a.flag in _SYSTEM_FLAGS:
+            obj.flag = a.flag
         obj.updated_by = request.user
         obj.save()
         return JsonResponse({'success': True, 'message': _('Accessory updated successfully.')})
+    errors = {f: [str(e) for e in v] for f, v in form.errors.items()}
+    return JsonResponse({'success': False, 'errors': errors})
+
+
+@login_required
+@require_http_methods(['POST'])
+def accessory_change_flag(request, pk):
+    if not has_permission(request.user, Perms.ACCESSORIES_EDIT):
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+    a = get_object_or_404(Accessory, pk=pk, deleted_date__isnull=True)
+    # Block all flag changes while under maintenance
+    if a.flag == DeviceFlag.UNDER_MAINTENANCE:
+        return JsonResponse({'success': False,
+                             'message': _('Accessory is under active maintenance. Close the maintenance record first.')})
+    form = ChangeFlagForm(request.POST)
+    if form.is_valid():
+        new_flag = form.cleaned_data['flag']
+        if new_flag == DeviceFlag.UNDER_MAINTENANCE:
+            return JsonResponse({'success': False,
+                                 'message': _('Use the Maintenance page to put an accessory under maintenance.')})
+        if new_flag == DeviceFlag.ASSIGNED:
+            return JsonResponse({'success': False,
+                                 'message': _('Use the Assignments page to assign an accessory to an employee.')})
+        if a.accessory_assignments.filter(returned_date__isnull=True).exists():
+            return JsonResponse({'success': False,
+                                 'message': _('Accessory is currently assigned to an employee. Return it first.')})
+        a.flag = new_flag
+        a.save()
+        return JsonResponse({'success': True, 'message': _('Accessory flag updated.'),
+                             'flag': a.flag, 'flag_name': a.get_flag_display()})
     errors = {f: [str(e) for e in v] for f, v in form.errors.items()}
     return JsonResponse({'success': False, 'errors': errors})
 

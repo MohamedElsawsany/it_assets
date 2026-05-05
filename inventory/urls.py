@@ -28,4 +28,5 @@ urlpatterns = [
     path('accessories/<int:pk>/', views.accessory_detail, name='accessory-detail'),
     path('accessories/<int:pk>/edit/', views.accessory_edit, name='accessory-edit'),
     path('accessories/<int:pk>/delete/', views.accessory_delete, name='accessory-delete'),
+    path('accessories/<int:pk>/change-flag/', views.accessory_change_flag, name='accessory-change-flag'),
 ]

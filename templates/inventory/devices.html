@@ -155,38 +155,14 @@
             <hr class="my-3">
             <p class="fw-medium text-muted small mb-3">{% trans "Specifications" %}</p>
             <div class="row g-3">
-              <div class="col-md-4">
-                <p class="text-muted small mb-1">{% trans "CPU" %}</p>
-                <p class="fw-medium mb-0" id="view-cpu"></p>
-              </div>
-              <div class="col-md-4">
-                <p class="text-muted small mb-1">{% trans "GPU" %}</p>
-                <p class="fw-medium mb-0" id="view-gpu"></p>
-              </div>
-              <div class="col-md-4">
-                <p class="text-muted small mb-1">{% trans "Operating System" %}</p>
-                <p class="fw-medium mb-0" id="view-os"></p>
-              </div>
-              <div class="col-md-3">
-                <p class="text-muted small mb-1">{% trans "RAM" %}</p>
-                <p class="fw-medium mb-0" id="view-ram"></p>
-              </div>
-              <div class="col-md-3">
-                <p class="text-muted small mb-1">{% trans "HDD" %}</p>
-                <p class="fw-medium mb-0" id="view-hdd"></p>
-              </div>
-              <div class="col-md-3">
-                <p class="text-muted small mb-1">{% trans "SSD" %}</p>
-                <p class="fw-medium mb-0" id="view-ssd"></p>
-              </div>
-              <div class="col-md-3">
-                <p class="text-muted small mb-1">{% trans "Screen" %}</p>
-                <p class="fw-medium mb-0" id="view-screen"></p>
-              </div>
-              <div class="col-md-3">
-                <p class="text-muted small mb-1">{% trans "Ports" %}</p>
-                <p class="fw-medium mb-0" id="view-ports"></p>
-              </div>
+              <div class="col-md-4"><p class="text-muted small mb-1">{% trans "CPU" %}</p><p class="fw-medium mb-0" id="view-cpu"></p></div>
+              <div class="col-md-4"><p class="text-muted small mb-1">{% trans "GPU" %}</p><p class="fw-medium mb-0" id="view-gpu"></p></div>
+              <div class="col-md-4"><p class="text-muted small mb-1">{% trans "Operating System" %}</p><p class="fw-medium mb-0" id="view-os"></p></div>
+              <div class="col-md-3"><p class="text-muted small mb-1">{% trans "RAM" %}</p><p class="fw-medium mb-0" id="view-ram"></p></div>
+              <div class="col-md-3"><p class="text-muted small mb-1">{% trans "HDD" %}</p><p class="fw-medium mb-0" id="view-hdd"></p></div>
+              <div class="col-md-3"><p class="text-muted small mb-1">{% trans "SSD" %}</p><p class="fw-medium mb-0" id="view-ssd"></p></div>
+              <div class="col-md-3"><p class="text-muted small mb-1">{% trans "Screen" %}</p><p class="fw-medium mb-0" id="view-screen"></p></div>
+              <div class="col-md-3"><p class="text-muted small mb-1">{% trans "Ports" %}</p><p class="fw-medium mb-0" id="view-ports"></p></div>
             </div>
           </div>
           {% endif %}
@@ -241,7 +217,7 @@
               <label class="form-label">{% trans "Flag" %} <span class="text-danger">*</span></label>
               <select class="form-select" name="flag" required>
                 <option value="">—</option>
-                {% for value, label in flag_choices %}
+                {% for value, label in create_edit_flag_choices %}
                 <option value="{{ value }}">{{ label }}</option>
                 {% endfor %}
               </select>
@@ -253,41 +229,14 @@
             </div>
             {% if show_specs %}
             <div class="col-12"><hr class="my-1"><p class="fw-medium text-muted small mb-0">{% trans "Specifications (optional)" %}</p></div>
-            <div class="col-md-3">
-              <label class="form-label">{% trans "CPU" %}</label>
-              <select class="form-select" name="cpu"><option value=""></option></select>
-              <div class="invalid-feedback"></div>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label">{% trans "GPU" %}</label>
-              <select class="form-select" name="gpu"><option value=""></option></select>
-              <div class="invalid-feedback"></div>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label">{% trans "Operating System" %}</label>
-              <select class="form-select" name="operating_system"><option value=""></option></select>
-              <div class="invalid-feedback"></div>
-            </div>
-            <div class="col-md-1">
-              <label class="form-label">{% trans "RAM (GB)" %}</label>
-              <input type="number" class="form-control" name="ram_size_gb" min="0">
-            </div>
-            <div class="col-md-1">
-              <label class="form-label">{% trans "HDD (GB)" %}</label>
-              <input type="number" class="form-control" name="hdd_storage_gb" min="0">
-            </div>
-            <div class="col-md-1">
-              <label class="form-label">{% trans "SSD (GB)" %}</label>
-              <input type="number" class="form-control" name="ssd_storage_gb" min="0">
-            </div>
-            <div class="col-md-2">
-              <label class="form-label">{% trans "Screen (in)" %}</label>
-              <input type="number" class="form-control" name="screen_size_inch" step="0.1" min="0">
-            </div>
-            <div class="col-md-2">
-              <label class="form-label">{% trans "Ports" %}</label>
-              <input type="number" class="form-control" name="ports_number" min="0">
-            </div>
+            <div class="col-md-3"><label class="form-label">{% trans "CPU" %}</label><select class="form-select" name="cpu"><option value=""></option></select></div>
+            <div class="col-md-3"><label class="form-label">{% trans "GPU" %}</label><select class="form-select" name="gpu"><option value=""></option></select></div>
+            <div class="col-md-3"><label class="form-label">{% trans "Operating System" %}</label><select class="form-select" name="operating_system"><option value=""></option></select></div>
+            <div class="col-md-1"><label class="form-label">{% trans "RAM (GB)" %}</label><input type="number" class="form-control" name="ram_size_gb" min="0"></div>
+            <div class="col-md-1"><label class="form-label">{% trans "HDD (GB)" %}</label><input type="number" class="form-control" name="hdd_storage_gb" min="0"></div>
+            <div class="col-md-1"><label class="form-label">{% trans "SSD (GB)" %}</label><input type="number" class="form-control" name="ssd_storage_gb" min="0"></div>
+            <div class="col-md-2"><label class="form-label">{% trans "Screen (in)" %}</label><input type="number" class="form-control" name="screen_size_inch" step="0.1" min="0"></div>
+            <div class="col-md-2"><label class="form-label">{% trans "Ports" %}</label><input type="number" class="form-control" name="ports_number" min="0"></div>
             {% endif %}
           </div>
         </div>
@@ -344,15 +293,21 @@
                 <select class="form-select" name="site" required><option value=""></option></select>
                 <div class="invalid-feedback"></div>
               </div>
-              <div class="col-md-4">
+              <div class="col-md-4" id="editFlagField">
                 <label class="form-label">{% trans "Flag" %} <span class="text-danger">*</span></label>
                 <select class="form-select" name="flag" required>
                   <option value="">—</option>
-                  {% for value, label in flag_choices %}
+                  {% for value, label in create_edit_flag_choices %}
                   <option value="{{ value }}">{{ label }}</option>
                   {% endfor %}
                 </select>
                 <div class="invalid-feedback"></div>
+              </div>
+              <div class="col-md-4 d-none" id="editFlagLocked">
+                <label class="form-label">{% trans "Flag" %}</label>
+                <p class="fw-medium mb-0 pt-2" id="editFlagLockedBadge"></p>
+                <input type="hidden" name="flag" id="editFlagHidden">
+                <div class="form-text text-warning"><i class="bi bi-lock me-1"></i>{% trans "Managed by assignment/maintenance system." %}</div>
               </div>
               <div class="col-12">
                 <label class="form-label">{% trans "Notes" %}</label>
@@ -360,18 +315,9 @@
               </div>
               {% if show_specs %}
               <div class="col-12"><hr class="my-1"><p class="fw-medium text-muted small mb-0">{% trans "Specifications (optional)" %}</p></div>
-              <div class="col-md-3">
-                <label class="form-label">{% trans "CPU" %}</label>
-                <select class="form-select" name="cpu"><option value=""></option></select>
-              </div>
-              <div class="col-md-3">
-                <label class="form-label">{% trans "GPU" %}</label>
-                <select class="form-select" name="gpu"><option value=""></option></select>
-              </div>
-              <div class="col-md-3">
-                <label class="form-label">{% trans "OS" %}</label>
-                <select class="form-select" name="operating_system"><option value=""></option></select>
-              </div>
+              <div class="col-md-3"><label class="form-label">{% trans "CPU" %}</label><select class="form-select" name="cpu"><option value=""></option></select></div>
+              <div class="col-md-3"><label class="form-label">{% trans "GPU" %}</label><select class="form-select" name="gpu"><option value=""></option></select></div>
+              <div class="col-md-3"><label class="form-label">{% trans "OS" %}</label><select class="form-select" name="operating_system"><option value=""></option></select></div>
               <div class="col-md-1"><label class="form-label">{% trans "RAM" %}</label><input type="number" class="form-control" name="ram_size_gb" min="0"></div>
               <div class="col-md-1"><label class="form-label">{% trans "HDD" %}</label><input type="number" class="form-control" name="hdd_storage_gb" min="0"></div>
               <div class="col-md-1"><label class="form-label">{% trans "SSD" %}</label><input type="number" class="form-control" name="ssd_storage_gb" min="0"></div>
@@ -406,6 +352,7 @@
         {% csrf_token %}
         <input type="hidden" id="changeFlagDeviceId">
         <div class="modal-body">
+          <p class="text-muted small mb-3" id="changeFlagHint"></p>
           <label class="form-label">{% trans "New Flag" %} <span class="text-danger">*</span></label>
           <select class="form-select" name="flag" required>
             <option value="">—</option>
@@ -419,6 +366,102 @@
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
           <button type="submit" class="btn btn-warning" id="changeFlagBtn">
             <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Update Flag" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== QUICK ASSIGN MODAL ===== -->
+<div class="modal fade" id="quickAssignModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-person-check me-2 text-success"></i>{% trans "Assign Device" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="quickAssignForm" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="device" id="quickAssignDeviceId">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">{% trans "Device" %}</label>
+            <p class="fw-medium font-monospace mb-0" id="quickAssignDeviceLabel"></p>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{% trans "Employee" %} <span class="text-danger">*</span></label>
+            <select class="form-select" name="employee" required><option value=""></option></select>
+            <div class="invalid-feedback"></div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{% trans "Assigned Date" %} <span class="text-danger">*</span></label>
+            <input type="datetime-local" class="form-control" name="assigned_date" required>
+            <div class="invalid-feedback"></div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{% trans "Notes" %}</label>
+            <textarea class="form-control" name="notes" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-success" id="quickAssignSubmitBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Assign" %}</span>
+            <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== QUICK MAINTENANCE MODAL ===== -->
+<div class="modal fade" id="quickMaintenanceModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-tools me-2 text-warning"></i>{% trans "Send to Maintenance" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="quickMaintenanceForm" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="device" id="quickMaintenanceDeviceId">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">{% trans "Device" %}</label>
+            <p class="fw-medium font-monospace mb-0" id="quickMaintenanceDeviceLabel"></p>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{% trans "Maintenance Type" %} <span class="text-danger">*</span></label>
+            <select class="form-select" name="maintenance_type" required onchange="toggleQuickVendor(this.value)">
+              {% for value, label in type_choices %}
+              <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3" id="quickVendorField">
+            <label class="form-label">{% trans "Vendor Name" %}</label>
+            <input type="text" class="form-control" name="vendor_name">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{% trans "Sent Date" %} <span class="text-danger">*</span></label>
+            <input type="datetime-local" class="form-control" name="sent_date" required>
+            <div class="invalid-feedback"></div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">{% trans "Issue Description" %} <span class="text-danger">*</span></label>
+            <textarea class="form-control" name="issue_description" rows="3" required></textarea>
+            <div class="invalid-feedback"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+          <button type="submit" class="btn btn-warning" id="quickMaintenanceSubmitBtn">
+            <span class="btn-text"><i class="bi bi-check-lg me-1"></i>{% trans "Create Record" %}</span>
             <span class="btn-loading d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Saving…" %}</span>
           </button>
         </div>
@@ -460,13 +503,17 @@
 const CAN_EDIT        = {{ rbac.devices_edit|yesno:"true,false" }};
 const CAN_DELETE      = {{ rbac.devices_delete|yesno:"true,false" }};
 const CAN_CHANGE_FLAG = {{ rbac.devices_change_flag|yesno:"true,false" }};
+const CAN_ASSIGN      = {{ rbac.assignments_create|yesno:"true,false" }};
+const CAN_MAINTENANCE = {{ rbac.maintenance_create|yesno:"true,false" }};
 const SHOW_SPECS      = {{ show_specs|yesno:"true,false" }};
 
-const URL_DEVICES_DATA  = '{% url "devices-data" %}';
-const URL_DEVICE_CREATE = '{% url "device-create" %}';
-const deviceDetailUrl   = pk => `/inventory/devices/${pk}/`;
-const deviceEditUrl     = pk => `/inventory/devices/${pk}/edit/`;
-const deviceDeleteUrl   = pk => `/inventory/devices/${pk}/delete/`;
+const URL_DEVICES_DATA    = '{% url "devices-data" %}';
+const URL_DEVICE_CREATE   = '{% url "device-create" %}';
+const URL_ASSIGN_CREATE   = '{% url "assignment-create" %}';
+const URL_MAINT_CREATE    = '{% url "maintenance-create" %}';
+const deviceDetailUrl     = pk => `/inventory/devices/${pk}/`;
+const deviceEditUrl       = pk => `/inventory/devices/${pk}/edit/`;
+const deviceDeleteUrl     = pk => `/inventory/devices/${pk}/delete/`;
 const deviceChangeFlagUrl = pk => `/inventory/devices/${pk}/change-flag/`;
 
 const T = {
@@ -475,15 +522,20 @@ const T = {
   no:  '{% trans "No" %}',
 };
 
-let deleteTargetId = null;
-let debounceTimer  = null;
-let currentPage    = 1;
+const SYSTEM_FLAGS = ['assigned', 'under_maintenance'];
 
-const viewModal       = new bootstrap.Modal('#viewModal');
-const createModal     = new bootstrap.Modal('#createModal');
-const editModal       = new bootstrap.Modal('#editModal');
-const changeFlagModal = new bootstrap.Modal('#changeFlagModal');
-const deleteModal     = new bootstrap.Modal('#deleteModal');
+let deleteTargetId      = null;
+let debounceTimer       = null;
+let currentPage         = 1;
+let changeFlagState     = {};  // {pk, currentFlag, hasActiveAssignment, serial}
+
+const viewModal           = new bootstrap.Modal('#viewModal');
+const createModal         = new bootstrap.Modal('#createModal');
+const editModal           = new bootstrap.Modal('#editModal');
+const changeFlagModal     = new bootstrap.Modal('#changeFlagModal');
+const quickAssignModal    = new bootstrap.Modal('#quickAssignModal');
+const quickMaintModal     = new bootstrap.Modal('#quickMaintenanceModal');
+const deleteModal         = new bootstrap.Modal('#deleteModal');
 
 function loadDevices(page) {
   currentPage = page || 1;
@@ -522,6 +574,17 @@ function resetFilters() {
   loadDevices();
 }
 
+function flagBadgeClass(flag) {
+  const map = {
+    available:         'bg-success-subtle text-success',
+    assigned:          'bg-primary-subtle text-primary',
+    lost:              'bg-danger-subtle text-danger',
+    retired:           'bg-secondary-subtle text-secondary',
+    under_maintenance: 'bg-warning-subtle text-warning',
+  };
+  return map[flag] || 'bg-secondary-subtle text-secondary';
+}
+
 function renderDevicesTable(items) {
   const tbody = document.getElementById('devicesTableBody');
   const empty = document.getElementById('emptyState');
@@ -543,13 +606,13 @@ function renderDevicesTable(items) {
         <div class="text-muted small">${escHtml(d.model_name)}</div>
       </td>
       <td><span class="d-flex align-items-center gap-1"><i class="bi bi-geo-alt text-muted small"></i>${escHtml(d.site_name)}</span></td>
-      <td><span class="badge bg-secondary-subtle text-secondary rounded-pill">${escHtml(d.flag_name)}</span></td>
+      <td><span class="badge ${flagBadgeClass(d.flag)} rounded-pill">${escHtml(d.flag_name)}</span></td>
       <td class="text-muted small">${d.created_date}</td>
       <td class="text-end">
         <div class="d-flex gap-1 justify-content-end">
           <button class="btn btn-sm btn-icon btn-outline-secondary" onclick="openViewModal(${d.id})" title="{% trans 'View' %}"><i class="bi bi-eye"></i></button>
           ${CAN_EDIT ? `<button class="btn btn-sm btn-icon btn-outline-primary" onclick="openEditModal(${d.id})" title="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></button>` : ''}
-          ${CAN_CHANGE_FLAG ? `<button class="btn btn-sm btn-icon btn-outline-warning" onclick="openChangeFlagModal(${d.id})" title="{% trans 'Change Flag' %}"><i class="bi bi-flag"></i></button>` : ''}
+          ${CAN_CHANGE_FLAG ? `<button class="btn btn-sm btn-icon btn-outline-warning" onclick="openChangeFlagModal(${d.id},'${d.flag}',${d.maintenance_mode},${d.has_active_assignment},'${escHtml(d.serial_number)}')" title="{% trans 'Change Flag' %}"><i class="bi bi-flag"></i></button>` : ''}
           ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDeleteModal(${d.id},'${escHtml(d.serial_number)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
         </div>
       </td>
@@ -557,7 +620,7 @@ function renderDevicesTable(items) {
   `).join('');
 }
 
-/* Create */
+/* ── Create ── */
 function openCreateModal() {
   document.getElementById('createForm').reset();
   resetFormSelects(document.getElementById('createForm'));
@@ -574,7 +637,7 @@ document.getElementById('createForm').addEventListener('submit', function(e) {
     .finally(() => setButtonLoading(btn, false));
 });
 
-/* Edit */
+/* ── Edit ── */
 function openEditModal(pk) {
   document.getElementById('editLoader').classList.remove('d-none');
   document.getElementById('editContent').classList.add('d-none');
@@ -591,8 +654,19 @@ function openEditModal(pk) {
       setSelect2Value($('#editForm [name=brand]'),        d.brand_id,        d.brand_name);
       setSelect2Value($('#editForm [name=device_model]'), d.device_model_id, d.model_name);
       setSelect2Value($('#editForm [name=site]'),         d.site_id,         d.site_name);
-      f.querySelector('[name=flag]').value  = d.flag || '';
       f.querySelector('[name=notes]').value = d.notes || '';
+
+      // Handle system-managed flags
+      const isSystemFlag = SYSTEM_FLAGS.includes(d.flag);
+      document.getElementById('editFlagField').classList.toggle('d-none', isSystemFlag);
+      document.getElementById('editFlagLocked').classList.toggle('d-none', !isSystemFlag);
+      if (isSystemFlag) {
+        document.getElementById('editFlagLockedBadge').innerHTML = `<span class="badge ${flagBadgeClass(d.flag)} rounded-pill">${escHtml(d.flag_name)}</span>`;
+        document.getElementById('editFlagHidden').value = d.flag;
+      } else {
+        f.querySelector('[name=flag]').value = d.flag || '';
+      }
+
       if (SHOW_SPECS) {
         const setNum = (n, v) => { const el = f.querySelector(`[name=${n}]`); if (el) el.value = v || ''; };
         setNum('ram_size_gb', d.ram_size_gb); setNum('hdd_storage_gb', d.hdd_storage_gb);
@@ -618,16 +692,60 @@ document.getElementById('editForm').addEventListener('submit', function(e) {
     .finally(() => setButtonLoading(btn, false));
 });
 
-/* Change Flag */
-function openChangeFlagModal(pk) {
+/* ── Change Flag ── */
+function openChangeFlagModal(pk, currentFlag, maintenanceMode, hasActiveAssignment, serial) {
+  // Hard block: under maintenance
+  if (maintenanceMode || currentFlag === 'under_maintenance') {
+    showToast('{% trans "Device is under active maintenance. Close the maintenance record first." %}', 'warning');
+    return;
+  }
+  changeFlagState = { pk, currentFlag, hasActiveAssignment, serial };
   document.getElementById('changeFlagDeviceId').value = pk;
   document.getElementById('changeFlagForm').querySelector('[name=flag]').value = '';
   clearFormErrors(document.getElementById('changeFlagForm'));
+  // Show hint when device is assigned
+  const hint = document.getElementById('changeFlagHint');
+  if (hasActiveAssignment) {
+    hint.textContent = '{% trans "This device is currently assigned. You can only send it to maintenance. To free it, return it from the Assignments page first." %}';
+    hint.className = 'text-warning small mb-3';
+  } else {
+    hint.textContent = '{% trans "Selecting \"Assigned\" or \"Under Maintenance\" will open the relevant form." %}';
+    hint.className = 'text-muted small mb-3';
+  }
   changeFlagModal.show();
 }
+
 document.getElementById('changeFlagForm').addEventListener('submit', function(e) {
   e.preventDefault();
-  const pk  = document.getElementById('changeFlagDeviceId').value;
+  const { pk, hasActiveAssignment, serial } = changeFlagState;
+  const newFlag = this.querySelector('[name=flag]').value;
+  if (!newFlag) return;
+
+  // Route: under_maintenance → quick maintenance modal
+  if (newFlag === 'under_maintenance') {
+    changeFlagModal.hide();
+    openQuickMaintenanceModal(pk, serial);
+    return;
+  }
+
+  // Route: assigned → quick assign modal (only if not already assigned)
+  if (newFlag === 'assigned') {
+    if (hasActiveAssignment) {
+      showToast('{% trans "Device is already assigned. Return it first." %}', 'danger');
+      return;
+    }
+    changeFlagModal.hide();
+    openQuickAssignModal(pk, serial);
+    return;
+  }
+
+  // Block: assigned device → can't freely change to available/lost/retired
+  if (hasActiveAssignment) {
+    showToast('{% trans "Device is currently assigned to an employee. Return it from the Assignments page first." %}', 'danger');
+    return;
+  }
+
+  // Normal AJAX flag change
   const btn = document.getElementById('changeFlagBtn');
   clearFormErrors(this); setButtonLoading(btn, true);
   ajaxPost(deviceChangeFlagUrl(pk), new FormData(this))
@@ -636,7 +754,53 @@ document.getElementById('changeFlagForm').addEventListener('submit', function(e)
     .finally(() => setButtonLoading(btn, false));
 });
 
-/* View */
+/* ── Quick Assign ── */
+function openQuickAssignModal(pk, serial) {
+  document.getElementById('quickAssignForm').reset();
+  resetFormSelects(document.getElementById('quickAssignForm'));
+  clearFormErrors(document.getElementById('quickAssignForm'));
+  document.getElementById('quickAssignDeviceId').value   = pk;
+  document.getElementById('quickAssignDeviceLabel').textContent = serial;
+  const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  document.getElementById('quickAssignForm').querySelector('[name=assigned_date]').value = now.toISOString().slice(0,16);
+  quickAssignModal.show();
+}
+document.getElementById('quickAssignForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('quickAssignSubmitBtn');
+  clearFormErrors(this); setButtonLoading(btn, true);
+  ajaxPost(URL_ASSIGN_CREATE, new FormData(this))
+    .then(data => { if (data.success) { quickAssignModal.hide(); showToast(data.message, 'success'); loadDevices(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+/* ── Quick Maintenance ── */
+function toggleQuickVendor(val) {
+  document.getElementById('quickVendorField').style.display = val === 'External' ? '' : 'none';
+}
+function openQuickMaintenanceModal(pk, serial) {
+  document.getElementById('quickMaintenanceForm').reset();
+  clearFormErrors(document.getElementById('quickMaintenanceForm'));
+  document.getElementById('quickMaintenanceDeviceId').value   = pk;
+  document.getElementById('quickMaintenanceDeviceLabel').textContent = serial;
+  const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  document.getElementById('quickMaintenanceForm').querySelector('[name=sent_date]').value = now.toISOString().slice(0,16);
+  const mt = document.getElementById('quickMaintenanceForm').querySelector('[name=maintenance_type]');
+  if (mt) toggleQuickVendor(mt.value);
+  quickMaintModal.show();
+}
+document.getElementById('quickMaintenanceForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('quickMaintenanceSubmitBtn');
+  clearFormErrors(this); setButtonLoading(btn, true);
+  ajaxPost(URL_MAINT_CREATE, new FormData(this))
+    .then(data => { if (data.success) { quickMaintModal.hide(); showToast(data.message, 'success'); loadDevices(); } else { showFormErrors(this, data.errors || {}); if (data.message) showToast(data.message, 'danger'); } })
+    .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
+    .finally(() => setButtonLoading(btn, false));
+});
+
+/* ── View ── */
 function openViewModal(pk) {
   document.getElementById('viewLoader').classList.remove('d-none');
   document.getElementById('viewContent').classList.add('d-none');
@@ -645,26 +809,26 @@ function openViewModal(pk) {
     .then(data => {
       if (!data.success) { showToast(data.message, 'danger'); viewModal.hide(); return; }
       const d = data.item;
-      document.getElementById('view-serial').textContent      = d.serial_number;
-      document.getElementById('view-category').textContent    = d.category_name;
-      document.getElementById('view-brand').textContent       = d.brand_name;
-      document.getElementById('view-model').textContent       = d.model_name;
-      document.getElementById('view-site').textContent        = d.site_name;
-      document.getElementById('view-flag').textContent        = d.flag_name || d.flag;
-      document.getElementById('view-notes').textContent       = d.notes || '—';
-      document.getElementById('view-created-by').textContent  = d.created_by || '—';
+      document.getElementById('view-serial').textContent       = d.serial_number;
+      document.getElementById('view-category').textContent     = d.category_name;
+      document.getElementById('view-brand').textContent        = d.brand_name;
+      document.getElementById('view-model').textContent        = d.model_name;
+      document.getElementById('view-site').textContent         = d.site_name;
+      document.getElementById('view-flag').innerHTML           = `<span class="badge ${flagBadgeClass(d.flag)} rounded-pill">${escHtml(d.flag_name || d.flag)}</span>`;
+      document.getElementById('view-notes').textContent        = d.notes || '—';
+      document.getElementById('view-created-by').textContent   = d.created_by || '—';
       document.getElementById('view-created-date').textContent = d.created_date || '—';
-      document.getElementById('view-updated-by').textContent  = d.updated_by || '—';
+      document.getElementById('view-updated-by').textContent   = d.updated_by || '—';
       document.getElementById('view-updated-date').textContent = d.updated_date || '—';
       const specsSection = document.getElementById('viewSpecsSection');
       if (specsSection) {
         if (d.cpu_name !== undefined) {
-          document.getElementById('view-cpu').textContent    = d.cpu_name  || '—';
-          document.getElementById('view-gpu').textContent    = d.gpu_name  || '—';
-          document.getElementById('view-ram').textContent    = d.ram_size_gb  ? d.ram_size_gb  + ' GB' : '—';
-          document.getElementById('view-hdd').textContent    = d.hdd_storage_gb ? d.hdd_storage_gb + ' GB' : '—';
-          document.getElementById('view-ssd').textContent    = d.ssd_storage_gb ? d.ssd_storage_gb + ' GB' : '—';
-          document.getElementById('view-os').textContent     = d.os_name   || '—';
+          document.getElementById('view-cpu').textContent    = d.cpu_name    || '—';
+          document.getElementById('view-gpu').textContent    = d.gpu_name    || '—';
+          document.getElementById('view-ram').textContent    = d.ram_size_gb     ? d.ram_size_gb  + ' GB' : '—';
+          document.getElementById('view-hdd').textContent    = d.hdd_storage_gb  ? d.hdd_storage_gb + ' GB' : '—';
+          document.getElementById('view-ssd').textContent    = d.ssd_storage_gb  ? d.ssd_storage_gb + ' GB' : '—';
+          document.getElementById('view-os').textContent     = d.os_name      || '—';
           document.getElementById('view-screen').textContent = d.screen_size_inch ? d.screen_size_inch + '"' : '—';
           document.getElementById('view-ports').textContent  = d.ports_number || '—';
           specsSection.classList.remove('d-none');
@@ -678,7 +842,7 @@ function openViewModal(pk) {
     .catch(() => { showToast('{% trans "Failed to load device." %}', 'danger'); viewModal.hide(); });
 }
 
-/* Delete */
+/* ── Delete ── */
 function openDeleteModal(pk, serial) {
   deleteTargetId = pk;
   document.getElementById('deleteDeviceSerial').textContent = serial;
@@ -698,53 +862,40 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', function()
 document.addEventListener('DOMContentLoaded', () => {
   const S = '— {% trans "Select" %} —';
 
-  // Filter bar
   initSelect2($('#catFilter'),  'categories', null, '{% trans "All Categories" %}');
   initSelect2($('#siteFilter'), 'sites',      null, '{% trans "All Sites" %}');
   $('#catFilter, #siteFilter').on('change', () => { currentPage = 1; loadDevices(); });
   document.getElementById('flagFilter').addEventListener('change', () => { currentPage = 1; loadDevices(); });
 
-  // Create modal
   initSelect2($('#createForm [name=category]'), 'categories', null, S);
   initSelect2($('#createForm [name=brand]'),    'brands',     null, S);
   initSelect2($('#createForm [name=device_model]'), 'device-models',
-    () => ({
-      brand:    $('#createForm [name=brand]').val()    || '',
-      category: $('#createForm [name=category]').val() || '',
-    }), S);
+    () => ({ brand: $('#createForm [name=brand]').val() || '', category: $('#createForm [name=category]').val() || '' }), S);
   initSelect2($('#createForm [name=site]'), 'sites', null, S);
-
-  // Reset model when category or brand changes (create)
   $('#createForm [name=category], #createForm [name=brand]').on('change', function () {
     $('#createForm [name=device_model]').val(null).trigger('change');
   });
-
   if (SHOW_SPECS) {
     initSelect2($('#createForm [name=cpu]'),              'cpus', null, '—');
     initSelect2($('#createForm [name=gpu]'),              'gpus', null, '—');
     initSelect2($('#createForm [name=operating_system]'), 'os',   null, '—');
   }
 
-  // Edit modal
   initSelect2($('#editForm [name=category]'), 'categories', null, S);
   initSelect2($('#editForm [name=brand]'),    'brands',     null, S);
   initSelect2($('#editForm [name=device_model]'), 'device-models',
-    () => ({
-      brand:    $('#editForm [name=brand]').val()    || '',
-      category: $('#editForm [name=category]').val() || '',
-    }), S);
+    () => ({ brand: $('#editForm [name=brand]').val() || '', category: $('#editForm [name=category]').val() || '' }), S);
   initSelect2($('#editForm [name=site]'), 'sites', null, S);
-
-  // Reset model when category or brand changes (edit)
   $('#editForm [name=category], #editForm [name=brand]').on('change', function () {
     $('#editForm [name=device_model]').val(null).trigger('change');
   });
-
   if (SHOW_SPECS) {
     initSelect2($('#editForm [name=cpu]'),              'cpus', null, '—');
     initSelect2($('#editForm [name=gpu]'),              'gpus', null, '—');
     initSelect2($('#editForm [name=operating_system]'), 'os',   null, '—');
   }
+
+  initSelect2($('#quickAssignForm [name=employee]'), 'employees', null, S);
 
   loadDevices();
 });
