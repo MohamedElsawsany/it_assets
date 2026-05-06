@@ -419,6 +419,18 @@ def device_transfer_create(request):
     if not devices.exists():
         return JsonResponse({'success': False, 'message': _('No valid devices selected.')})
 
+    blocked = []
+    for device in devices:
+        if device.flag == DeviceFlag.ASSIGNED:
+            blocked.append(_(f'"{device}" is currently assigned to an employee. Return it first.'))
+        elif device.flag == DeviceFlag.UNDER_MAINTENANCE:
+            blocked.append(_(f'"{device}" is under maintenance. Close the maintenance record first.'))
+        elif device.flag == DeviceFlag.LOST:
+            blocked.append(_(f'"{device}" is marked as lost and cannot be transferred.'))
+
+    if blocked:
+        return JsonResponse({'success': False, 'message': ' | '.join(blocked)})
+
     created = 0
     for device in devices:
         DeviceTransfer.objects.create(
@@ -523,6 +535,7 @@ def transfer_available_devices(request):
     qs = Device.objects.filter(
         deleted_date__isnull=True,
         in_transfer=False,
+        flag=DeviceFlag.AVAILABLE,
         site__in=allowed,
     ).select_related('category', 'brand', 'device_model')
 
@@ -553,6 +566,7 @@ def transfer_available_accessories(request):
     qs = Accessory.objects.filter(
         deleted_date__isnull=True,
         in_transfer=False,
+        flag=DeviceFlag.AVAILABLE,
         site__in=allowed,
     ).select_related('accessory_type', 'brand')
 
@@ -701,6 +715,18 @@ def accessory_transfer_create(request):
 
     if not accessories.exists():
         return JsonResponse({'success': False, 'message': _('No valid accessories selected.')})
+
+    blocked = []
+    for accessory in accessories:
+        if accessory.flag == DeviceFlag.ASSIGNED:
+            blocked.append(_(f'"{accessory}" is currently assigned to an employee. Return it first.'))
+        elif accessory.flag == DeviceFlag.UNDER_MAINTENANCE:
+            blocked.append(_(f'"{accessory}" is under maintenance. Close the maintenance record first.'))
+        elif accessory.flag == DeviceFlag.LOST:
+            blocked.append(_(f'"{accessory}" is marked as lost and cannot be transferred.'))
+
+    if blocked:
+        return JsonResponse({'success': False, 'message': ' | '.join(blocked)})
 
     created = 0
     for accessory in accessories:
