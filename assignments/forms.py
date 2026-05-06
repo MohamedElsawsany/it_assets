@@ -1,6 +1,6 @@
 from django import forms
 from django.utils.translation import gettext_lazy as _
-from .models import DeviceAssignment, AccessoryAssignment, DeviceTransfer
+from .models import DeviceAssignment, AccessoryAssignment
 
 
 class AssignmentForm(forms.ModelForm):
@@ -61,24 +61,3 @@ class AccessoryAssignmentForm(forms.ModelForm):
         }
 
 
-class TransferForm(forms.ModelForm):
-    class Meta:
-        model   = DeviceTransfer
-        fields  = ['device', 'from_site', 'to_site', 'transfer_date', 'notes']
-        widgets = {
-            'device':        forms.Select(attrs={'class': 'form-select'}),
-            'from_site':     forms.Select(attrs={'class': 'form-select'}),
-            'to_site':       forms.Select(attrs={'class': 'form-select'}),
-            'transfer_date': forms.DateTimeInput(
-                attrs={'class': 'form-control', 'type': 'datetime-local'},
-                format='%Y-%m-%dT%H:%M',
-            ),
-            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-        }
-        labels = {
-            'device':        _('Device'),
-            'from_site':     _('From Site'),
-            'to_site':       _('To Site'),
-            'transfer_date': _('Transfer Date'),
-            'notes':         _('Notes'),
-        }

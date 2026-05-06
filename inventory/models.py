@@ -186,6 +186,7 @@ class Device(models.Model):
 
     # ── Status ────────────────────────────────────────────────────────────────
     maintenance_mode = models.BooleanField(default=False)
+    in_transfer      = models.BooleanField(default=False, help_text='True while a pending site transfer is in progress')
     notes            = models.TextField(null=True, blank=True)
 
     # ── Audit ─────────────────────────────────────────────────────────────────
@@ -274,6 +275,7 @@ class Accessory(models.Model):
     device         = models.ForeignKey(Device, on_delete=models.SET_NULL, null=True, blank=True, related_name='accessories')
     site           = models.ForeignKey('locations.Site', on_delete=models.PROTECT, related_name='accessories')
     flag           = models.CharField(max_length=20, choices=DeviceFlag.choices, default=DeviceFlag.AVAILABLE)
+    in_transfer    = models.BooleanField(default=False, help_text='True while a pending site transfer is in progress')
     notes          = models.TextField(null=True, blank=True)
     created_by     = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,

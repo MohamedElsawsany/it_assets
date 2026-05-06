@@ -208,6 +208,7 @@ def devices_data(request):
     from assignments.models import DeviceAssignment
     qs = Device.objects.filter(
         deleted_date__isnull=True,
+        in_transfer=False,
         site__in=request.user.get_allowed_sites(),
     ).select_related('category', 'brand', 'device_model', 'site').annotate(
         has_active_assignment=Exists(
@@ -445,6 +446,7 @@ def accessories_data(request):
     from assignments.models import AccessoryAssignment
     qs = Accessory.objects.filter(
         deleted_date__isnull=True,
+        in_transfer=False,
         site__in=request.user.get_allowed_sites(),
     ).select_related('accessory_type', 'brand', 'site').annotate(
         has_active_assignment=Exists(

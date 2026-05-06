@@ -15,10 +15,24 @@ urlpatterns = [
     path('accessories/<int:pk>/', views.acc_assignment_detail, name='acc-assignment-detail'),
     path('accessories/<int:pk>/return/', views.acc_assignment_return, name='acc-assignment-return'),
 
-    # Transfers
+    # Transfers — index
     path('transfers/', views.transfers_index, name='transfers-index'),
-    path('transfers/data/', views.transfers_data, name='transfers-data'),
-    path('transfers/create/', views.transfer_create, name='transfer-create'),
-    path('transfers/<int:pk>/', views.transfer_detail, name='transfer-detail'),
-    path('transfers/<int:pk>/delete/', views.transfer_delete, name='transfer-delete'),
+
+    # Device Transfers
+    path('transfers/devices/data/', views.device_transfers_data, name='device-transfers-data'),
+    path('transfers/devices/create/', views.device_transfer_create, name='device-transfer-create'),
+    path('transfers/devices/available/', views.transfer_available_devices, name='transfer-available-devices'),
+    path('transfers/devices/<int:pk>/', views.transfer_detail, name='transfer-detail'),
+    path('transfers/devices/<int:pk>/accept/', views.device_transfer_accept, name='device-transfer-accept'),
+    path('transfers/devices/<int:pk>/reject/', views.device_transfer_reject, name='device-transfer-reject'),
+    path('transfers/devices/<int:pk>/delete/', views.device_transfer_delete, name='device-transfer-delete'),
+
+    # Accessory Transfers
+    path('transfers/accessories/data/', views.accessory_transfers_data, name='accessory-transfers-data'),
+    path('transfers/accessories/create/', views.accessory_transfer_create, name='accessory-transfer-create'),
+    path('transfers/accessories/available/', views.transfer_available_accessories, name='transfer-available-accessories'),
+    path('transfers/accessories/<int:pk>/', views.accessory_transfer_detail, name='accessory-transfer-detail'),
+    path('transfers/accessories/<int:pk>/accept/', views.accessory_transfer_accept, name='accessory-transfer-accept'),
+    path('transfers/accessories/<int:pk>/reject/', views.accessory_transfer_reject, name='accessory-transfer-reject'),
+    path('transfers/accessories/<int:pk>/delete/', views.accessory_transfer_delete, name='accessory-transfer-delete'),
 ]

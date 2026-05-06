@@ -93,27 +93,65 @@ class AccessoryAssignment(models.Model):
         return self.returned_date is None
 
 
+class TransferStatus(models.TextChoices):
+    PENDING  = 'pending',  'Pending'
+    ACCEPTED = 'accepted', 'Accepted'
+    REJECTED = 'rejected', 'Rejected'
+
+
 class DeviceTransfer(models.Model):
-    """Records a device moving from one site to another."""
+    """Records a pending or resolved device movement between sites."""
     device        = models.ForeignKey('inventory.Device', on_delete=models.PROTECT, related_name='transfers')
     from_site     = models.ForeignKey('locations.Site',   on_delete=models.PROTECT, related_name='outgoing_transfers')
     to_site       = models.ForeignKey('locations.Site',   on_delete=models.PROTECT, related_name='incoming_transfers')
     transfer_date = models.DateTimeField()
+    status        = models.CharField(max_length=20, choices=TransferStatus.choices, default=TransferStatus.PENDING)
     notes         = models.TextField(null=True, blank=True)
     transferred_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
         related_name='device_transfers', db_column='Transferred_By',
     )
-    created_date = models.DateTimeField(auto_now_add=True)
+    resolved_by   = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        related_name='resolved_device_transfers', null=True, blank=True,
+    )
+    resolved_date = models.DateTimeField(null=True, blank=True)
+    created_date  = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'Device_Transfers'
         permissions = [
-            ('approve_transfer', 'Can approve a pending device site transfer'),
+            ('approve_transfer', 'Can approve or reject a pending device site transfer'),
         ]
 
     def __str__(self):
-        return f'{self.device} | {self.from_site} → {self.to_site}'
+        return f'[{self.status}] {self.device} | {self.from_site} → {self.to_site}'
+
+
+class AccessoryTransfer(models.Model):
+    """Records a pending or resolved accessory movement between sites."""
+    accessory     = models.ForeignKey('inventory.Accessory', on_delete=models.PROTECT, related_name='transfers')
+    from_site     = models.ForeignKey('locations.Site', on_delete=models.PROTECT, related_name='outgoing_accessory_transfers')
+    to_site       = models.ForeignKey('locations.Site', on_delete=models.PROTECT, related_name='incoming_accessory_transfers')
+    transfer_date = models.DateTimeField()
+    status        = models.CharField(max_length=20, choices=TransferStatus.choices, default=TransferStatus.PENDING)
+    notes         = models.TextField(null=True, blank=True)
+    transferred_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+        related_name='accessory_transfers',
+    )
+    resolved_by   = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        related_name='resolved_accessory_transfers', null=True, blank=True,
+    )
+    resolved_date = models.DateTimeField(null=True, blank=True)
+    created_date  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'Accessory_Transfers'
+
+    def __str__(self):
+        return f'[{self.status}] {self.accessory} | {self.from_site} → {self.to_site}'
 
 
 class DeliveredDeviceHistory(models.Model):

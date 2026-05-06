@@ -26,6 +26,11 @@ class Command(BaseCommand):
 
         self.stdout.write('Seeding data…')
         admin = self._get_admin()
+        if admin is None:
+            raise Exception(
+                'No superuser found. Create one first:\n'
+                '  python manage.py createsuperuser'
+            )
         govs, sites        = self._seed_locations(admin)
         depts              = self._seed_departments(admin)
         employees          = self._seed_employees(admin, sites, depts)
@@ -33,9 +38,9 @@ class Command(BaseCommand):
         brands, categories, models, cpus, gpus, oses, acc_types = self._seed_lookups(admin)
         devices            = self._seed_devices(admin, sites, brands, categories, models, cpus, gpus, oses)
         accessories        = self._seed_accessories(admin, sites, brands, acc_types, devices)
-        self._seed_assignments(users, devices, employees)
+        self._seed_assignments(users, devices, accessories, employees)
         self._seed_transfers(users, devices, sites)
-        self._seed_maintenance(users, devices)
+        self._seed_maintenance(users, devices, accessories)
         self.stdout.write(self.style.SUCCESS('Done! Database seeded successfully.'))
 
     # ──────────────────────────────────────────────────────────────────────────
@@ -43,7 +48,7 @@ class Command(BaseCommand):
     # ──────────────────────────────────────────────────────────────────────────
     def _clear(self):
         from maintenance.models import MaintenanceRecord, AccessoryMaintenanceRecord
-        from assignments.models import DeviceAssignment, AccessoryAssignment, DeviceTransfer
+        from assignments.models import DeviceAssignment, AccessoryAssignment, DeviceTransfer, AccessoryTransfer
         from inventory.models import Accessory, Device
         from employees.models import Employee, Department
         from locations.models import Site, Governorate
@@ -59,6 +64,7 @@ class Command(BaseCommand):
         MaintenanceRecord.objects.all().delete()
         AccessoryAssignment.objects.all().delete()
         DeviceAssignment.objects.all().delete()
+        AccessoryTransfer.objects.all().delete()
         DeviceTransfer.objects.all().delete()
         Accessory.objects.all().delete()
         Device.objects.all().delete()
@@ -203,6 +209,7 @@ class Command(BaseCommand):
                     'first_name': fname,
                     'last_name': lname,
                     'site': site,
+                    'own_site': site,
                     'is_active': True,
                     'created_by': admin,
                 },
@@ -418,14 +425,14 @@ class Command(BaseCommand):
     # ──────────────────────────────────────────────────────────────────────────
     # Assignments
     # ──────────────────────────────────────────────────────────────────────────
-    def _seed_assignments(self, users, devices, employees):
-        from assignments.models import DeviceAssignment
+    def _seed_assignments(self, users, devices, accessories, employees):
+        from assignments.models import DeviceAssignment, AccessoryAssignment
         from inventory.models import DeviceFlag
 
         assigner = users[0]  # IT admin
-        count = 0
+        dev_count = 0
 
-        # 20 active assignments
+        # 20 active device assignments
         available_devices = [d for d in devices if d.flag == DeviceFlag.AVAILABLE][:20]
         for i, dev in enumerate(available_devices):
             emp = employees[i % len(employees)]
@@ -440,9 +447,9 @@ class Command(BaseCommand):
                 )
             dev.flag = DeviceFlag.ASSIGNED
             dev.save(update_fields=['flag'])
-            count += 1
+            dev_count += 1
 
-        # 10 returned (historical) assignments
+        # 10 returned (historical) device assignments
         other_devices = [d for d in devices if d.flag not in (DeviceFlag.ASSIGNED,)][:10]
         for i, dev in enumerate(other_devices):
             emp = employees[(i + 5) % len(employees)]
@@ -456,9 +463,27 @@ class Command(BaseCommand):
                 notes='Returned after project completion',
                 assigned_by=assigner,
             )
-            count += 1
+            dev_count += 1
 
-        self.stdout.write(f'  Assignments: {count}')
+        # 10 active accessory assignments (standalone accessories only)
+        standalone_accs = [a for a in accessories if a.device is None and a.flag == DeviceFlag.AVAILABLE][:10]
+        acc_count = 0
+        for i, acc in enumerate(standalone_accs):
+            emp = employees[(i + 10) % len(employees)]
+            assigned_date = self._ago(random.randint(5, 200))
+            if not AccessoryAssignment.objects.filter(accessory=acc, returned_date__isnull=True).exists():
+                AccessoryAssignment.objects.create(
+                    accessory=acc,
+                    employee=emp,
+                    assigned_date=assigned_date,
+                    notes=f'Assigned {acc.accessory_type} to {emp.first_name} {emp.last_name}',
+                    assigned_by=assigner,
+                )
+            acc.flag = DeviceFlag.ASSIGNED
+            acc.save(update_fields=['flag'])
+            acc_count += 1
+
+        self.stdout.write(f'  Assignments: {dev_count} devices, {acc_count} accessories')
 
     # ──────────────────────────────────────────────────────────────────────────
     # Transfers
@@ -491,15 +516,15 @@ class Command(BaseCommand):
     # ──────────────────────────────────────────────────────────────────────────
     # Maintenance
     # ──────────────────────────────────────────────────────────────────────────
-    def _seed_maintenance(self, users, devices):
-        from maintenance.models import MaintenanceRecord
+    def _seed_maintenance(self, users, devices, accessories):
+        from maintenance.models import MaintenanceRecord, AccessoryMaintenanceRecord
         from inventory.models import DeviceFlag
 
         tech = users[5]  # maint.tech1
 
-        maint_types   = ['Internal', 'External', 'Internal', 'External', 'Internal']
-        vendors       = ['TechFix Egypt', 'IT Solutions Co.', 'Cairo Repair Center', None]
-        issues        = [
+        maint_types = ['Internal', 'External', 'Internal', 'External', 'Internal']
+        vendors     = ['TechFix Egypt', 'IT Solutions Co.', 'Cairo Repair Center', None]
+        dev_issues  = [
             'Screen flickering intermittently',
             'Battery not charging properly',
             'Fan making loud noise',
@@ -511,13 +536,24 @@ class Command(BaseCommand):
             'OS reinstallation needed',
             'Network card malfunction',
         ]
+        acc_issues = [
+            'Mouse scroll wheel not working',
+            'Keyboard keys sticking',
+            'Headset microphone broken',
+            'Webcam not detected by OS',
+            'USB hub port faulty',
+            'Charger cable fraying',
+            'Docking station not charging',
+            'Laptop bag strap torn',
+        ]
 
-        count = 0
+        # Device maintenance records
+        dev_count = 0
         maint_devices = [d for d in devices if d.flag not in (DeviceFlag.ASSIGNED,)][:20]
 
         for i, dev in enumerate(maint_devices):
-            sent_date    = self._ago(random.randint(30, 200))
-            is_closed    = (i % 4 != 0)  # ~75% closed
+            sent_date     = self._ago(random.randint(30, 200))
+            is_closed     = (i % 4 != 0)  # ~75% closed
             returned_date = (sent_date + timedelta(days=random.randint(3, 21))) if is_closed else None
 
             prev_flag = dev.flag
@@ -528,7 +564,7 @@ class Command(BaseCommand):
                 vendor_name=vendors[i % len(vendors)] if mtype == 'External' else None,
                 sent_date=sent_date,
                 returned_date=returned_date,
-                issue_description=issues[i % len(issues)],
+                issue_description=dev_issues[i % len(dev_issues)],
                 resolution_notes='Issue resolved and device tested.' if is_closed else '',
                 cost=random.choice([None, 150, 300, 500, 750, 1200]),
                 created_by=tech,
@@ -541,6 +577,36 @@ class Command(BaseCommand):
                 dev.maintenance_mode = True
                 dev.save(update_fields=['flag', 'maintenance_mode'])
 
-            count += 1
+            dev_count += 1
 
-        self.stdout.write(f'  Maintenance records: {count}')
+        # Accessory maintenance records
+        acc_count = 0
+        maint_accs = [a for a in accessories if a.flag == DeviceFlag.AVAILABLE][:10]
+
+        for i, acc in enumerate(maint_accs):
+            sent_date     = self._ago(random.randint(10, 100))
+            is_closed     = (i % 3 != 0)  # ~67% closed
+            returned_date = (sent_date + timedelta(days=random.randint(2, 14))) if is_closed else None
+
+            prev_flag = acc.flag
+            mtype = maint_types[i % len(maint_types)]
+            AccessoryMaintenanceRecord.objects.create(
+                accessory=acc,
+                maintenance_type=mtype,
+                vendor_name=vendors[i % len(vendors)] if mtype == 'External' else None,
+                sent_date=sent_date,
+                returned_date=returned_date,
+                issue_description=acc_issues[i % len(acc_issues)],
+                resolution_notes='Repaired and tested.' if is_closed else '',
+                cost=random.choice([None, 50, 100, 200]),
+                created_by=tech,
+                previous_flag=prev_flag,
+            )
+
+            if not is_closed:
+                acc.flag = DeviceFlag.UNDER_MAINTENANCE
+                acc.save(update_fields=['flag'])
+
+            acc_count += 1
+
+        self.stdout.write(f'  Maintenance records: {dev_count} devices, {acc_count} accessories')

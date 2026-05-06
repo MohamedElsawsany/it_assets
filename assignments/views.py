@@ -12,8 +12,8 @@ from accounts.permissions import permission_required, has_permission, Perms
 from inventory.models import Device, Accessory, DeviceFlag
 from employees.models import Employee
 from locations.models import Site
-from .models import DeviceAssignment, AccessoryAssignment, DeviceTransfer
-from .forms import AssignmentForm, AccessoryAssignmentForm, ReturnDeviceForm, TransferForm
+from .models import DeviceAssignment, AccessoryAssignment, DeviceTransfer, AccessoryTransfer, TransferStatus
+from .forms import AssignmentForm, AccessoryAssignmentForm, ReturnDeviceForm
 
 
 # ── Assignments ───────────────────────────────────────────────────────────────
@@ -101,29 +101,6 @@ def assignment_detail(request, pk):
         'returned_by': a.returned_by.full_name if a.returned_by else '',
         'created_date': a.created_date.strftime('%Y-%m-%d %I:%M %p'),
         'updated_date': a.updated_date.strftime('%Y-%m-%d %I:%M %p') if a.updated_date else '',
-    }})
-
-
-@login_required
-def transfer_detail(request, pk):
-    if not has_permission(request.user, Perms.TRANSFERS_VIEW):
-        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
-    allowed = request.user.get_allowed_sites()
-    t = get_object_or_404(
-        DeviceTransfer.objects.filter(
-            Q(from_site__in=allowed) | Q(to_site__in=allowed),
-        ).select_related('device', 'from_site', 'to_site', 'transferred_by'),
-        pk=pk,
-    )
-    return JsonResponse({'success': True, 'item': {
-        'id': t.pk,
-        'device_serial': t.device.serial_number,
-        'from_site_name': t.from_site.name,
-        'to_site_name': t.to_site.name,
-        'transfer_date': t.transfer_date.strftime('%Y-%m-%d %I:%M %p'),
-        'notes': t.notes or '',
-        'transferred_by': t.transferred_by.full_name,
-        'created_date': t.created_date.strftime('%Y-%m-%d %I:%M %p'),
     }})
 
 
@@ -300,74 +277,514 @@ def acc_assignment_return(request, pk):
 
 # ── Transfers ─────────────────────────────────────────────────────────────────
 
+def _is_all_sites(user):
+    from accounts.models import User as _User
+    return user.is_superuser or getattr(user, 'site_scope', _User.SiteScope.OWN) == _User.SiteScope.ALL
+
+
 @login_required
 @permission_required(Perms.TRANSFERS_VIEW)
 def transfers_index(request):
     allowed = request.user.get_allowed_sites()
     return render(request, 'assignments/transfers.html', {
-        'devices': Device.objects.filter(deleted_date__isnull=True, site__in=allowed).order_by('serial_number'),
-        'sites':   allowed.filter(deleted_date__isnull=True).order_by('name'),
+        'my_sites':  allowed.filter(deleted_date__isnull=True).order_by('name'),
+        'all_sites': Site.objects.filter(deleted_date__isnull=True).order_by('name'),
     })
 
 
+# ── Device transfer list & detail ────────────────────────────────────────────
+
 @login_required
 @permission_required(Perms.TRANSFERS_VIEW)
-def transfers_data(request):
-    search = request.GET.get('search', '').strip()
-    allowed = request.user.get_allowed_sites()
+def device_transfers_data(request):
+    search   = request.GET.get('search', '').strip()
+    status_f = request.GET.get('status', '').strip()
+    allowed  = request.user.get_allowed_sites()
+    allowed_ids = set(allowed.values_list('id', flat=True))
+    all_sites   = _is_all_sites(request.user)
+
     qs = DeviceTransfer.objects.filter(
         Q(from_site__in=allowed) | Q(to_site__in=allowed)
-    ).select_related('device', 'from_site', 'to_site', 'transferred_by')
+    ).select_related('device', 'from_site', 'to_site', 'transferred_by', 'resolved_by')
+
     if search:
         qs = qs.filter(
             Q(device__serial_number__icontains=search) |
             Q(from_site__name__icontains=search) |
             Q(to_site__name__icontains=search)
         )
+    if status_f in (TransferStatus.PENDING, TransferStatus.ACCEPTED, TransferStatus.REJECTED):
+        qs = qs.filter(status=status_f)
+
     qs = qs.order_by('-transfer_date')
     paginator = Paginator(qs, PAGE_SIZE)
     try:
         page_num = int(request.GET.get('page', 1))
     except (ValueError, TypeError):
         page_num = 1
-    page_obj  = paginator.get_page(page_num)
-    items = [
-        {'id': t.pk,
-         'device_id': t.device_id,
-         'device_serial': t.device.serial_number,
-         'from_site_id': t.from_site_id,
-         'from_site_name': t.from_site.name,
-         'to_site_id': t.to_site_id,
-         'to_site_name': t.to_site.name,
-         'transfer_date': t.transfer_date.strftime('%Y-%m-%d'),
-         'notes': t.notes or '',
-         'transferred_by': t.transferred_by.full_name}
-        for t in page_obj
-    ]
+    page_obj = paginator.get_page(page_num)
+
+    items = []
+    for t in page_obj:
+        is_pending = t.status == TransferStatus.PENDING
+        can_ar = is_pending and (all_sites or t.to_site_id in allowed_ids)
+        can_del = is_pending and (all_sites or t.from_site_id in allowed_ids)
+        items.append({
+            'id': t.pk,
+            'device_id': t.device_id,
+            'device_serial': t.device.serial_number,
+            'from_site_name': t.from_site.name,
+            'to_site_name': t.to_site.name,
+            'transfer_date': t.transfer_date.strftime('%Y-%m-%d'),
+            'status': t.status,
+            'notes': t.notes or '',
+            'transferred_by': t.transferred_by.full_name,
+            'resolved_by': t.resolved_by.full_name if t.resolved_by else '',
+            'resolved_date': t.resolved_date.strftime('%Y-%m-%d') if t.resolved_date else '',
+            'can_accept': can_ar,
+            'can_reject': can_ar,
+            'can_delete': can_del,
+        })
     return JsonResponse({'success': True, 'items': items, 'total': paginator.count,
                          'page': page_obj.number, 'num_pages': paginator.num_pages})
 
 
 @login_required
+def transfer_detail(request, pk):
+    if not has_permission(request.user, Perms.TRANSFERS_VIEW):
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+    allowed = request.user.get_allowed_sites()
+    t = get_object_or_404(
+        DeviceTransfer.objects.filter(
+            Q(from_site__in=allowed) | Q(to_site__in=allowed),
+        ).select_related('device', 'from_site', 'to_site', 'transferred_by', 'resolved_by'),
+        pk=pk,
+    )
+    return JsonResponse({'success': True, 'item': {
+        'id': t.pk,
+        'device_serial': t.device.serial_number,
+        'from_site_name': t.from_site.name,
+        'to_site_name': t.to_site.name,
+        'transfer_date': t.transfer_date.strftime('%Y-%m-%d %I:%M %p'),
+        'status': t.status,
+        'notes': t.notes or '',
+        'transferred_by': t.transferred_by.full_name,
+        'resolved_by': t.resolved_by.full_name if t.resolved_by else '',
+        'resolved_date': t.resolved_date.strftime('%Y-%m-%d %I:%M %p') if t.resolved_date else '',
+        'created_date': t.created_date.strftime('%Y-%m-%d %I:%M %p'),
+    }})
+
+
+# ── Device transfer create / accept / reject / delete ────────────────────────
+
+@login_required
 @require_http_methods(['POST'])
-def transfer_create(request):
+def device_transfer_create(request):
     if not has_permission(request.user, Perms.TRANSFERS_CREATE):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
-    form = TransferForm(request.POST)
-    if form.is_valid():
-        obj = form.save(commit=False)
-        obj.transferred_by = request.user
-        obj.save()
-        return JsonResponse({'success': True, 'message': _('Transfer recorded successfully.')})
-    errors = {f: [str(e) for e in v] for f, v in form.errors.items()}
-    return JsonResponse({'success': False, 'errors': errors})
+
+    from django.utils import timezone
+    from datetime import datetime
+
+    allowed     = request.user.get_allowed_sites()
+    allowed_ids = set(allowed.values_list('id', flat=True))
+
+    device_ids    = request.POST.getlist('device_ids[]')
+    to_site_id    = request.POST.get('to_site', '').strip()
+    transfer_date = request.POST.get('transfer_date', '').strip()
+    notes         = request.POST.get('notes', '').strip() or None
+
+    if not device_ids:
+        return JsonResponse({'success': False, 'message': _('Select at least one device.')})
+    if not to_site_id:
+        return JsonResponse({'success': False, 'message': _('Select a destination site.')})
+
+    try:
+        to_site = Site.objects.get(pk=to_site_id)
+    except Site.DoesNotExist:
+        return JsonResponse({'success': False, 'message': _('Invalid destination site.')})
+
+    try:
+        transfer_dt = timezone.make_aware(datetime.fromisoformat(transfer_date))
+    except (ValueError, TypeError):
+        transfer_dt = timezone.now()
+
+    devices = Device.objects.filter(
+        pk__in=device_ids,
+        in_transfer=False,
+        deleted_date__isnull=True,
+        site__in=allowed,
+    ).exclude(site=to_site)
+
+    if not devices.exists():
+        return JsonResponse({'success': False, 'message': _('No valid devices selected.')})
+
+    created = 0
+    for device in devices:
+        DeviceTransfer.objects.create(
+            device=device,
+            from_site=device.site,
+            to_site=to_site,
+            transfer_date=transfer_dt,
+            notes=notes,
+            transferred_by=request.user,
+            status=TransferStatus.PENDING,
+        )
+        device.in_transfer = True
+        device.save(update_fields=['in_transfer'])
+        created += 1
+
+    return JsonResponse({'success': True,
+                         'message': _(f'{created} transfer(s) created successfully.')})
 
 
 @login_required
 @require_http_methods(['POST'])
-def transfer_delete(request, pk):
+def device_transfer_accept(request, pk):
+    if not has_permission(request.user, Perms.TRANSFERS_APPROVE):
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+
+    from django.utils import timezone
+    allowed = request.user.get_allowed_sites()
+    allowed_ids = set(allowed.values_list('id', flat=True))
+
+    t = get_object_or_404(DeviceTransfer, pk=pk)
+    if t.status != TransferStatus.PENDING:
+        return JsonResponse({'success': False, 'message': _('Transfer is not pending.')})
+    if not _is_all_sites(request.user) and t.to_site_id not in allowed_ids:
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+
+    t.status = TransferStatus.ACCEPTED
+    t.resolved_by   = request.user
+    t.resolved_date = timezone.now()
+    t.save()
+    t.device.site       = t.to_site
+    t.device.in_transfer = False
+    t.device.save(update_fields=['site', 'in_transfer'])
+    return JsonResponse({'success': True, 'message': _('Transfer accepted. Device moved to new site.')})
+
+
+@login_required
+@require_http_methods(['POST'])
+def device_transfer_reject(request, pk):
+    if not has_permission(request.user, Perms.TRANSFERS_APPROVE):
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+
+    from django.utils import timezone
+    allowed = request.user.get_allowed_sites()
+    allowed_ids = set(allowed.values_list('id', flat=True))
+
+    t = get_object_or_404(DeviceTransfer, pk=pk)
+    if t.status != TransferStatus.PENDING:
+        return JsonResponse({'success': False, 'message': _('Transfer is not pending.')})
+    if not _is_all_sites(request.user) and t.to_site_id not in allowed_ids:
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+
+    t.status = TransferStatus.REJECTED
+    t.resolved_by   = request.user
+    t.resolved_date = timezone.now()
+    t.save()
+    t.device.in_transfer = False
+    t.device.save(update_fields=['in_transfer'])
+    return JsonResponse({'success': True, 'message': _('Transfer rejected. Device stays at original site.')})
+
+
+@login_required
+@require_http_methods(['POST'])
+def device_transfer_delete(request, pk):
     if not has_permission(request.user, Perms.TRANSFERS_DELETE):
         return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+
+    allowed = request.user.get_allowed_sites()
+    allowed_ids = set(allowed.values_list('id', flat=True))
+
     t = get_object_or_404(DeviceTransfer, pk=pk)
+    if t.status != TransferStatus.PENDING:
+        return JsonResponse({'success': False, 'message': _('Only pending transfers can be cancelled.')})
+    if not _is_all_sites(request.user) and t.from_site_id not in allowed_ids:
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+
+    t.device.in_transfer = False
+    t.device.save(update_fields=['in_transfer'])
     t.delete()
-    return JsonResponse({'success': True, 'message': _('Transfer deleted successfully.')})
+    return JsonResponse({'success': True, 'message': _('Transfer cancelled.')})
+
+
+# ── Available devices/accessories for transfer modal ─────────────────────────
+
+@login_required
+def transfer_available_devices(request):
+    if not has_permission(request.user, Perms.TRANSFERS_CREATE):
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+
+    site_id = request.GET.get('site', '').strip()
+    allowed = request.user.get_allowed_sites()
+
+    qs = Device.objects.filter(
+        deleted_date__isnull=True,
+        in_transfer=False,
+        site__in=allowed,
+    ).select_related('category', 'brand', 'device_model')
+
+    if site_id:
+        qs = qs.filter(site_id=site_id)
+
+    items = [
+        {'id': d.pk,
+         'text': f'{d.serial_number} — {d.device_model} ({d.category})',
+         'serial': d.serial_number,
+         'model': d.device_model.name,
+         'category': d.category.name,
+         'brand': d.brand.name,
+         'site_id': d.site_id}
+        for d in qs.order_by('serial_number')[:200]
+    ]
+    return JsonResponse({'success': True, 'items': items})
+
+
+@login_required
+def transfer_available_accessories(request):
+    if not has_permission(request.user, Perms.TRANSFERS_CREATE):
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+
+    site_id = request.GET.get('site', '').strip()
+    allowed = request.user.get_allowed_sites()
+
+    qs = Accessory.objects.filter(
+        deleted_date__isnull=True,
+        in_transfer=False,
+        site__in=allowed,
+    ).select_related('accessory_type', 'brand')
+
+    if site_id:
+        qs = qs.filter(site_id=site_id)
+
+    items = [
+        {'id': a.pk,
+         'text': f'{a.accessory_type.name} — {a.serial_number or "No S/N"} ({a.brand.name if a.brand else "—"})',
+         'serial': a.serial_number or '',
+         'type': a.accessory_type.name,
+         'brand': a.brand.name if a.brand else '',
+         'site_id': a.site_id}
+        for a in qs.order_by('accessory_type__name')[:200]
+    ]
+    return JsonResponse({'success': True, 'items': items})
+
+
+# ── Accessory transfer list & detail ─────────────────────────────────────────
+
+@login_required
+@permission_required(Perms.TRANSFERS_VIEW)
+def accessory_transfers_data(request):
+    search   = request.GET.get('search', '').strip()
+    status_f = request.GET.get('status', '').strip()
+    allowed  = request.user.get_allowed_sites()
+    allowed_ids = set(allowed.values_list('id', flat=True))
+    all_sites   = _is_all_sites(request.user)
+
+    qs = AccessoryTransfer.objects.filter(
+        Q(from_site__in=allowed) | Q(to_site__in=allowed)
+    ).select_related('accessory', 'accessory__accessory_type', 'from_site', 'to_site',
+                     'transferred_by', 'resolved_by')
+
+    if search:
+        qs = qs.filter(
+            Q(accessory__serial_number__icontains=search) |
+            Q(accessory__accessory_type__name__icontains=search) |
+            Q(from_site__name__icontains=search) |
+            Q(to_site__name__icontains=search)
+        )
+    if status_f in (TransferStatus.PENDING, TransferStatus.ACCEPTED, TransferStatus.REJECTED):
+        qs = qs.filter(status=status_f)
+
+    qs = qs.order_by('-transfer_date')
+    paginator = Paginator(qs, PAGE_SIZE)
+    try:
+        page_num = int(request.GET.get('page', 1))
+    except (ValueError, TypeError):
+        page_num = 1
+    page_obj = paginator.get_page(page_num)
+
+    items = []
+    for t in page_obj:
+        is_pending = t.status == TransferStatus.PENDING
+        can_ar = is_pending and (all_sites or t.to_site_id in allowed_ids)
+        can_del = is_pending and (all_sites or t.from_site_id in allowed_ids)
+        items.append({
+            'id': t.pk,
+            'accessory_id': t.accessory_id,
+            'accessory_type': t.accessory.accessory_type.name,
+            'accessory_serial': t.accessory.serial_number or '',
+            'from_site_name': t.from_site.name,
+            'to_site_name': t.to_site.name,
+            'transfer_date': t.transfer_date.strftime('%Y-%m-%d'),
+            'status': t.status,
+            'notes': t.notes or '',
+            'transferred_by': t.transferred_by.full_name,
+            'resolved_by': t.resolved_by.full_name if t.resolved_by else '',
+            'resolved_date': t.resolved_date.strftime('%Y-%m-%d') if t.resolved_date else '',
+            'can_accept': can_ar,
+            'can_reject': can_ar,
+            'can_delete': can_del,
+        })
+    return JsonResponse({'success': True, 'items': items, 'total': paginator.count,
+                         'page': page_obj.number, 'num_pages': paginator.num_pages})
+
+
+@login_required
+def accessory_transfer_detail(request, pk):
+    if not has_permission(request.user, Perms.TRANSFERS_VIEW):
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+    allowed = request.user.get_allowed_sites()
+    t = get_object_or_404(
+        AccessoryTransfer.objects.filter(
+            Q(from_site__in=allowed) | Q(to_site__in=allowed),
+        ).select_related('accessory', 'accessory__accessory_type', 'from_site', 'to_site',
+                         'transferred_by', 'resolved_by'),
+        pk=pk,
+    )
+    return JsonResponse({'success': True, 'item': {
+        'id': t.pk,
+        'accessory_type': t.accessory.accessory_type.name,
+        'accessory_serial': t.accessory.serial_number or '',
+        'from_site_name': t.from_site.name,
+        'to_site_name': t.to_site.name,
+        'transfer_date': t.transfer_date.strftime('%Y-%m-%d %I:%M %p'),
+        'status': t.status,
+        'notes': t.notes or '',
+        'transferred_by': t.transferred_by.full_name,
+        'resolved_by': t.resolved_by.full_name if t.resolved_by else '',
+        'resolved_date': t.resolved_date.strftime('%Y-%m-%d %I:%M %p') if t.resolved_date else '',
+        'created_date': t.created_date.strftime('%Y-%m-%d %I:%M %p'),
+    }})
+
+
+# ── Accessory transfer create / accept / reject / delete ─────────────────────
+
+@login_required
+@require_http_methods(['POST'])
+def accessory_transfer_create(request):
+    if not has_permission(request.user, Perms.TRANSFERS_CREATE):
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+
+    from django.utils import timezone
+    from datetime import datetime
+
+    allowed     = request.user.get_allowed_sites()
+
+    accessory_ids = request.POST.getlist('accessory_ids[]')
+    to_site_id    = request.POST.get('to_site', '').strip()
+    transfer_date = request.POST.get('transfer_date', '').strip()
+    notes         = request.POST.get('notes', '').strip() or None
+
+    if not accessory_ids:
+        return JsonResponse({'success': False, 'message': _('Select at least one accessory.')})
+    if not to_site_id:
+        return JsonResponse({'success': False, 'message': _('Select a destination site.')})
+
+    try:
+        to_site = Site.objects.get(pk=to_site_id)
+    except Site.DoesNotExist:
+        return JsonResponse({'success': False, 'message': _('Invalid destination site.')})
+
+    try:
+        transfer_dt = timezone.make_aware(datetime.fromisoformat(transfer_date))
+    except (ValueError, TypeError):
+        transfer_dt = timezone.now()
+
+    accessories = Accessory.objects.filter(
+        pk__in=accessory_ids,
+        in_transfer=False,
+        deleted_date__isnull=True,
+        site__in=allowed,
+    ).exclude(site=to_site)
+
+    if not accessories.exists():
+        return JsonResponse({'success': False, 'message': _('No valid accessories selected.')})
+
+    created = 0
+    for accessory in accessories:
+        AccessoryTransfer.objects.create(
+            accessory=accessory,
+            from_site=accessory.site,
+            to_site=to_site,
+            transfer_date=transfer_dt,
+            notes=notes,
+            transferred_by=request.user,
+            status=TransferStatus.PENDING,
+        )
+        accessory.in_transfer = True
+        accessory.save(update_fields=['in_transfer'])
+        created += 1
+
+    return JsonResponse({'success': True,
+                         'message': _(f'{created} transfer(s) created successfully.')})
+
+
+@login_required
+@require_http_methods(['POST'])
+def accessory_transfer_accept(request, pk):
+    if not has_permission(request.user, Perms.TRANSFERS_APPROVE):
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+
+    from django.utils import timezone
+    allowed_ids = set(request.user.get_allowed_sites().values_list('id', flat=True))
+
+    t = get_object_or_404(AccessoryTransfer, pk=pk)
+    if t.status != TransferStatus.PENDING:
+        return JsonResponse({'success': False, 'message': _('Transfer is not pending.')})
+    if not _is_all_sites(request.user) and t.to_site_id not in allowed_ids:
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+
+    t.status = TransferStatus.ACCEPTED
+    t.resolved_by   = request.user
+    t.resolved_date = timezone.now()
+    t.save()
+    t.accessory.site       = t.to_site
+    t.accessory.in_transfer = False
+    t.accessory.save(update_fields=['site', 'in_transfer'])
+    return JsonResponse({'success': True, 'message': _('Transfer accepted. Accessory moved to new site.')})
+
+
+@login_required
+@require_http_methods(['POST'])
+def accessory_transfer_reject(request, pk):
+    if not has_permission(request.user, Perms.TRANSFERS_APPROVE):
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+
+    from django.utils import timezone
+    allowed_ids = set(request.user.get_allowed_sites().values_list('id', flat=True))
+
+    t = get_object_or_404(AccessoryTransfer, pk=pk)
+    if t.status != TransferStatus.PENDING:
+        return JsonResponse({'success': False, 'message': _('Transfer is not pending.')})
+    if not _is_all_sites(request.user) and t.to_site_id not in allowed_ids:
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+
+    t.status = TransferStatus.REJECTED
+    t.resolved_by   = request.user
+    t.resolved_date = timezone.now()
+    t.save()
+    t.accessory.in_transfer = False
+    t.accessory.save(update_fields=['in_transfer'])
+    return JsonResponse({'success': True, 'message': _('Transfer rejected. Accessory stays at original site.')})
+
+
+@login_required
+@require_http_methods(['POST'])
+def accessory_transfer_delete(request, pk):
+    if not has_permission(request.user, Perms.TRANSFERS_DELETE):
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+
+    allowed_ids = set(request.user.get_allowed_sites().values_list('id', flat=True))
+
+    t = get_object_or_404(AccessoryTransfer, pk=pk)
+    if t.status != TransferStatus.PENDING:
+        return JsonResponse({'success': False, 'message': _('Only pending transfers can be cancelled.')})
+    if not _is_all_sites(request.user) and t.from_site_id not in allowed_ids:
+        return JsonResponse({'success': False, 'message': _('Permission denied.')}, status=403)
+
+    t.accessory.in_transfer = False
+    t.accessory.save(update_fields=['in_transfer'])
+    t.delete()
+    return JsonResponse({'success': True, 'message': _('Transfer cancelled.')})

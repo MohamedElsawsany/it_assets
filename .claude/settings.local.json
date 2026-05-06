@@ -1,11 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python manage.py makemigrations inventory maintenance employees locations accounts)",
+      "Bash(cd /d D:\\\\Projects\\\\it_assets)",
       "Bash(python manage.py migrate)",
-      "Bash(python manage.py check)",
-      "Bash(python manage.py makemigrations assignments)",
-      "Bash(python:*)"
+      "Bash(.venv/Scripts/python manage.py migrate)",
+      "Bash(.venv/Scripts/python manage.py check)"
     ]
   }
 }
