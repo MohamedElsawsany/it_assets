@@ -427,7 +427,7 @@ function switchTab(tab) {
 
 /* ── Employees ── */
 function loadEmployees(page) {
-  currentEmpPage = page || 1;
+  currentEmpPage = page ?? currentEmpPage;
   const search = document.getElementById('empSearch').value.trim();
   const dept   = document.getElementById('deptFilter').value;
   const siteEl = document.getElementById('empSiteFilter');
@@ -470,7 +470,7 @@ function renderEmpRow(e, i) {
 
 /* ── Departments ── */
 function loadDepartments(page) {
-  currentDeptPage = page || 1;
+  currentDeptPage = page ?? currentDeptPage;
   const search = document.getElementById('deptSearch').value.trim();
   const params = new URLSearchParams();
   if (search) params.set('search', search);

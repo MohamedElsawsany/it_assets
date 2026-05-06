@@ -54,14 +54,14 @@
             </div>
           </div>
           <div class="col-md-2">
-            <select class="form-select" id="dev-statusFilter" onchange="loadDevMaintenance()">
+            <select class="form-select" id="dev-statusFilter" onchange="loadDevMaintenance(1)">
               <option value="">{% trans "All Status" %}</option>
               <option value="open">{% trans "Open" %}</option>
               <option value="closed">{% trans "Closed" %}</option>
             </select>
           </div>
           <div class="col-md-3">
-            <select class="form-select" id="dev-typeFilter" onchange="loadDevMaintenance()">
+            <select class="form-select" id="dev-typeFilter" onchange="loadDevMaintenance(1)">
               <option value="">{% trans "All Types" %}</option>
               {% for value, label in type_choices %}
               <option value="{{ value }}">{{ label }}</option>
@@ -130,14 +130,14 @@
             </div>
           </div>
           <div class="col-md-2">
-            <select class="form-select" id="acc-statusFilter" onchange="loadAccMaintenance()">
+            <select class="form-select" id="acc-statusFilter" onchange="loadAccMaintenance(1)">
               <option value="">{% trans "All Status" %}</option>
               <option value="open">{% trans "Open" %}</option>
               <option value="closed">{% trans "Closed" %}</option>
             </select>
           </div>
           <div class="col-md-3">
-            <select class="form-select" id="acc-typeFilter" onchange="loadAccMaintenance()">
+            <select class="form-select" id="acc-typeFilter" onchange="loadAccMaintenance(1)">
               <option value="">{% trans "All Types" %}</option>
               {% for value, label in type_choices %}
               <option value="{{ value }}">{{ label }}</option>
@@ -787,7 +787,7 @@ function badgeHtml(isOpen) {
    DEVICES
 ══════════════════════════════════════════════════════ */
 function loadDevMaintenance(page) {
-  devCurrentPage = page || 1;
+  devCurrentPage = page ?? devCurrentPage;
   const search = document.getElementById('dev-searchInput').value.trim();
   const status = document.getElementById('dev-statusFilter').value;
   const type   = document.getElementById('dev-typeFilter').value;
@@ -973,7 +973,7 @@ document.getElementById('devConfirmDeleteBtn').addEventListener('click', functio
    ACCESSORIES
 ══════════════════════════════════════════════════════ */
 function loadAccMaintenance(page) {
-  accCurrentPage = page || 1;
+  accCurrentPage = page ?? accCurrentPage;
   const search = document.getElementById('acc-searchInput').value.trim();
   const status = document.getElementById('acc-statusFilter').value;
   const type   = document.getElementById('acc-typeFilter').value;

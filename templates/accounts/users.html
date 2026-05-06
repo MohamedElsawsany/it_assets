@@ -39,7 +39,7 @@
           </div>
         </div>
         <div class="col-md-3">
-          <select class="form-select" id="statusFilter" onchange="loadUsers()">
+          <select class="form-select" id="statusFilter" onchange="loadUsers(1)">
             <option value="">{% trans "All Status" %}</option>
             <option value="active">{% trans "Active" %}</option>
             <option value="inactive">{% trans "Inactive" %}</option>
@@ -569,7 +569,7 @@ const resetPasswordModal = new bootstrap.Modal('#resetPasswordModal');
    LOAD USERS
 ================================================================ */
 function loadUsers(page) {
-  currentPage = page || 1;
+  currentPage = page ?? currentPage;
   const search = document.getElementById('searchInput').value.trim();
   const status = document.getElementById('statusFilter').value;
 

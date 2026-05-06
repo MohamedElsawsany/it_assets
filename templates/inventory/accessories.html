@@ -473,7 +473,7 @@ function flagBadgeClass(flag) {
 }
 
 function loadAccessories(page) {
-  currentPage = page || 1;
+  currentPage = page ?? currentPage;
   const search = document.getElementById('searchInput').value.trim();
   const type   = document.getElementById('typeFilter').value;
   const siteEl = document.getElementById('siteFilter');

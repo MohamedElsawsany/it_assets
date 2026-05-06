@@ -538,7 +538,7 @@ const quickMaintModal     = new bootstrap.Modal('#quickMaintenanceModal');
 const deleteModal         = new bootstrap.Modal('#deleteModal');
 
 function loadDevices(page) {
-  currentPage = page || 1;
+  currentPage = page ?? currentPage;
   const search = document.getElementById('searchInput').value.trim();
   const cat    = document.getElementById('catFilter').value;
   const siteEl = document.getElementById('siteFilter');

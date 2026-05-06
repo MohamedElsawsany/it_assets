@@ -56,7 +56,7 @@
             </div>
           </div>
           <div class="col-md-3">
-            <select class="form-select" id="devStatusFilter" onchange="loadDevAssignments()">
+            <select class="form-select" id="devStatusFilter" onchange="loadDevAssignments(1)">
               <option value="">{% trans "All Status" %}</option>
               <option value="active">{% trans "Active" %}</option>
               <option value="returned">{% trans "Returned" %}</option>
@@ -122,7 +122,7 @@
             </div>
           </div>
           <div class="col-md-3">
-            <select class="form-select" id="accStatusFilter" onchange="loadAccAssignments()">
+            <select class="form-select" id="accStatusFilter" onchange="loadAccAssignments(1)">
               <option value="">{% trans "All Status" %}</option>
               <option value="active">{% trans "Active" %}</option>
               <option value="returned">{% trans "Returned" %}</option>
@@ -518,7 +518,7 @@ function switchTab(tab) {
 let devPage = 1, devTimer = null;
 
 function loadDevAssignments(page) {
-  devPage = page || 1;
+  devPage = page ?? devPage;
   const search = document.getElementById('devSearchInput').value.trim();
   const status = document.getElementById('devStatusFilter').value;
   const params = new URLSearchParams();
@@ -668,7 +668,7 @@ let accPage = 1, accTimer = null, accLoaded = false;
 
 function loadAccAssignments(page) {
   accLoaded = true;
-  accPage = page || 1;
+  accPage = page ?? accPage;
   const search = document.getElementById('accSearchInput').value.trim();
   const status = document.getElementById('accStatusFilter').value;
   const params = new URLSearchParams();

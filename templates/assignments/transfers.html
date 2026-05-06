@@ -51,7 +51,7 @@
           </div>
         </div>
         <div class="col-md-3">
-          <select class="form-select" id="statusFilter" onchange="loadData()">
+          <select class="form-select" id="statusFilter" onchange="loadData(1)">
             <option value="">{% trans "All Statuses" %}</option>
             <option value="pending">{% trans "Pending" %}</option>
             <option value="accepted">{% trans "Accepted" %}</option>
@@ -182,15 +182,9 @@
             </div>
             <div class="col-12">
               <label class="form-label">{% trans "Devices" %} <span class="text-danger">*</span>
-                <span class="text-muted small ms-1">{% trans "(select a From Site to load devices)" %}</span>
+                <span class="text-muted small ms-1">{% trans "(select a From Site first)" %}</span>
               </label>
-              <div id="devListLoader" class="text-center py-2 d-none">
-                <div class="spinner-border spinner-border-sm text-primary"></div>
-              </div>
-              <div id="devListWrapper" class="border rounded p-2" style="max-height:220px;overflow-y:auto;min-height:60px;">
-                <p class="text-muted small mb-0 p-1" id="devListPlaceholder">{% trans "Select a From Site first." %}</p>
-                <div id="devCheckboxes"></div>
-              </div>
+              <select class="form-select" name="device_ids[]" id="devDevices" multiple></select>
               <div class="invalid-feedback" id="devListError"></div>
             </div>
           </div>
@@ -247,15 +241,9 @@
             </div>
             <div class="col-12">
               <label class="form-label">{% trans "Accessories" %} <span class="text-danger">*</span>
-                <span class="text-muted small ms-1">{% trans "(select a From Site to load accessories)" %}</span>
+                <span class="text-muted small ms-1">{% trans "(select a From Site first)" %}</span>
               </label>
-              <div id="accListLoader" class="text-center py-2 d-none">
-                <div class="spinner-border spinner-border-sm text-primary"></div>
-              </div>
-              <div id="accListWrapper" class="border rounded p-2" style="max-height:220px;overflow-y:auto;min-height:60px;">
-                <p class="text-muted small mb-0 p-1" id="accListPlaceholder">{% trans "Select a From Site first." %}</p>
-                <div id="accCheckboxes"></div>
-              </div>
+              <select class="form-select" name="accessory_ids[]" id="accAccessories" multiple></select>
               <div class="invalid-feedback" id="accListError"></div>
             </div>
           </div>
@@ -416,7 +404,7 @@ document.querySelectorAll('#transferTabs .nav-link').forEach(link => {
 
 // ── Data loading ─────────────────────────────────────────────────────────────
 function loadData(page) {
-  currentPage = page || 1;
+  currentPage = page ?? currentPage;
   const search = document.getElementById('searchInput').value.trim();
   const status = document.getElementById('statusFilter').value;
   const params = new URLSearchParams();
@@ -553,75 +541,50 @@ document.getElementById('newTransferBtn')?.addEventListener('click', () => {
 });
 
 // ── Create Device Transfer ────────────────────────────────────────────────────
+function initDevSelect2(siteId) {
+  const $el = $('#devDevices');
+  if ($el.data('select2')) { $el.val(null).trigger('change').select2('destroy'); }
+  initSelect2($el, 'transfer-devices', () => ({ site: siteId || '' }),
+    siteId ? '{% trans "Search by serial, model, or category…" %}' : '{% trans "Select a From Site first" %}');
+  if (!siteId) $el.prop('disabled', true); else $el.prop('disabled', false);
+}
+
 function openCreateDeviceModal() {
-  document.getElementById('createDeviceForm').reset();
-  document.getElementById('devCheckboxes').innerHTML = '';
-  document.getElementById('devListPlaceholder').classList.remove('d-none');
-  clearFormErrors(document.getElementById('createDeviceForm'));
+  const form = document.getElementById('createDeviceForm');
+  form.reset();
+  clearFormErrors(form);
   document.getElementById('devListError').textContent = '';
   setDateTimeNow('devTransferDate');
+  // Disable To Site same-site exclusion reset
+  Array.from(document.getElementById('devToSite').options).forEach(o => o.disabled = false);
+  initDevSelect2(null);
   createDeviceModal.show();
 }
 
 document.getElementById('devFromSite').addEventListener('change', function() {
   const siteId = this.value;
   const toSite = document.getElementById('devToSite');
-
-  // Filter out same site from to_site options
   Array.from(toSite.options).forEach(opt => {
     opt.disabled = opt.value && opt.value === siteId;
     if (opt.value === siteId && toSite.value === siteId) toSite.value = '';
   });
-
-  if (!siteId) {
-    document.getElementById('devCheckboxes').innerHTML = '';
-    document.getElementById('devListPlaceholder').classList.remove('d-none');
-    return;
-  }
-  loadAvailableDevices(siteId);
+  initDevSelect2(siteId);
 });
-
-function loadAvailableDevices(siteId) {
-  document.getElementById('devListPlaceholder').classList.add('d-none');
-  document.getElementById('devListLoader').classList.remove('d-none');
-  document.getElementById('devCheckboxes').innerHTML = '';
-
-  ajaxGet(`${URLS.devAvailable}?site=${siteId}`)
-    .then(data => {
-      document.getElementById('devListLoader').classList.add('d-none');
-      if (!data.items.length) {
-        document.getElementById('devListPlaceholder').textContent = T.noDevices;
-        document.getElementById('devListPlaceholder').classList.remove('d-none');
-        return;
-      }
-      document.getElementById('devCheckboxes').innerHTML = data.items.map(d => `
-        <div class="form-check py-1 border-bottom">
-          <input class="form-check-input" type="checkbox" name="device_ids[]" value="${d.id}" id="dev_${d.id}">
-          <label class="form-check-label" for="dev_${d.id}">
-            <span class="font-monospace fw-medium">${escHtml(d.serial)}</span>
-            <span class="text-muted small ms-2">${escHtml(d.model)} · ${escHtml(d.category)}</span>
-          </label>
-        </div>`).join('');
-    })
-    .catch(() => {
-      document.getElementById('devListLoader').classList.add('d-none');
-      showToast('{% trans "Failed to load devices." %}', 'danger');
-    });
-}
 
 document.getElementById('createDeviceForm').addEventListener('submit', function(e) {
   e.preventDefault();
   const btn = document.getElementById('createDeviceSubmitBtn');
   clearFormErrors(this);
-  document.getElementById('devListError').textContent = '';
+  const errEl = document.getElementById('devListError');
+  errEl.textContent = '';
 
-  const checked = this.querySelectorAll('input[name="device_ids[]"]:checked');
-  if (!checked.length) {
-    document.getElementById('devListError').textContent = '{% trans "Select at least one device." %}';
-    document.getElementById('devListWrapper').classList.add('is-invalid');
+  const selected = $('#devDevices').val();
+  if (!selected || !selected.length) {
+    errEl.textContent = '{% trans "Select at least one device." %}';
+    errEl.style.display = 'block';
     return;
   }
-  document.getElementById('devListWrapper').classList.remove('is-invalid');
+  errEl.style.display = '';
 
   setButtonLoading(btn, true);
   ajaxPost(URLS.devCreate, new FormData(this))
@@ -634,75 +597,49 @@ document.getElementById('createDeviceForm').addEventListener('submit', function(
 });
 
 // ── Create Accessory Transfer ─────────────────────────────────────────────────
+function initAccSelect2(siteId) {
+  const $el = $('#accAccessories');
+  if ($el.data('select2')) { $el.val(null).trigger('change').select2('destroy'); }
+  initSelect2($el, 'transfer-accessories', () => ({ site: siteId || '' }),
+    siteId ? '{% trans "Search by type, serial, or brand…" %}' : '{% trans "Select a From Site first" %}');
+  if (!siteId) $el.prop('disabled', true); else $el.prop('disabled', false);
+}
+
 function openCreateAccessoryModal() {
-  document.getElementById('createAccessoryForm').reset();
-  document.getElementById('accCheckboxes').innerHTML = '';
-  document.getElementById('accListPlaceholder').classList.remove('d-none');
-  clearFormErrors(document.getElementById('createAccessoryForm'));
+  const form = document.getElementById('createAccessoryForm');
+  form.reset();
+  clearFormErrors(form);
   document.getElementById('accListError').textContent = '';
   setDateTimeNow('accTransferDate');
+  Array.from(document.getElementById('accToSite').options).forEach(o => o.disabled = false);
+  initAccSelect2(null);
   createAccessoryModal.show();
 }
 
 document.getElementById('accFromSite').addEventListener('change', function() {
   const siteId = this.value;
   const toSite = document.getElementById('accToSite');
-
   Array.from(toSite.options).forEach(opt => {
     opt.disabled = opt.value && opt.value === siteId;
     if (opt.value === siteId && toSite.value === siteId) toSite.value = '';
   });
-
-  if (!siteId) {
-    document.getElementById('accCheckboxes').innerHTML = '';
-    document.getElementById('accListPlaceholder').classList.remove('d-none');
-    return;
-  }
-  loadAvailableAccessories(siteId);
+  initAccSelect2(siteId);
 });
-
-function loadAvailableAccessories(siteId) {
-  document.getElementById('accListPlaceholder').classList.add('d-none');
-  document.getElementById('accListLoader').classList.remove('d-none');
-  document.getElementById('accCheckboxes').innerHTML = '';
-
-  ajaxGet(`${URLS.accAvailable}?site=${siteId}`)
-    .then(data => {
-      document.getElementById('accListLoader').classList.add('d-none');
-      if (!data.items.length) {
-        document.getElementById('accListPlaceholder').textContent = T.noAccs;
-        document.getElementById('accListPlaceholder').classList.remove('d-none');
-        return;
-      }
-      document.getElementById('accCheckboxes').innerHTML = data.items.map(a => `
-        <div class="form-check py-1 border-bottom">
-          <input class="form-check-input" type="checkbox" name="accessory_ids[]" value="${a.id}" id="acc_${a.id}">
-          <label class="form-check-label" for="acc_${a.id}">
-            <span class="fw-medium">${escHtml(a.type)}</span>
-            ${a.serial ? `<span class="font-monospace text-muted small ms-2">${escHtml(a.serial)}</span>` : ''}
-            ${a.brand ? `<span class="text-muted small ms-1">· ${escHtml(a.brand)}</span>` : ''}
-          </label>
-        </div>`).join('');
-    })
-    .catch(() => {
-      document.getElementById('accListLoader').classList.add('d-none');
-      showToast('{% trans "Failed to load accessories." %}', 'danger');
-    });
-}
 
 document.getElementById('createAccessoryForm').addEventListener('submit', function(e) {
   e.preventDefault();
   const btn = document.getElementById('createAccessorySubmitBtn');
   clearFormErrors(this);
-  document.getElementById('accListError').textContent = '';
+  const errEl = document.getElementById('accListError');
+  errEl.textContent = '';
 
-  const checked = this.querySelectorAll('input[name="accessory_ids[]"]:checked');
-  if (!checked.length) {
-    document.getElementById('accListError').textContent = '{% trans "Select at least one accessory." %}';
-    document.getElementById('accListWrapper').classList.add('is-invalid');
+  const selected = $('#accAccessories').val();
+  if (!selected || !selected.length) {
+    errEl.textContent = '{% trans "Select at least one accessory." %}';
+    errEl.style.display = 'block';
     return;
   }
-  document.getElementById('accListWrapper').classList.remove('is-invalid');
+  errEl.style.display = '';
 
   setButtonLoading(btn, true);
   ajaxPost(URLS.accCreate, new FormData(this))

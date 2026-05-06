@@ -363,7 +363,7 @@ let currentSitePage = 1;
 
 /* ── GOVERNORATES ── */
 function loadGovernorates(page) {
-  currentGovPage = page || 1;
+  currentGovPage = page ?? currentGovPage;
   const search = document.getElementById('govSearch').value.trim();
   const params = new URLSearchParams();
   if (search) params.set('search', search);
@@ -399,7 +399,7 @@ function renderGovRow(g, i) {
 
 /* ── SITES ── */
 function loadSites(page) {
-  currentSitePage = page || 1;
+  currentSitePage = page ?? currentSitePage;
   const search = document.getElementById('siteSearch').value.trim();
   const govId  = document.getElementById('govFilter').value;
   const params = new URLSearchParams();

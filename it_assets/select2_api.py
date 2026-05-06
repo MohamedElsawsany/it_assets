@@ -16,7 +16,8 @@ from django.db.models import Q
 from django.http import JsonResponse
 
 from inventory.models import (Brand, DeviceCategory, DeviceModel, CPU, GPU,
-                               OperatingSystem, AccessoryType, Device, Accessory)
+                               OperatingSystem, AccessoryType, Device, Accessory,
+                               DeviceFlag)
 from locations.models import Governorate, Site
 from employees.models import Department, Employee
 
@@ -35,19 +36,21 @@ def select2_data(request, entity):
     end   = start + PAGE_SIZE
 
     handlers = {
-        'brands':          _brands,
-        'categories':      _categories,
-        'device-models':   _device_models,
-        'cpus':            _cpus,
-        'gpus':            _gpus,
-        'os':              _os,
-        'accessory-types': _accessory_types,
-        'sites':           _sites,
-        'governorates':    _governorates,
-        'devices':         _devices,
-        'accessories':     _accessories,
-        'employees':       _employees,
-        'departments':     _departments,
+        'brands':               _brands,
+        'categories':           _categories,
+        'device-models':        _device_models,
+        'cpus':                 _cpus,
+        'gpus':                 _gpus,
+        'os':                   _os,
+        'accessory-types':      _accessory_types,
+        'sites':                _sites,
+        'governorates':         _governorates,
+        'devices':              _devices,
+        'accessories':          _accessories,
+        'employees':            _employees,
+        'departments':          _departments,
+        'transfer-devices':     _transfer_devices,
+        'transfer-accessories': _transfer_accessories,
     }
 
     handler = handlers.get(entity)
@@ -218,3 +221,69 @@ def _departments(q, start, end, request):
     qs = Department.objects.filter(deleted_date__isnull=True)
     if q: qs = qs.filter(name__icontains=q)
     return _simple(qs.order_by('name'), start, end)
+
+
+def _transfer_devices(q, start, end, request):
+    """Available devices for transfer: AVAILABLE flag, not in transfer, scoped to user's sites."""
+    site_id = request.GET.get('site', '').strip()
+    if not site_id:
+        return [], 0
+
+    allowed = request.user.get_allowed_sites()
+    qs = Device.objects.filter(
+        deleted_date__isnull=True,
+        in_transfer=False,
+        flag=DeviceFlag.AVAILABLE,
+        site_id=site_id,
+        site__in=allowed,
+    ).select_related('category', 'brand', 'device_model')
+
+    if q:
+        qs = qs.filter(
+            Q(serial_number__icontains=q) |
+            Q(brand__name__icontains=q) |
+            Q(category__name__icontains=q) |
+            Q(device_model__name__icontains=q)
+        )
+
+    qs = qs.order_by('serial_number')
+    total = qs.count()
+    items = [
+        {'id': o.pk, 'text': f'{o.serial_number} — {o.device_model.name} · {o.category.name}'}
+        for o in qs[start:end]
+    ]
+    return items, total
+
+
+def _transfer_accessories(q, start, end, request):
+    """Available accessories for transfer: AVAILABLE flag, not in transfer, scoped to user's sites."""
+    site_id = request.GET.get('site', '').strip()
+    if not site_id:
+        return [], 0
+
+    allowed = request.user.get_allowed_sites()
+    qs = Accessory.objects.filter(
+        deleted_date__isnull=True,
+        in_transfer=False,
+        flag=DeviceFlag.AVAILABLE,
+        site_id=site_id,
+        site__in=allowed,
+    ).select_related('accessory_type', 'brand')
+
+    if q:
+        qs = qs.filter(
+            Q(accessory_type__name__icontains=q) |
+            Q(serial_number__icontains=q) |
+            Q(brand__name__icontains=q)
+        )
+
+    qs = qs.order_by('accessory_type__name', 'serial_number')
+    total = qs.count()
+    items = []
+    for o in qs[start:end]:
+        label = o.accessory_type.name
+        if o.brand:
+            label += f' ({o.brand.name})'
+        label += f' — {o.serial_number}' if o.serial_number else ' — (No S/N)'
+        items.append({'id': o.pk, 'text': label})
+    return items, total
