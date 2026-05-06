@@ -46,6 +46,10 @@ def user_permissions(request):
     hp = lambda p: has_permission(request.user, p)
 
     rbac = {
+        # ── Company ───────────────────────────────────────────────────────────
+        'company_view': hp(Perms.COMPANY_VIEW),
+        'company_edit': hp(Perms.COMPANY_EDIT),
+
         # ── Users ─────────────────────────────────────────────────────────────
         'users_view':           hp(Perms.USERS_VIEW),
         'users_create':         hp(Perms.USERS_CREATE),
@@ -61,11 +65,12 @@ def user_permissions(request):
         'locations_delete': hp(Perms.LOCATIONS_DELETE),
 
         # ── Employees ─────────────────────────────────────────────────────────
-        'employees_view':     hp(Perms.EMPLOYEES_VIEW),
-        'employees_create':   hp(Perms.EMPLOYEES_CREATE),
-        'employees_edit':     hp(Perms.EMPLOYEES_EDIT),
-        'employees_delete':   hp(Perms.EMPLOYEES_DELETE),
-        'employees_transfer': hp(Perms.EMPLOYEES_TRANSFER),
+        'employees_view':            hp(Perms.EMPLOYEES_VIEW),
+        'employees_create':          hp(Perms.EMPLOYEES_CREATE),
+        'employees_edit':            hp(Perms.EMPLOYEES_EDIT),
+        'employees_delete':          hp(Perms.EMPLOYEES_DELETE),
+        'employees_acknowledgment':  hp(Perms.EMPLOYEES_ACKNOWLEDGMENT),
+        'employees_export':          hp(Perms.EMPLOYEES_EXPORT),
 
         # ── Lookup tables ─────────────────────────────────────────────────────
         'lookups_view':   hp(Perms.LOOKUPS_VIEW),
@@ -90,7 +95,7 @@ def user_permissions(request):
         'accessories_create':      hp(Perms.ACCESSORIES_CREATE),
         'accessories_edit':        hp(Perms.ACCESSORIES_EDIT),
         'accessories_delete':      hp(Perms.ACCESSORIES_DELETE),
-        'accessories_link_device': hp(Perms.ACCESSORIES_LINK_DEVICE),
+        'accessories_export':      hp(Perms.ACCESSORIES_EXPORT),
 
         # ── Assignments ───────────────────────────────────────────────────────
         'assignments_view':   hp(Perms.ASSIGNMENTS_VIEW),
@@ -110,6 +115,7 @@ def user_permissions(request):
         'transfers_create':  hp(Perms.TRANSFERS_CREATE),
         'transfers_approve': hp(Perms.TRANSFERS_APPROVE),
         'transfers_delete':  hp(Perms.TRANSFERS_DELETE),
+        'transfers_export':  hp(Perms.TRANSFERS_EXPORT),
 
         # ── Maintenance ───────────────────────────────────────────────────────
         'maintenance_view':      hp(Perms.MAINTENANCE_VIEW),

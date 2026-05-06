@@ -122,6 +122,7 @@ class DeviceTransfer(models.Model):
         db_table = 'Device_Transfers'
         permissions = [
             ('approve_transfer', 'Can approve or reject a pending device site transfer'),
+            ('export_transfer', 'Can export transfer records to a file'),
         ]
 
     def __str__(self):

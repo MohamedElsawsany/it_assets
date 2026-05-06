@@ -56,10 +56,21 @@
             {% endfor %}
           </select>
         </div>
-        <div class="col-md-auto">
+        <div class="col-md-auto d-flex gap-2">
           <button class="btn btn-outline-secondary" onclick="resetFilters()">
             <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Reset" %}
           </button>
+          {% if rbac.accessories_export %}
+          <div class="dropdown">
+            <button class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
+              <i class="bi bi-download me-1"></i>{% trans "Export" %}
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="#" onclick="exportAccData('xlsx');return false;"><i class="bi bi-file-earmark-excel me-2 text-success"></i>Excel (.xlsx)</a></li>
+              <li><a class="dropdown-item" href="#" onclick="exportAccData('pdf');return false;"><i class="bi bi-file-earmark-pdf me-2 text-danger"></i>PDF</a></li>
+            </ul>
+          </div>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -129,7 +140,9 @@
           </div>
         </div>
       </div>
-      <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Close" %}</button></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Close" %}</button>
+      </div>
     </div>
   </div>
 </div>
@@ -532,6 +545,7 @@ function renderTable(items) {
         <div class="d-flex gap-1 justify-content-end">
           <button class="btn btn-sm btn-icon btn-outline-secondary" onclick="openViewModal(${a.id})" title="{% trans 'View' %}"><i class="bi bi-eye"></i></button>
           ${CAN_EDIT ? `<button class="btn btn-sm btn-icon btn-outline-primary" onclick="openEditModal(${a.id})" title="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></button>` : ''}
+          <a href="/inventory/accessories/${a.id}/qr/" target="_blank" class="btn btn-sm btn-icon btn-outline-info" title="{% trans 'Print QR Label' %}"><i class="bi bi-qr-code"></i></a>
           ${CAN_CHANGE_FLAG ? `<button class="btn btn-sm btn-icon btn-outline-warning" onclick="openChangeFlagModal(${a.id},'${a.flag}',${a.has_active_assignment},'${escHtml(a.type_name + (a.serial_number ? ' — ' + a.serial_number : ''))}')" title="{% trans 'Change Flag' %}"><i class="bi bi-flag"></i></button>` : ''}
           ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDeleteModal(${a.id},'${escHtml(a.type_name)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
         </div>
@@ -563,6 +577,19 @@ function openViewModal(pk) {
       document.getElementById('viewContent').classList.remove('d-none');
     })
     .catch(() => { showToast('{% trans "Failed to load accessory." %}', 'danger'); viewModal.hide(); });
+}
+
+function exportAccData(fmt) {
+  const search = document.getElementById('searchInput').value.trim();
+  const typeId = $('#typeFilter').val() || '';
+  const siteId = $('#siteFilter').length ? ($('#siteFilter').val() || '') : '';
+  const flagId = document.getElementById('flagFilter').value;
+  const params = new URLSearchParams({ format: fmt });
+  if (search) params.set('search', search);
+  if (typeId) params.set('type', typeId);
+  if (siteId) params.set('site', siteId);
+  if (flagId) params.set('flag', flagId);
+  window.location.href = `/inventory/accessories/export/?${params}`;
 }
 
 /* ── Create ── */

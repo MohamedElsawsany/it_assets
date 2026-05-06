@@ -219,7 +219,7 @@ class AccessoryTypeAdmin(LookupAdmin):
 
 @admin.register(Accessory)
 class AccessoryAdmin(admin.ModelAdmin):
-    list_display  = ('accessory_type', 'serial_number', 'brand', 'site', 'flag', 'device')
+    list_display  = ('accessory_type', 'serial_number', 'brand', 'site', 'flag')
     list_filter   = ('accessory_type', 'site', 'flag')
     search_fields = ('serial_number',)
     readonly_fields = ('created_date', 'updated_date')

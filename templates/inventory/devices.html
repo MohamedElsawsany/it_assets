@@ -56,10 +56,21 @@
             {% endfor %}
           </select>
         </div>
-        <div class="col-md-auto">
+        <div class="col-md-auto d-flex gap-2">
           <button class="btn btn-outline-secondary" onclick="resetFilters()">
             <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Reset" %}
           </button>
+          {% if rbac.devices_export %}
+          <div class="dropdown">
+            <button class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
+              <i class="bi bi-download me-1"></i>{% trans "Export" %}
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="#" onclick="exportData('xlsx');return false;"><i class="bi bi-file-earmark-excel me-2 text-success"></i>Excel (.xlsx)</a></li>
+              <li><a class="dropdown-item" href="#" onclick="exportData('pdf');return false;"><i class="bi bi-file-earmark-pdf me-2 text-danger"></i>PDF</a></li>
+            </ul>
+          </div>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -612,6 +623,7 @@ function renderDevicesTable(items) {
         <div class="d-flex gap-1 justify-content-end">
           <button class="btn btn-sm btn-icon btn-outline-secondary" onclick="openViewModal(${d.id})" title="{% trans 'View' %}"><i class="bi bi-eye"></i></button>
           ${CAN_EDIT ? `<button class="btn btn-sm btn-icon btn-outline-primary" onclick="openEditModal(${d.id})" title="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></button>` : ''}
+          <a href="/inventory/devices/${d.id}/qr/" target="_blank" class="btn btn-sm btn-icon btn-outline-info" title="{% trans 'Print QR Label' %}"><i class="bi bi-qr-code"></i></a>
           ${CAN_CHANGE_FLAG ? `<button class="btn btn-sm btn-icon btn-outline-warning" onclick="openChangeFlagModal(${d.id},'${d.flag}',${d.maintenance_mode},${d.has_active_assignment},'${escHtml(d.serial_number)}')" title="{% trans 'Change Flag' %}"><i class="bi bi-flag"></i></button>` : ''}
           ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDeleteModal(${d.id},'${escHtml(d.serial_number)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
         </div>
@@ -840,6 +852,19 @@ function openViewModal(pk) {
       document.getElementById('viewContent').classList.remove('d-none');
     })
     .catch(() => { showToast('{% trans "Failed to load device." %}', 'danger'); viewModal.hide(); });
+}
+
+function exportData(fmt) {
+  const search  = document.getElementById('searchInput').value.trim();
+  const catId   = $('#catFilter').val()  || '';
+  const siteId  = $('#siteFilter') ? ($('#siteFilter').val() || '') : '';
+  const flagId  = document.getElementById('flagFilter').value;
+  const params  = new URLSearchParams({ format: fmt });
+  if (search)  params.set('search', search);
+  if (catId)   params.set('category', catId);
+  if (siteId)  params.set('site', siteId);
+  if (flagId)  params.set('flag', flagId);
+  window.location.href = `/inventory/devices/export/?${params}`;
 }
 
 /* ── Delete ── */

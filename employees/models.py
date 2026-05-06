@@ -10,7 +10,7 @@ Auto-created by Django:
   employees.view_department     employees.view_employee
 
 Custom:
-  employees.transfer_employee   – move an employee to a different site/dept
+  employees.print_acknowledgment – print employee asset acknowledgment forms
 """
 
 from django.conf import settings
@@ -63,7 +63,8 @@ class Employee(models.Model):
     class Meta:
         db_table = 'Employees'
         permissions = [
-            ('transfer_employee', 'Can transfer an employee to a different site or department'),
+            ('print_acknowledgment', 'Can print employee asset acknowledgment forms'),
+            ('export_employee', 'Can export employee data to a file'),
         ]
 
     def __str__(self):

@@ -1,6 +1,8 @@
 from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import RedirectView
+from django.conf import settings
+from django.conf.urls.static import static
 from .select2_api import select2_data
 
 urlpatterns = [
@@ -15,4 +17,4 @@ urlpatterns = [
     path('assignments/', include('assignments.urls')),
     path('maintenance/', include('maintenance.urls')),
     path('select2/<str:entity>/', select2_data, name='select2-data'),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

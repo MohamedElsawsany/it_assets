@@ -17,4 +17,8 @@ urlpatterns = [
     path('accessories/<int:pk>/edit/', views.acc_maintenance_edit, name='acc-maintenance-edit'),
     path('accessories/<int:pk>/close/', views.acc_maintenance_close, name='acc-maintenance-close'),
     path('accessories/<int:pk>/delete/', views.acc_maintenance_delete, name='acc-maintenance-delete'),
+
+    # Export endpoints
+    path('export/', views.maintenance_export, name='maintenance-export'),
+    path('accessories/export/', views.acc_maintenance_export, name='acc-maintenance-export'),
 ]

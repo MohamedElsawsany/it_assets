@@ -128,3 +128,31 @@ class User(AbstractBaseUser, PermissionsMixin):
         if anchor:
             return Site.objects.filter(pk=anchor)
         return Site.objects.none()
+
+
+# ── Company Profile (singleton) ───────────────────────────────────────────────
+
+class CompanyProfile(models.Model):
+    """
+    Singleton model — only one row ever exists (pk=1).
+    Stores branding and policy text used on acknowledgment forms.
+    """
+    company_name = models.CharField(max_length=255, default='')
+    logo         = models.ImageField(upload_to='company/', null=True, blank=True)
+    policy       = models.TextField(
+        blank=True,
+        help_text='Acknowledgment policy text printed on receipt forms.',
+    )
+    updated_date = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table     = 'CompanyProfile'
+        verbose_name = 'Company Profile'
+
+    def __str__(self):
+        return self.company_name or 'Company Profile'
+
+    @classmethod
+    def get(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj

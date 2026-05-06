@@ -129,6 +129,16 @@
       </li>
       {% endif %}
 
+      {% if rbac.company_view %}
+      <li class="sidebar-item">
+        <a href="{% url 'company-settings' %}"
+           class="sidebar-link {% if '/accounts/company' in request.path %}active{% endif %}">
+          <i class="bi bi-building-gear sidebar-icon"></i>
+          <span>{% trans "Company" %}</span>
+        </a>
+      </li>
+      {% endif %}
+
     </ul>
 
   </nav>

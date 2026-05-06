@@ -21,6 +21,10 @@ urlpatterns = [
     path('devices/<int:pk>/change-flag/', views.device_change_flag, name='device-change-flag'),
     path('devices/<int:pk>/toggle-maintenance/', views.device_toggle_maintenance, name='device-toggle-maintenance'),
 
+    # Devices — export & QR
+    path('devices/export/',                    views.devices_export,         name='devices-export'),
+    path('devices/<int:pk>/qr/',               views.device_qr,              name='device-qr'),
+
     # Accessories
     path('accessories/', views.accessories_index, name='accessories-index'),
     path('accessories/data/', views.accessories_data, name='accessories-data'),
@@ -29,4 +33,8 @@ urlpatterns = [
     path('accessories/<int:pk>/edit/', views.accessory_edit, name='accessory-edit'),
     path('accessories/<int:pk>/delete/', views.accessory_delete, name='accessory-delete'),
     path('accessories/<int:pk>/change-flag/', views.accessory_change_flag, name='accessory-change-flag'),
+
+    # Accessories — export & QR
+    path('accessories/export/',                   views.accessories_export,      name='accessories-export'),
+    path('accessories/<int:pk>/qr/',              views.accessory_qr,            name='accessory-qr'),
 ]

@@ -215,3 +215,103 @@ def employee_delete(request, pk):
     emp.deleted_date = timezone.now()
     emp.save()
     return JsonResponse({'success': True, 'message': _('Employee deleted successfully.')})
+
+
+# ── Employee Asset Summary ─────────────────────────────────────────────────────
+
+@login_required
+@permission_required(Perms.EMPLOYEES_VIEW)
+def employee_assets(request, pk):
+    from assignments.models import DeviceAssignment, AccessoryAssignment
+    emp = get_object_or_404(
+        Employee.objects.filter(site__in=request.user.get_allowed_sites())
+                        .select_related('department', 'site'),
+        pk=pk, deleted_date__isnull=True,
+    )
+    device_assignments = (
+        DeviceAssignment.objects
+        .filter(employee=emp, returned_date__isnull=True)
+        .select_related('device', 'device__category', 'device__brand', 'device__device_model', 'device__site')
+        .order_by('assigned_date')
+    )
+    accessory_assignments = (
+        AccessoryAssignment.objects
+        .filter(employee=emp, returned_date__isnull=True)
+        .select_related('accessory', 'accessory__accessory_type', 'accessory__brand', 'accessory__site')
+        .order_by('assigned_date')
+    )
+    return render(request, 'employees/employee_assets.html', {
+        'employee':              emp,
+        'device_assignments':    device_assignments,
+        'accessory_assignments': accessory_assignments,
+    })
+
+
+# ── Acknowledgment / Receipt Form ──────────────────────────────────────────────
+
+@login_required
+@permission_required(Perms.EMPLOYEES_ACKNOWLEDGMENT)
+def employee_acknowledgment(request, pk):
+    from assignments.models import DeviceAssignment, AccessoryAssignment
+    from accounts.models import CompanyProfile
+    emp = get_object_or_404(
+        Employee.objects.filter(site__in=request.user.get_allowed_sites())
+                        .select_related('department', 'site'),
+        pk=pk, deleted_date__isnull=True,
+    )
+    device_assignments = (
+        DeviceAssignment.objects
+        .filter(employee=emp, returned_date__isnull=True)
+        .select_related(
+            'device', 'device__category', 'device__brand',
+            'device__device_model', 'device__site',
+            'device__cpu', 'device__gpu', 'device__operating_system',
+        )
+        .order_by('assigned_date')
+    )
+    accessory_assignments = (
+        AccessoryAssignment.objects
+        .filter(employee=emp, returned_date__isnull=True)
+        .select_related('accessory', 'accessory__accessory_type', 'accessory__brand')
+        .order_by('assigned_date')
+    )
+    profile = CompanyProfile.get()
+    from django.utils import timezone
+    return render(request, 'employees/acknowledgment.html', {
+        'employee':              emp,
+        'device_assignments':    device_assignments,
+        'accessory_assignments': accessory_assignments,
+        'profile':               profile,
+        'print_date':            timezone.now(),
+    })
+
+
+@login_required
+@permission_required(Perms.EMPLOYEES_EXPORT)
+def employees_export(request):
+    from it_assets.export_utils import export_xlsx, export_pdf
+    search  = request.GET.get('search', '').strip()
+    dept_id = request.GET.get('department', '').strip()
+    site_id = request.GET.get('site', '').strip()
+    qs = Employee.objects.filter(
+        deleted_date__isnull=True,
+        site__in=request.user.get_allowed_sites(),
+    ).select_related('department', 'site')
+    if search:
+        qs = qs.filter(
+            Q(first_name__icontains=search) | Q(last_name__icontains=search) |
+            Q(employee_card_id__icontains=search)
+        )
+    if dept_id: qs = qs.filter(department_id=dept_id)
+    if site_id: qs = qs.filter(site_id=site_id)
+    qs = qs.order_by('first_name', 'last_name')
+    fmt = request.GET.get('format', 'xlsx')
+    headers = ['#', 'Full Name', 'Card ID', 'Department', 'Site', 'Created']
+    rows = [
+        [i + 1, e.full_name, str(e.employee_card_id), e.department.name, e.site.name,
+         e.created_date.strftime('%Y-%m-%d')]
+        for i, e in enumerate(qs)
+    ]
+    if fmt == 'pdf':
+        return export_pdf('Employees', headers, rows)
+    return export_xlsx('employees', headers, rows)

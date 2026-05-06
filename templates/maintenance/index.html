@@ -73,6 +73,19 @@
               <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Reset" %}
             </button>
           </div>
+          {% if rbac.maintenance_export %}
+          <div class="col-md-auto">
+            <div class="dropdown">
+              <button class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="bi bi-download me-1"></i>{% trans "Export" %}
+              </button>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#" onclick="exportDevMaintData('xlsx');return false;"><i class="bi bi-file-earmark-excel me-2 text-success"></i>Excel (.xlsx)</a></li>
+                <li><a class="dropdown-item" href="#" onclick="exportDevMaintData('pdf');return false;"><i class="bi bi-file-earmark-pdf me-2 text-danger"></i>PDF</a></li>
+              </ul>
+            </div>
+          </div>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -149,6 +162,19 @@
               <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Reset" %}
             </button>
           </div>
+          {% if rbac.maintenance_export %}
+          <div class="col-md-auto">
+            <div class="dropdown">
+              <button class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="bi bi-download me-1"></i>{% trans "Export" %}
+              </button>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#" onclick="exportAccMaintData('xlsx');return false;"><i class="bi bi-file-earmark-excel me-2 text-success"></i>Excel (.xlsx)</a></li>
+                <li><a class="dropdown-item" href="#" onclick="exportAccMaintData('pdf');return false;"><i class="bi bi-file-earmark-pdf me-2 text-danger"></i>PDF</a></li>
+              </ul>
+            </div>
+          </div>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -1154,6 +1180,29 @@ document.getElementById('accConfirmDeleteBtn').addEventListener('click', functio
     .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
     .finally(() => { setButtonLoading(btn, false); accDeleteId = null; });
 });
+
+/* ── Export ── */
+function exportDevMaintData(fmt) {
+  const params = new URLSearchParams();
+  const search = document.getElementById('dev-searchInput').value.trim();
+  const status = document.getElementById('dev-statusFilter').value;
+  const type   = document.getElementById('dev-typeFilter').value;
+  if (search) params.set('search', search);
+  if (status) params.set('status', status);
+  if (type)   params.set('type', type);
+  params.set('format', fmt);
+  window.location.href = '{% url "maintenance-export" %}?' + params.toString();
+}
+
+function exportAccMaintData(fmt) {
+  const params = new URLSearchParams();
+  const search = document.getElementById('acc-searchInput').value.trim();
+  const status = document.getElementById('acc-statusFilter').value;
+  if (search) params.set('search', search);
+  if (status) params.set('status', status);
+  params.set('format', fmt);
+  window.location.href = '{% url "acc-maintenance-export" %}?' + params.toString();
+}
 
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', () => {

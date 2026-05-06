@@ -4,7 +4,15 @@
       "Bash(cd /d D:\\\\Projects\\\\it_assets)",
       "Bash(python manage.py migrate)",
       "Bash(.venv/Scripts/python manage.py migrate)",
-      "Bash(.venv/Scripts/python manage.py check)"
+      "Bash(.venv/Scripts/python manage.py check)",
+      "Bash(pip install:*)",
+      "Bash(python manage.py makemigrations inventory)",
+      "Bash(python manage.py check)",
+      "Bash(pip freeze:*)",
+      "Bash(awk '{print $NF}')",
+      "Bash(python manage.py makemigrations accounts)",
+      "Bash(python manage.py makemigrations inventory --name remove_photo_fields)",
+      "Bash(python:*)"
     ]
   }
 }

@@ -37,7 +37,7 @@ class Command(BaseCommand):
         users              = self._seed_users(sites)
         brands, categories, models, cpus, gpus, oses, acc_types = self._seed_lookups(admin)
         devices            = self._seed_devices(admin, sites, brands, categories, models, cpus, gpus, oses)
-        accessories        = self._seed_accessories(admin, sites, brands, acc_types, devices)
+        accessories        = self._seed_accessories(admin, sites, brands, acc_types)
         self._seed_assignments(users, devices, accessories, employees)
         self._seed_transfers(users, devices, sites)
         self._seed_maintenance(users, devices, accessories)
@@ -392,7 +392,7 @@ class Command(BaseCommand):
     # ──────────────────────────────────────────────────────────────────────────
     # Accessories
     # ──────────────────────────────────────────────────────────────────────────
-    def _seed_accessories(self, admin, sites, brands, acc_types, devices):
+    def _seed_accessories(self, admin, sites, brands, acc_types):
         from inventory.models import Accessory, DeviceFlag
 
         brand_list = [brands[b] for b in ['Dell', 'HP', 'Lenovo', 'Logitech'] if b in brands]
@@ -402,17 +402,15 @@ class Command(BaseCommand):
         for i in range(50):
             serial = f'ACC-{i+1:04d}'
             atype  = type_list[i % len(type_list)]
-            device = devices[i % len(devices)] if i < 30 else None
-            site   = device.site if device else random.choice(sites)
+            site   = random.choice(sites)
 
             acc, created = Accessory.objects.get_or_create(
                 serial_number=serial,
                 defaults={
                     'accessory_type': atype,
                     'brand':          random.choice(brand_list),
-                    'device':         device,
                     'site':           site,
-                    'flag':           DeviceFlag.AVAILABLE if not device else DeviceFlag.ASSIGNED,
+                    'flag':           DeviceFlag.AVAILABLE,
                     'created_by':     admin,
                 },
             )
@@ -465,8 +463,8 @@ class Command(BaseCommand):
             )
             dev_count += 1
 
-        # 10 active accessory assignments (standalone accessories only)
-        standalone_accs = [a for a in accessories if a.device is None and a.flag == DeviceFlag.AVAILABLE][:10]
+        # 10 active accessory assignments
+        standalone_accs = [a for a in accessories if a.flag == DeviceFlag.AVAILABLE][:10]
         acc_count = 0
         for i, acc in enumerate(standalone_accs):
             emp = employees[(i + 10) % len(employees)]

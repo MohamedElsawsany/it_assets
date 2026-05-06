@@ -10,7 +10,7 @@ from django.db.models import Q
 
 PAGE_SIZE = 10
 
-from .models import User
+from .models import User, CompanyProfile
 from .forms import UserCreateForm, UserEditForm, ResetPasswordForm
 from .permissions import permission_required, has_permission, Perms
 
@@ -35,11 +35,11 @@ PERM_GROUPS = [
             (_lazy('View History'),       'inventory.view_history_device'),
         ]),
         (_lazy('Accessories'), [
-            (_lazy('View'),        'inventory.view_accessory'),
-            (_lazy('Add'),         'inventory.add_accessory'),
-            (_lazy('Edit'),        'inventory.change_accessory'),
-            (_lazy('Delete'),      'inventory.delete_accessory'),
-            (_lazy('Link Device'), 'inventory.link_device_accessory'),
+            (_lazy('View'),   'inventory.view_accessory'),
+            (_lazy('Add'),    'inventory.add_accessory'),
+            (_lazy('Edit'),   'inventory.change_accessory'),
+            (_lazy('Delete'), 'inventory.delete_accessory'),
+            (_lazy('Export'), 'inventory.export_accessory'),
         ]),
         (_lazy('Lookups'), [
             (_lazy('View'),   'inventory.view_devicecategory'),
@@ -62,6 +62,7 @@ PERM_GROUPS = [
             (_lazy('Add'),              'assignments.add_devicetransfer'),
             (_lazy('Approve Transfer'), 'assignments.approve_transfer'),
             (_lazy('Delete'),           'assignments.delete_devicetransfer'),
+            (_lazy('Export'),           'assignments.export_transfer'),
         ]),
     ]),
     (_lazy('Maintenance'), [
@@ -77,11 +78,12 @@ PERM_GROUPS = [
     ]),
     (_lazy('Organization'), [
         (_lazy('Employees'), [
-            (_lazy('View'),     'employees.view_employee'),
-            (_lazy('Add'),      'employees.add_employee'),
-            (_lazy('Edit'),     'employees.change_employee'),
-            (_lazy('Delete'),   'employees.delete_employee'),
-            (_lazy('Transfer'), 'employees.transfer_employee'),
+            (_lazy('View'),           'employees.view_employee'),
+            (_lazy('Add'),            'employees.add_employee'),
+            (_lazy('Edit'),           'employees.change_employee'),
+            (_lazy('Delete'),         'employees.delete_employee'),
+            (_lazy('Acknowledgment'), 'employees.print_acknowledgment'),
+            (_lazy('Export'),         'employees.export_employee'),
         ]),
         (_lazy('Locations'), [
             (_lazy('View'),   'locations.view_site'),
@@ -98,6 +100,10 @@ PERM_GROUPS = [
             (_lazy('Delete'),         'accounts.delete_user'),
             (_lazy('Reset Password'), 'accounts.reset_password_user'),
             (_lazy('Activate'),       'accounts.activate_user'),
+        ]),
+        (_lazy('Company'), [
+            (_lazy('View'),   'accounts.view_companyprofile'),
+            (_lazy('Edit'),   'accounts.change_companyprofile'),
         ]),
     ]),
 ]
@@ -404,3 +410,32 @@ def user_scope_save(request, user_id):
 
     target.save()
     return JsonResponse({'success': True, 'message': _('Site access saved.')})
+
+
+
+# ── Company Profile Settings ──────────────────────────────────────────────────
+
+@login_required
+@permission_required(Perms.COMPANY_VIEW)
+def company_settings(request):
+    profile = CompanyProfile.get()
+    if request.method == 'POST':
+        if not has_permission(request.user, Perms.COMPANY_EDIT):
+            from django.contrib import messages
+            messages.error(request, _('Permission denied.'))
+            return render(request, 'accounts/company_settings.html', {'profile': profile})
+        company_name = request.POST.get('company_name', '').strip()
+        policy       = request.POST.get('policy', '').strip()
+        profile.company_name = company_name
+        profile.policy       = policy
+        if 'logo' in request.FILES:
+            if profile.logo:
+                profile.logo.delete(save=False)
+            profile.logo = request.FILES['logo']
+        if request.POST.get('remove_logo') == '1' and profile.logo:
+            profile.logo.delete(save=False)
+            profile.logo = None
+        profile.save()
+        from django.contrib import messages as msg
+        msg.success(request, _('Company profile saved successfully.'))
+    return render(request, 'accounts/company_settings.html', {'profile': profile})

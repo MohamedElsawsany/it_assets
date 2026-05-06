@@ -46,6 +46,10 @@ from django.shortcuts import redirect
 
 class Perms:
 
+    # ── Company Profile ───────────────────────────────────────────────────────
+    COMPANY_VIEW         = 'accounts.view_companyprofile'
+    COMPANY_EDIT         = 'accounts.change_companyprofile'
+
     # ── Users / Accounts ──────────────────────────────────────────────────────
     USERS_VIEW           = 'accounts.view_user'
     USERS_CREATE         = 'accounts.add_user'
@@ -62,11 +66,12 @@ class Perms:
     LOCATIONS_DELETE         = 'locations.delete_site'
 
     # ── Employees + Departments ───────────────────────────────────────────────
-    EMPLOYEES_VIEW           = 'employees.view_employee'
-    EMPLOYEES_CREATE         = 'employees.add_employee'
-    EMPLOYEES_EDIT           = 'employees.change_employee'
-    EMPLOYEES_DELETE         = 'employees.delete_employee'
-    EMPLOYEES_TRANSFER       = 'employees.transfer_employee'
+    EMPLOYEES_VIEW              = 'employees.view_employee'
+    EMPLOYEES_CREATE            = 'employees.add_employee'
+    EMPLOYEES_EDIT              = 'employees.change_employee'
+    EMPLOYEES_DELETE            = 'employees.delete_employee'
+    EMPLOYEES_ACKNOWLEDGMENT    = 'employees.print_acknowledgment'
+    EMPLOYEES_EXPORT            = 'employees.export_employee'
 
     # ── Lookup tables ─────────────────────────────────────────────────────────
     # DeviceCategory is the representative model; one check gates all lookups
@@ -93,7 +98,7 @@ class Perms:
     ACCESSORIES_CREATE       = 'inventory.add_accessory'
     ACCESSORIES_EDIT         = 'inventory.change_accessory'
     ACCESSORIES_DELETE       = 'inventory.delete_accessory'
-    ACCESSORIES_LINK_DEVICE  = 'inventory.link_device_accessory'
+    ACCESSORIES_EXPORT       = 'inventory.export_accessory'
 
     # ── Assignments ───────────────────────────────────────────────────────────
     ASSIGNMENTS_VIEW         = 'assignments.view_deviceassignment'
@@ -115,6 +120,7 @@ class Perms:
     TRANSFERS_CREATE         = 'assignments.add_devicetransfer'
     TRANSFERS_APPROVE        = 'assignments.approve_transfer'
     TRANSFERS_DELETE         = 'assignments.delete_devicetransfer'
+    TRANSFERS_EXPORT         = 'assignments.export_transfer'
 
     # ── Maintenance ───────────────────────────────────────────────────────────
     MAINTENANCE_VIEW         = 'maintenance.view_maintenancerecord'
@@ -126,13 +132,15 @@ class Perms:
     MAINTENANCE_EXPORT       = 'maintenance.export_maintenancerecord'
 
     ALL = [
+        COMPANY_VIEW, COMPANY_EDIT,
+
         USERS_VIEW, USERS_CREATE, USERS_EDIT, USERS_DELETE,
         USERS_RESET_PASSWORD, USERS_ACTIVATE,
 
         LOCATIONS_VIEW, LOCATIONS_CREATE, LOCATIONS_EDIT, LOCATIONS_DELETE,
 
         EMPLOYEES_VIEW, EMPLOYEES_CREATE, EMPLOYEES_EDIT,
-        EMPLOYEES_DELETE, EMPLOYEES_TRANSFER,
+        EMPLOYEES_DELETE, EMPLOYEES_ACKNOWLEDGMENT, EMPLOYEES_EXPORT,
 
         LOOKUPS_VIEW, LOOKUPS_CREATE, LOOKUPS_EDIT, LOOKUPS_DELETE,
 
@@ -141,7 +149,7 @@ class Perms:
         DEVICES_TOGGLE_MAINTENANCE, DEVICES_EXPORT, DEVICES_VIEW_HISTORY,
 
         ACCESSORIES_VIEW, ACCESSORIES_CREATE, ACCESSORIES_EDIT,
-        ACCESSORIES_DELETE, ACCESSORIES_LINK_DEVICE,
+        ACCESSORIES_DELETE, ACCESSORIES_EXPORT,
 
         ASSIGNMENTS_VIEW, ASSIGNMENTS_CREATE, ASSIGNMENTS_EDIT,
         ASSIGNMENTS_DELETE, ASSIGNMENTS_RETURN, ASSIGNMENTS_EXPORT,
@@ -150,6 +158,7 @@ class Perms:
         ACC_ASSIGNMENTS_DELETE, ACC_ASSIGNMENTS_RETURN,
 
         TRANSFERS_VIEW, TRANSFERS_CREATE, TRANSFERS_APPROVE, TRANSFERS_DELETE,
+        TRANSFERS_EXPORT,
 
         MAINTENANCE_VIEW, MAINTENANCE_CREATE, MAINTENANCE_EDIT,
         MAINTENANCE_DELETE, MAINTENANCE_CLOSE,

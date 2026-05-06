@@ -389,3 +389,76 @@ def acc_maintenance_delete(request, pk):
             _restore_accessory_flag(rec.accessory, rec.previous_flag)
     rec.delete()
     return JsonResponse({'success': True, 'message': _('Maintenance record deleted successfully.')})
+
+
+@login_required
+@permission_required(Perms.MAINTENANCE_EXPORT)
+def maintenance_export(request):
+    from it_assets.export_utils import export_xlsx, export_pdf
+    search   = request.GET.get('search', '').strip()
+    status_f = request.GET.get('status', '').strip()
+    type_f   = request.GET.get('type', '').strip()
+    show_cost = has_permission(request.user, Perms.MAINTENANCE_VIEW_COST)
+    qs = MaintenanceRecord.objects.filter(
+        device__site__in=request.user.get_allowed_sites(),
+    ).select_related('device')
+    if search:
+        qs = qs.filter(
+            Q(device__serial_number__icontains=search) |
+            Q(vendor_name__icontains=search) |
+            Q(issue_description__icontains=search)
+        )
+    if status_f == 'open':   qs = qs.filter(returned_date__isnull=True)
+    elif status_f == 'closed': qs = qs.filter(returned_date__isnull=False)
+    if type_f: qs = qs.filter(maintenance_type=type_f)
+    qs = qs.order_by('-sent_date')
+    fmt = request.GET.get('format', 'xlsx')
+    headers = ['#', 'Device Serial', 'Type', 'Vendor', 'Sent Date', 'Returned Date', 'Status']
+    if show_cost:
+        headers.append('Cost')
+    rows = []
+    for i, r in enumerate(qs):
+        row = [i + 1, r.device.serial_number, r.get_maintenance_type_display(),
+               r.vendor_name or '—',
+               r.sent_date.strftime('%Y-%m-%d'),
+               r.returned_date.strftime('%Y-%m-%d') if r.returned_date else '—',
+               'Open' if r.is_open else 'Closed']
+        if show_cost:
+            row.append(str(r.cost) if r.cost is not None else '—')
+        rows.append(row)
+    if fmt == 'pdf':
+        return export_pdf('Device Maintenance', headers, rows, landscape=True)
+    return export_xlsx('device_maintenance', headers, rows)
+
+
+@login_required
+@permission_required(Perms.MAINTENANCE_EXPORT)
+def acc_maintenance_export(request):
+    from it_assets.export_utils import export_xlsx, export_pdf
+    search   = request.GET.get('search', '').strip()
+    status_f = request.GET.get('status', '').strip()
+    qs = AccessoryMaintenanceRecord.objects.filter(
+        accessory__site__in=request.user.get_allowed_sites(),
+    ).select_related('accessory', 'accessory__accessory_type')
+    if search:
+        qs = qs.filter(
+            Q(accessory__serial_number__icontains=search) |
+            Q(accessory__accessory_type__name__icontains=search) |
+            Q(vendor_name__icontains=search)
+        )
+    if status_f == 'open':   qs = qs.filter(returned_date__isnull=True)
+    elif status_f == 'closed': qs = qs.filter(returned_date__isnull=False)
+    qs = qs.order_by('-sent_date')
+    fmt = request.GET.get('format', 'xlsx')
+    headers = ['#', 'Accessory Type', 'Serial', 'Type', 'Vendor', 'Sent Date', 'Returned Date', 'Status']
+    rows = [
+        [i + 1, r.accessory.accessory_type.name, r.accessory.serial_number or '—',
+         r.get_maintenance_type_display(), r.vendor_name or '—',
+         r.sent_date.strftime('%Y-%m-%d'),
+         r.returned_date.strftime('%Y-%m-%d') if r.returned_date else '—',
+         'Open' if r.is_open else 'Closed']
+        for i, r in enumerate(qs)
+    ]
+    if fmt == 'pdf':
+        return export_pdf('Accessory Maintenance', headers, rows, landscape=True)
+    return export_xlsx('accessory_maintenance', headers, rows)

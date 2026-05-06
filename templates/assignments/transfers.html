@@ -63,6 +63,19 @@
             <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Reset" %}
           </button>
         </div>
+        {% if rbac.transfers_export %}
+        <div class="col-md-auto">
+          <div class="dropdown">
+            <button class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
+              <i class="bi bi-download me-1"></i>{% trans "Export" %}
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="#" onclick="exportTransferData('xlsx');return false;"><i class="bi bi-file-earmark-excel me-2 text-success"></i>Excel (.xlsx)</a></li>
+              <li><a class="dropdown-item" href="#" onclick="exportTransferData('pdf');return false;"><i class="bi bi-file-earmark-pdf me-2 text-danger"></i>PDF</a></li>
+            </ul>
+          </div>
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -716,6 +729,20 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', function()
     .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
     .finally(() => { setButtonLoading(btn, false); actionTarget = null; });
 });
+
+// ── Export ────────────────────────────────────────────────────────────────────
+function exportTransferData(fmt) {
+  const params = new URLSearchParams();
+  const search = document.getElementById('searchInput').value.trim();
+  const status = document.getElementById('statusFilter').value;
+  if (search) params.set('search', search);
+  if (status) params.set('status', status);
+  params.set('format', fmt);
+  const url = activeTab === 'devices'
+    ? '{% url "device-transfers-export" %}'
+    : '{% url "accessory-transfers-export" %}';
+  window.location.href = url + '?' + params.toString();
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function setDateTimeNow(inputId) {

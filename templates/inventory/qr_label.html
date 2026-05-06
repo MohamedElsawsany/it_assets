@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Label — {{ serial }}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f5f7fa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .label-card {
+      background: #fff;
+      border: 2px solid #1E3A5F;
+      border-radius: 12px;
+      padding: 28px 32px;
+      width: 340px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,.12);
+    }
+    .asset-type {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #1E3A5F;
+      margin-bottom: 10px;
+    }
+    .qr-img {
+      width: 180px;
+      height: 180px;
+      display: block;
+      margin: 0 auto 16px;
+    }
+    .serial {
+      font-size: 20px;
+      font-weight: 800;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 1px;
+      color: #111;
+      margin-bottom: 6px;
+    }
+    .label-line {
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 3px;
+    }
+    .site-badge {
+      display: inline-block;
+      margin-top: 10px;
+      background: #1E3A5F;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 14px;
+      border-radius: 20px;
+    }
+    .url-hint {
+      font-size: 10px;
+      color: #aaa;
+      margin-top: 14px;
+      word-break: break-all;
+    }
+    .actions {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+    .btn {
+      padding: 8px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-print  { background: #1E3A5F; color: #fff; }
+    .btn-close2 { background: #e8ecf0; color: #333; }
+    @media print {
+      body { background: #fff; }
+      .actions { display: none; }
+      .label-card { box-shadow: none; border-color: #000; }
+    }
+  </style>
+</head>
+<body>
+  <div class="label-card">
+    <div class="asset-type">{{ asset_type }}</div>
+    <img class="qr-img" src="{{ qr_data_url }}" alt="QR Code">
+    <div class="serial">{{ serial }}</div>
+    <div class="label-line">{{ label }}</div>
+    <div class="site-badge">{{ site }}</div>
+    <div class="url-hint">{{ detail_url }}</div>
+    <div class="actions">
+      <button class="btn btn-print" onclick="window.print()">🖨 Print</button>
+      <button class="btn btn-close2" onclick="window.close()">Close</button>
+    </div>
+  </div>
+</body>
+</html>

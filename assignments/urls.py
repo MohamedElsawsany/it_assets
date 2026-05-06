@@ -35,4 +35,10 @@ urlpatterns = [
     path('transfers/accessories/<int:pk>/accept/', views.accessory_transfer_accept, name='accessory-transfer-accept'),
     path('transfers/accessories/<int:pk>/reject/', views.accessory_transfer_reject, name='accessory-transfer-reject'),
     path('transfers/accessories/<int:pk>/delete/', views.accessory_transfer_delete, name='accessory-transfer-delete'),
+
+    # Export endpoints
+    path('export/', views.assignments_export, name='assignments-export'),
+    path('accessories/export/', views.acc_assignments_export, name='acc-assignments-export'),
+    path('transfers/devices/export/', views.device_transfers_export, name='device-transfers-export'),
+    path('transfers/accessories/export/', views.accessory_transfers_export, name='accessory-transfers-export'),
 ]

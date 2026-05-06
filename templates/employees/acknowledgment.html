@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Acknowledgment Form" %} — {{ employee.full_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Screen styles ── */
+.ack-paper {
+  background: #fff;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 40px 48px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.08);
+}
+.ack-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding-bottom: 18px;
+  border-bottom: 3px solid #1E3A5F;
+  margin-bottom: 24px;
+}
+.ack-logo { max-height: 72px; max-width: 180px; object-fit: contain; }
+.ack-company-name { font-size: 22px; font-weight: 800; color: #1E3A5F; }
+.ack-doc-title {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #1E3A5F;
+  margin-bottom: 24px;
+}
+.ack-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #666;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 4px;
+  margin-bottom: 12px;
+  margin-top: 24px;
+}
+.ack-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px 32px;
+  margin-bottom: 8px;
+}
+.ack-info-item label {
+  font-size: 11px;
+  color: #888;
+  display: block;
+  margin-bottom: 2px;
+}
+.ack-info-item span {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111;
+}
+.ack-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.ack-table th {
+  background: #1E3A5F;
+  color: #fff;
+  padding: 7px 10px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+}
+.ack-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #e8ecf0;
+  vertical-align: top;
+  color: #222;
+}
+.ack-table tr:nth-child(even) td { background: #f7f9fc; }
+.ack-specs { font-size: 11px; color: #555; margin-top: 3px; line-height: 1.5; }
+.ack-policy {
+  background: #f7f9fc;
+  border: 1px solid #dce3ea;
+  border-radius: 6px;
+  padding: 16px 18px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #333;
+  white-space: pre-wrap;
+  margin-top: 8px;
+}
+.ack-sig-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-top: 8px;
+}
+.ack-sig-box {
+  padding-top: 52px;
+  border-top: 1.5px solid #333;
+  font-size: 12px;
+}
+.ack-sig-box .sig-label { font-weight: 700; }
+.ack-sig-box .sig-sub { color: #666; font-size: 11px; margin-top: 3px; }
+.ack-footer {
+  text-align: center;
+  font-size: 10px;
+  color: #aaa;
+  margin-top: 32px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+/* ── Print styles ── */
+@media print {
+  body * { visibility: hidden; }
+  .ack-print-root, .ack-print-root * { visibility: visible; }
+  .ack-print-root { position: absolute; inset: 0; padding: 0; }
+  .ack-paper {
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    max-width: 100% !important;
+    padding: 20px 28px !important;
+  }
+  .no-print { display: none !important; }
+  .ack-table tr { page-break-inside: avoid; }
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'employees-index' %}">{% trans "Employees" %}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'employee-assets' employee.pk %}">{{ employee.full_name }}</a></li>
+<li class="breadcrumb-item active">{% trans "Acknowledgment Form" %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+  <!-- Toolbar (hidden on print) -->
+  <div class="d-flex gap-2 mb-3 no-print">
+    <a href="{% url 'employee-assets' employee.pk %}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>{% trans "Back" %}
+    </a>
+    <button class="btn btn-primary" onclick="window.print()">
+      <i class="bi bi-printer me-1"></i>{% trans "Print" %}
+    </button>
+  </div>
+
+  <!-- ═══════════ PRINTABLE DOCUMENT ═══════════ -->
+  <div class="ack-print-root">
+  <div class="ack-paper">
+
+    <!-- Header: Logo + Company Name -->
+    <div class="ack-header">
+      {% if profile.logo %}
+      <img class="ack-logo" src="{{ profile.logo.url }}" alt="{{ profile.company_name }}">
+      {% endif %}
+      <div>
+        <div class="ack-company-name">{{ profile.company_name|default:"Company Name" }}</div>
+      </div>
+      <div class="ms-auto text-end" style="font-size:12px;color:#666;">
+        <div>{% trans "Date" %}: <strong>{{ print_date|date:"Y-m-d" }}</strong></div>
+        <div style="margin-top:4px;">{% trans "Form No." %}: <strong>ACK-{{ employee.employee_card_id }}-{{ print_date|date:"Ymd" }}</strong></div>
+      </div>
+    </div>
+
+    <!-- Document title -->
+    <div class="ack-doc-title">{% trans "IT Asset Acknowledgment Form" %}</div>
+
+    <!-- Employee Info -->
+    <div class="ack-section-title">{% trans "Employee Information" %}</div>
+    <div class="ack-info-grid">
+      <div class="ack-info-item">
+        <label>{% trans "Full Name" %}</label>
+        <span>{{ employee.full_name }}</span>
+      </div>
+      <div class="ack-info-item">
+        <label>{% trans "Employee ID" %}</label>
+        <span>{{ employee.employee_card_id }}</span>
+      </div>
+      <div class="ack-info-item">
+        <label>{% trans "Department" %}</label>
+        <span>{{ employee.department.name|default:"—" }}</span>
+      </div>
+      <div class="ack-info-item">
+        <label>{% trans "Site / Branch" %}</label>
+        <span>{{ employee.site.name }}</span>
+      </div>
+    </div>
+
+    <!-- Devices -->
+    {% if device_assignments %}
+    <div class="ack-section-title">{% trans "Assigned Devices" %}</div>
+    <table class="ack-table">
+      <thead>
+        <tr>
+          <th style="width:30px">#</th>
+          <th>{% trans "Serial Number" %}</th>
+          <th>{% trans "Category" %}</th>
+          <th>{% trans "Brand / Model" %}</th>
+          <th>{% trans "Specifications" %}</th>
+          <th>{% trans "Assigned Date" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in device_assignments %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td style="font-family:monospace;font-weight:700;">{{ a.device.serial_number }}</td>
+          <td>{{ a.device.category.name }}</td>
+          <td>{{ a.device.brand.name }}<br><span style="color:#555;font-size:11px;">{{ a.device.device_model.name }}</span></td>
+          <td>
+            <div class="ack-specs">
+              {% if a.device.cpu %}CPU: {{ a.device.cpu.name }}<br>{% endif %}
+              {% if a.device.gpu %}GPU: {{ a.device.gpu.name }}<br>{% endif %}
+              {% if a.device.ram_size_gb %}RAM: {{ a.device.ram_size_gb }} GB<br>{% endif %}
+              {% if a.device.hdd_storage_gb %}HDD: {{ a.device.hdd_storage_gb }} GB<br>{% endif %}
+              {% if a.device.ssd_storage_gb %}SSD: {{ a.device.ssd_storage_gb }} GB<br>{% endif %}
+              {% if a.device.operating_system %}OS: {{ a.device.operating_system.name }}<br>{% endif %}
+              {% if a.device.screen_size_inch %}Screen: {{ a.device.screen_size_inch }}"<br>{% endif %}
+              {% if not a.device.cpu and not a.device.ram_size_gb and not a.device.screen_size_inch %}—{% endif %}
+            </div>
+          </td>
+          <td>{{ a.assigned_date|date:"Y-m-d" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+    <!-- Accessories -->
+    {% if accessory_assignments %}
+    <div class="ack-section-title">{% trans "Assigned Accessories" %}</div>
+    <table class="ack-table">
+      <thead>
+        <tr>
+          <th style="width:30px">#</th>
+          <th>{% trans "Type" %}</th>
+          <th>{% trans "Serial Number" %}</th>
+          <th>{% trans "Brand" %}</th>
+          <th>{% trans "Assigned Date" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in accessory_assignments %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td style="font-weight:600;">{{ a.accessory.accessory_type.name }}</td>
+          <td style="font-family:monospace;">{{ a.accessory.serial_number|default:"—" }}</td>
+          <td>{{ a.accessory.brand.name|default:"—" }}</td>
+          <td>{{ a.assigned_date|date:"Y-m-d" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+    {% if not device_assignments and not accessory_assignments %}
+    <p style="text-align:center;color:#888;font-style:italic;padding:20px 0;">
+      {% trans "No assets currently assigned to this employee." %}
+    </p>
+    {% endif %}
+
+    <!-- Policy -->
+    {% if profile.policy %}
+    <div class="ack-section-title">{% trans "Acknowledgment Policy" %}</div>
+    <div class="ack-policy">{{ profile.policy }}</div>
+    {% endif %}
+
+    <!-- Signatures -->
+    <div class="ack-section-title">{% trans "Signatures" %}</div>
+    <div class="ack-sig-grid">
+      <div class="ack-sig-box">
+        <div class="sig-label">{% trans "Employee Signature" %}</div>
+        <div class="sig-sub">{% trans "I acknowledge receipt of the above assets and agree to the terms." %}</div>
+        <div style="margin-top:8px;font-size:12px;">
+          {% trans "Name" %}: ___________________________<br>
+          {% trans "Date" %}: ___________________________
+        </div>
+      </div>
+      <div class="ack-sig-box">
+        <div class="sig-label">{% trans "IT Administrator" %}</div>
+        <div class="sig-sub">{% trans "Authorized by IT department." %}</div>
+        <div style="margin-top:8px;font-size:12px;">
+          {% trans "Name" %}: ___________________________<br>
+          {% trans "Date" %}: ___________________________
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="ack-footer">
+      {{ profile.company_name|default:"" }} &mdash; {% trans "IT Asset Management System" %}
+      &mdash; {% trans "Generated" %}: {{ print_date|date:"Y-m-d H:i" }}
+    </div>
+
+  </div>
+  </div><!-- /ack-print-root -->
+
+</div>
+{% endblock %}

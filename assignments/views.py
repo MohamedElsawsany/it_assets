@@ -814,3 +814,136 @@ def accessory_transfer_delete(request, pk):
     t.accessory.save(update_fields=['in_transfer'])
     t.delete()
     return JsonResponse({'success': True, 'message': _('Transfer cancelled.')})
+
+
+@login_required
+@permission_required(Perms.ASSIGNMENTS_EXPORT)
+def assignments_export(request):
+    from it_assets.export_utils import export_xlsx, export_pdf
+    search   = request.GET.get('search', '').strip()
+    status_f = request.GET.get('status', '').strip()
+    qs = DeviceAssignment.objects.filter(
+        device__site__in=request.user.get_allowed_sites(),
+    ).select_related('device', 'employee', 'assigned_by', 'returned_by')
+    if search:
+        qs = qs.filter(
+            Q(device__serial_number__icontains=search) |
+            Q(employee__first_name__icontains=search) |
+            Q(employee__last_name__icontains=search)
+        )
+    if status_f == 'active':   qs = qs.filter(returned_date__isnull=True)
+    elif status_f == 'returned': qs = qs.filter(returned_date__isnull=False)
+    qs = qs.order_by('-assigned_date')
+    fmt = request.GET.get('format', 'xlsx')
+    headers = ['#', 'Device Serial', 'Employee', 'Assigned Date', 'Returned Date', 'Status', 'Assigned By']
+    rows = [
+        [i + 1, a.device.serial_number, a.employee.full_name,
+         a.assigned_date.strftime('%Y-%m-%d'),
+         a.returned_date.strftime('%Y-%m-%d') if a.returned_date else '—',
+         'Returned' if a.returned_date else 'Active',
+         a.assigned_by.full_name]
+        for i, a in enumerate(qs)
+    ]
+    if fmt == 'pdf':
+        return export_pdf('Device Assignments', headers, rows, landscape=True)
+    return export_xlsx('device_assignments', headers, rows)
+
+
+@login_required
+@permission_required(Perms.ASSIGNMENTS_EXPORT)
+def acc_assignments_export(request):
+    from it_assets.export_utils import export_xlsx, export_pdf
+    search   = request.GET.get('search', '').strip()
+    status_f = request.GET.get('status', '').strip()
+    qs = AccessoryAssignment.objects.filter(
+        accessory__site__in=request.user.get_allowed_sites(),
+    ).select_related('accessory', 'accessory__accessory_type', 'employee', 'assigned_by')
+    if search:
+        qs = qs.filter(
+            Q(accessory__serial_number__icontains=search) |
+            Q(accessory__accessory_type__name__icontains=search) |
+            Q(employee__first_name__icontains=search) |
+            Q(employee__last_name__icontains=search)
+        )
+    if status_f == 'active':   qs = qs.filter(returned_date__isnull=True)
+    elif status_f == 'returned': qs = qs.filter(returned_date__isnull=False)
+    qs = qs.order_by('-assigned_date')
+    fmt = request.GET.get('format', 'xlsx')
+    headers = ['#', 'Accessory Type', 'Serial', 'Employee', 'Assigned Date', 'Returned Date', 'Status']
+    rows = [
+        [i + 1, a.accessory.accessory_type.name, a.accessory.serial_number or '—',
+         a.employee.full_name,
+         a.assigned_date.strftime('%Y-%m-%d'),
+         a.returned_date.strftime('%Y-%m-%d') if a.returned_date else '—',
+         'Returned' if a.returned_date else 'Active']
+        for i, a in enumerate(qs)
+    ]
+    if fmt == 'pdf':
+        return export_pdf('Accessory Assignments', headers, rows, landscape=True)
+    return export_xlsx('accessory_assignments', headers, rows)
+
+
+@login_required
+@permission_required(Perms.TRANSFERS_EXPORT)
+def device_transfers_export(request):
+    from it_assets.export_utils import export_xlsx, export_pdf
+    search   = request.GET.get('search', '').strip()
+    status_f = request.GET.get('status', '').strip()
+    allowed  = request.user.get_allowed_sites()
+    qs = DeviceTransfer.objects.filter(
+        Q(from_site__in=allowed) | Q(to_site__in=allowed)
+    ).select_related('device', 'from_site', 'to_site', 'transferred_by')
+    if search:
+        qs = qs.filter(
+            Q(device__serial_number__icontains=search) |
+            Q(from_site__name__icontains=search) |
+            Q(to_site__name__icontains=search)
+        )
+    if status_f in (TransferStatus.PENDING, TransferStatus.ACCEPTED, TransferStatus.REJECTED):
+        qs = qs.filter(status=status_f)
+    qs = qs.order_by('-transfer_date')
+    fmt = request.GET.get('format', 'xlsx')
+    headers = ['#', 'Device Serial', 'From Site', 'To Site', 'Date', 'Status', 'Transferred By']
+    rows = [
+        [i + 1, t.device.serial_number, t.from_site.name, t.to_site.name,
+         t.transfer_date.strftime('%Y-%m-%d'), t.status.capitalize(),
+         t.transferred_by.full_name]
+        for i, t in enumerate(qs)
+    ]
+    if fmt == 'pdf':
+        return export_pdf('Device Transfers', headers, rows, landscape=True)
+    return export_xlsx('device_transfers', headers, rows)
+
+
+@login_required
+@permission_required(Perms.TRANSFERS_EXPORT)
+def accessory_transfers_export(request):
+    from it_assets.export_utils import export_xlsx, export_pdf
+    search   = request.GET.get('search', '').strip()
+    status_f = request.GET.get('status', '').strip()
+    allowed  = request.user.get_allowed_sites()
+    qs = AccessoryTransfer.objects.filter(
+        Q(from_site__in=allowed) | Q(to_site__in=allowed)
+    ).select_related('accessory', 'accessory__accessory_type', 'from_site', 'to_site', 'transferred_by')
+    if search:
+        qs = qs.filter(
+            Q(accessory__serial_number__icontains=search) |
+            Q(accessory__accessory_type__name__icontains=search) |
+            Q(from_site__name__icontains=search) |
+            Q(to_site__name__icontains=search)
+        )
+    if status_f in (TransferStatus.PENDING, TransferStatus.ACCEPTED, TransferStatus.REJECTED):
+        qs = qs.filter(status=status_f)
+    qs = qs.order_by('-transfer_date')
+    fmt = request.GET.get('format', 'xlsx')
+    headers = ['#', 'Accessory Type', 'Serial', 'From Site', 'To Site', 'Date', 'Status', 'Transferred By']
+    rows = [
+        [i + 1, t.accessory.accessory_type.name, t.accessory.serial_number or '—',
+         t.from_site.name, t.to_site.name,
+         t.transfer_date.strftime('%Y-%m-%d'), t.status.capitalize(),
+         t.transferred_by.full_name]
+        for i, t in enumerate(qs)
+    ]
+    if fmt == 'pdf':
+        return export_pdf('Accessory Transfers', headers, rows, landscape=True)
+    return export_xlsx('accessory_transfers', headers, rows)

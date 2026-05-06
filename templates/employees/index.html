@@ -58,11 +58,24 @@
             </select>
           </div>
           {% endif %}
-          {% if rbac.employees_create %}
-          <div class="col-md-auto ms-auto">
+          {% if rbac.employees_create or rbac.employees_export %}
+          <div class="col-md-auto ms-auto d-flex gap-2">
+            {% if rbac.employees_export %}
+            <div class="dropdown">
+              <button class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="bi bi-download me-1"></i>{% trans "Export" %}
+              </button>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#" onclick="exportEmpData('xlsx');return false;"><i class="bi bi-file-earmark-excel me-2 text-success"></i>Excel (.xlsx)</a></li>
+                <li><a class="dropdown-item" href="#" onclick="exportEmpData('pdf');return false;"><i class="bi bi-file-earmark-pdf me-2 text-danger"></i>PDF</a></li>
+              </ul>
+            </div>
+            {% endif %}
+            {% if rbac.employees_create %}
             <button class="btn btn-primary d-flex align-items-center gap-2" onclick="openCreateEmpModal()">
               <i class="bi bi-plus-lg"></i><span>{% trans "Add Employee" %}</span>
             </button>
+            {% endif %}
           </div>
           {% endif %}
         </div>
@@ -384,8 +397,10 @@
 
 {% block extra_js %}
 <script>
-const CAN_EDIT   = {{ rbac.employees_edit|yesno:"true,false" }};
-const CAN_DELETE = {{ rbac.employees_delete|yesno:"true,false" }};
+const CAN_EDIT            = {{ rbac.employees_edit|yesno:"true,false" }};
+const CAN_DELETE          = {{ rbac.employees_delete|yesno:"true,false" }};
+const CAN_VIEW_ASSETS     = {{ rbac.employees_view|yesno:"true,false" }};
+const CAN_ACKNOWLEDGMENT  = {{ rbac.employees_acknowledgment|yesno:"true,false" }};
 
 const URL_EMP_DATA    = '{% url "employees-data" %}';
 const URL_EMP_CREATE  = '{% url "employee-create" %}';
@@ -462,6 +477,8 @@ function renderEmpRow(e, i) {
       <div class="d-flex gap-1 justify-content-end">
         <button class="btn btn-sm btn-icon btn-outline-secondary" onclick="openViewEmpModal(${e.id})" title="{% trans 'View' %}"><i class="bi bi-eye"></i></button>
         ${CAN_EDIT ? `<button class="btn btn-sm btn-icon btn-outline-primary" onclick="openEditEmpModal(${e.id})" title="{% trans 'Edit' %}"><i class="bi bi-pencil"></i></button>` : ''}
+        ${CAN_VIEW_ASSETS ? `<a href="/employees/${e.id}/assets/" class="btn btn-sm btn-icon btn-outline-info" title="{% trans 'View Assets' %}"><i class="bi bi-boxes"></i></a>` : ''}
+        ${CAN_ACKNOWLEDGMENT ? `<a href="/employees/${e.id}/acknowledgment/" class="btn btn-sm btn-icon btn-outline-success" title="{% trans 'Print Receipt' %}"><i class="bi bi-file-earmark-check"></i></a>` : ''}
         ${CAN_DELETE ? `<button class="btn btn-sm btn-icon btn-outline-danger" onclick="openDeleteModal('employee',${e.id},'${escHtml(e.full_name)}')" title="{% trans 'Delete' %}"><i class="bi bi-trash3"></i></button>` : ''}
       </div>
     </td>
@@ -667,6 +684,20 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', function()
     .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
     .finally(() => { setButtonLoading(btn, false); deleteTarget.url = null; });
 });
+
+/* ── Export ── */
+function exportEmpData(fmt) {
+  const params = new URLSearchParams();
+  const search = document.getElementById('empSearch').value.trim();
+  const dept   = document.getElementById('deptFilter').value;
+  const siteEl = document.getElementById('empSiteFilter');
+  const site   = siteEl ? siteEl.value : '';
+  if (search) params.set('search', search);
+  if (dept)   params.set('department', dept);
+  if (site)   params.set('site', site);
+  params.set('format', fmt);
+  window.location.href = '{% url "employees-export" %}?' + params.toString();
+}
 
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', () => {

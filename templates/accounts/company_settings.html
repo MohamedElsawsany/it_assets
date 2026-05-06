@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Company Settings" %} — {% trans "IT Asset Management" %}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">{% trans "Company Settings" %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-container" style="max-width:760px;">
+
+  <div class="page-header">
+    <div>
+      <h4 class="page-title">{% trans "Company Settings" %}</h4>
+      <p class="page-subtitle">{% trans "Configure branding and policy text used on acknowledgment forms." %}</p>
+    </div>
+  </div>
+
+  {% if messages %}
+  {% for m in messages %}
+  <div class="alert alert-{{ m.tags|default:'info' }} alert-dismissible fade show" role="alert">
+    {{ m }} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="hidden" name="remove_logo" id="removeLogo" value="0">
+
+    <!-- Company Name -->
+    <div class="card card-app mb-3">
+      <div class="card-header py-3">
+        <h6 class="mb-0 fw-semibold"><i class="bi bi-building me-2 text-primary"></i>{% trans "Company Name" %}</h6>
+      </div>
+      <div class="card-body">
+        <input type="text" class="form-control form-control-lg fw-semibold"
+               name="company_name" id="companyName"
+               value="{{ profile.company_name }}"
+               placeholder="{% trans 'e.g. Acme Corporation' %}"
+               maxlength="255">
+        <div class="form-text">{% trans "Appears as the header on all printed forms." %}</div>
+      </div>
+    </div>
+
+    <!-- Logo -->
+    <div class="card card-app mb-3">
+      <div class="card-header py-3">
+        <h6 class="mb-0 fw-semibold"><i class="bi bi-image me-2 text-primary"></i>{% trans "Company Logo" %}</h6>
+      </div>
+      <div class="card-body">
+        <div class="d-flex align-items-start gap-4 flex-wrap">
+          <div id="logoPreviewWrapper" class="{% if not profile.logo %}d-none{% endif %}">
+            <img id="logoPreview"
+                 src="{% if profile.logo %}{{ profile.logo.url }}{% endif %}"
+                 alt="Logo preview"
+                 style="max-height:120px;max-width:240px;border:1px solid #dee2e6;border-radius:8px;padding:6px;background:#fff;">
+            {% if rbac.company_edit %}
+            <div class="mt-2">
+              <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeLogo()">
+                <i class="bi bi-trash3 me-1"></i>{% trans "Remove Logo" %}
+              </button>
+            </div>
+            {% endif %}
+          </div>
+          <div>
+            {% if rbac.company_edit %}
+            <label class="btn btn-outline-primary">
+              <i class="bi bi-upload me-1"></i>{% trans "Upload Logo" %}
+              <input type="file" name="logo" accept="image/*" class="d-none" id="logoInput" onchange="previewLogo(this)">
+            </label>
+            <div class="form-text mt-2">{% trans "PNG, JPG or SVG. Max 5 MB. Recommended: 400×120 px." %}</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Acknowledgment Policy -->
+    <div class="card card-app mb-3">
+      <div class="card-header py-3">
+        <h6 class="mb-0 fw-semibold"><i class="bi bi-file-text me-2 text-primary"></i>{% trans "Acknowledgment Policy" %}</h6>
+      </div>
+      <div class="card-body">
+        <textarea class="form-control" name="policy" id="policyText" rows="10"
+                  placeholder="{% trans 'Enter the policy or terms that employees must acknowledge when signing the receipt form…' %}">{{ profile.policy }}</textarea>
+        <div class="form-text">{% trans "Printed verbatim on the acknowledgment form. Supports line breaks." %}</div>
+      </div>
+    </div>
+
+    {% if rbac.company_edit %}
+    <div class="d-flex justify-content-end gap-2 mb-4">
+      <button type="submit" class="btn btn-primary px-4">
+        <i class="bi bi-floppy me-1"></i>{% trans "Save Changes" %}
+      </button>
+    </div>
+    {% endif %}
+
+  </form>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function previewLogo(input) {
+  if (!input.files.length) return;
+  const file = input.files[0];
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('{% trans "File too large (max 5 MB)." %}', 'danger');
+    input.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('logoPreview').src = e.target.result;
+    document.getElementById('logoPreviewWrapper').classList.remove('d-none');
+    document.getElementById('removeLogo').value = '0';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeLogo() {
+  document.getElementById('logoPreview').src = '';
+  document.getElementById('logoPreviewWrapper').classList.add('d-none');
+  document.getElementById('logoInput').value = '';
+  document.getElementById('removeLogo').value = '1';
+}
+</script>
+{% endblock %}

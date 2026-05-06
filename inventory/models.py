@@ -272,7 +272,6 @@ class Accessory(models.Model):
     accessory_type = models.ForeignKey(AccessoryType, on_delete=models.PROTECT, related_name='accessories')
     serial_number  = models.CharField(max_length=255, null=True, blank=True, unique=True)
     brand          = models.ForeignKey(Brand,  on_delete=models.PROTECT, null=True, blank=True, related_name='accessories')
-    device         = models.ForeignKey(Device, on_delete=models.SET_NULL, null=True, blank=True, related_name='accessories')
     site           = models.ForeignKey('locations.Site', on_delete=models.PROTECT, related_name='accessories')
     flag           = models.CharField(max_length=20, choices=DeviceFlag.choices, default=DeviceFlag.AVAILABLE)
     in_transfer    = models.BooleanField(default=False, help_text='True while a pending site transfer is in progress')
@@ -293,7 +292,7 @@ class Accessory(models.Model):
     class Meta:
         db_table = 'Accessories'
         permissions = [
-            ('link_device_accessory', 'Can link or unlink an accessory to a device'),
+            ('export_accessory', 'Can export accessory data to a file'),
         ]
 
     def __str__(self):

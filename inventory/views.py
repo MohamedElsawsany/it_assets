@@ -16,6 +16,7 @@ from .models import (Brand, DeviceCategory, DeviceModel, CPU, GPU,
 from .forms import (BrandForm, DeviceCategoryForm, DeviceModelForm, CPUForm, GPUForm,
                     OperatingSystemForm, AccessoryTypeForm,
                     DeviceForm, ChangeFlagForm, AccessoryForm)
+from it_assets.export_utils import export_xlsx, export_pdf
 
 # System-managed flags that must only change through their dedicated flows
 _SYSTEM_FLAGS = {DeviceFlag.ASSIGNED, DeviceFlag.UNDER_MAINTENANCE}
@@ -346,8 +347,6 @@ def device_delete(request, pk):
         return JsonResponse({'success': False, 'message': _('Cannot delete device: it has transfer records.')})
     if device.maintenance_records.exists():
         return JsonResponse({'success': False, 'message': _('Cannot delete device: it has maintenance records.')})
-    if device.accessories.exists():
-        return JsonResponse({'success': False, 'message': _('Cannot delete device: it has linked accessories.')})
     device.deleted_date = timezone.now()
     device.save()
     return JsonResponse({'success': True, 'message': _('Device deleted successfully.')})
@@ -581,3 +580,135 @@ def accessory_delete(request, pk):
     a.deleted_date = timezone.now()
     a.save()
     return JsonResponse({'success': True, 'message': _('Accessory deleted successfully.')})
+
+
+# ── QR Code labels ────────────────────────────────────────────────────────────
+
+import io, base64
+
+def _make_qr_data_url(url):
+    import qrcode
+    qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=8, border=2)
+    qr.add_data(url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color='black', back_color='white')
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    return 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode()
+
+
+@login_required
+@permission_required(Perms.DEVICES_VIEW)
+def device_qr(request, pk):
+    device = get_object_or_404(
+        Device.objects.filter(site__in=request.user.get_allowed_sites())
+                      .select_related('category', 'brand', 'device_model', 'site'),
+        pk=pk, deleted_date__isnull=True,
+    )
+    detail_url = request.build_absolute_uri(f'/inventory/devices/?open={pk}')
+    return render(request, 'inventory/qr_label.html', {
+        'title':       str(device),
+        'serial':      device.serial_number,
+        'label':       f'{device.device_model} ({device.category.name})',
+        'site':        device.site.name,
+        'asset_type':  'Device',
+        'detail_url':  detail_url,
+        'qr_data_url': _make_qr_data_url(detail_url),
+    })
+
+
+@login_required
+@permission_required(Perms.ACCESSORIES_VIEW)
+def accessory_qr(request, pk):
+    acc = get_object_or_404(
+        Accessory.objects.filter(site__in=request.user.get_allowed_sites())
+                         .select_related('accessory_type', 'brand', 'site'),
+        pk=pk, deleted_date__isnull=True,
+    )
+    detail_url = request.build_absolute_uri(f'/inventory/accessories/?open={pk}')
+    return render(request, 'inventory/qr_label.html', {
+        'title':       str(acc),
+        'serial':      acc.serial_number or '—',
+        'label':       f'{acc.accessory_type.name}{" (" + acc.brand.name + ")" if acc.brand else ""}',
+        'site':        acc.site.name,
+        'asset_type':  'Accessory',
+        'detail_url':  detail_url,
+        'qr_data_url': _make_qr_data_url(detail_url),
+    })
+
+
+# ── Export ────────────────────────────────────────────────────────────────────
+
+def _devices_export_qs(request):
+    search  = request.GET.get('search', '').strip()
+    cat_id  = request.GET.get('category', '').strip()
+    site_id = request.GET.get('site', '').strip()
+    flag_id = request.GET.get('flag', '').strip()
+    qs = Device.objects.filter(
+        deleted_date__isnull=True,
+        site__in=request.user.get_allowed_sites(),
+    ).select_related('category', 'brand', 'device_model', 'site')
+    if search:
+        qs = qs.filter(
+            Q(serial_number__icontains=search) |
+            Q(brand__name__icontains=search) |
+            Q(device_model__name__icontains=search)
+        )
+    if cat_id:  qs = qs.filter(category_id=cat_id)
+    if site_id: qs = qs.filter(site_id=site_id)
+    if flag_id: qs = qs.filter(flag=flag_id)
+    return qs.order_by('-created_date')
+
+
+def _accessories_export_qs(request):
+    search  = request.GET.get('search', '').strip()
+    type_id = request.GET.get('type', '').strip()
+    site_id = request.GET.get('site', '').strip()
+    flag_id = request.GET.get('flag', '').strip()
+    qs = Accessory.objects.filter(
+        deleted_date__isnull=True,
+        site__in=request.user.get_allowed_sites(),
+    ).select_related('accessory_type', 'brand', 'site')
+    if search:
+        qs = qs.filter(
+            Q(serial_number__icontains=search) |
+            Q(accessory_type__name__icontains=search)
+        )
+    if type_id: qs = qs.filter(accessory_type_id=type_id)
+    if site_id: qs = qs.filter(site_id=site_id)
+    if flag_id: qs = qs.filter(flag=flag_id)
+    return qs.order_by('-created_date')
+
+
+@login_required
+@permission_required(Perms.DEVICES_EXPORT)
+def devices_export(request):
+    qs  = _devices_export_qs(request)
+    fmt = request.GET.get('format', 'xlsx')
+    headers = ['#', 'Serial Number', 'Category', 'Brand', 'Model', 'Site', 'Status', 'Created']
+    rows = [
+        [i + 1, d.serial_number, d.category.name, d.brand.name,
+         d.device_model.name, d.site.name, d.get_flag_display(),
+         d.created_date.strftime('%Y-%m-%d')]
+        for i, d in enumerate(qs)
+    ]
+    if fmt == 'pdf':
+        return export_pdf('Devices', headers, rows, landscape=True)
+    return export_xlsx('devices', headers, rows)
+
+
+@login_required
+@permission_required(Perms.ACCESSORIES_EXPORT)
+def accessories_export(request):
+    qs  = _accessories_export_qs(request)
+    fmt = request.GET.get('format', 'xlsx')
+    headers = ['#', 'Type', 'Serial Number', 'Brand', 'Site', 'Status', 'Created']
+    rows = [
+        [i + 1, a.accessory_type.name, a.serial_number or '—',
+         a.brand.name if a.brand else '—', a.site.name,
+         a.get_flag_display(), a.created_date.strftime('%Y-%m-%d')]
+        for i, a in enumerate(qs)
+    ]
+    if fmt == 'pdf':
+        return export_pdf('Accessories', headers, rows, landscape=True)
+    return export_xlsx('accessories', headers, rows)
