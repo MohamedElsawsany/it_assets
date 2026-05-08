@@ -1327,6 +1327,20 @@ body {
   direction: rtl;
 }
 
+/* RTL Select2 clear (X) button: place on the left in RTL, keep right in LTR */
+[dir="rtl"] .select2-container--bootstrap-5 .select2-selection__clear {
+  left: 28px;
+  right: auto;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+[dir="rtl"] .select2-container--bootstrap-5 .select2-selection--multiple
+            .select2-selection__clear {
+  left: 28px;
+  right: auto;
+}
+
 /* Filter bar Select2 height */
 .filter-bar .select2-container--bootstrap-5 .select2-selection {
   height: 36px;
