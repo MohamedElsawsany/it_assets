@@ -1258,3 +1258,467 @@ msgstr "النظام"
 
 msgid "Activate"
 msgstr "تفعيل"
+
+# Sidebar
+msgid "Company"
+msgstr "الشركة"
+
+# Company settings
+msgid "Company Settings"
+msgstr "إعدادات الشركة"
+
+msgid "Configure branding and policy text used on acknowledgment forms."
+msgstr "تكوين الهوية التجارية ونص السياسة المستخدم في نماذج الاستلام."
+
+msgid "Company Name"
+msgstr "اسم الشركة"
+
+msgid "e.g. Acme Corporation"
+msgstr "مثال: شركة أكمي"
+
+msgid "Appears as the header on all printed forms."
+msgstr "يظهر كعنوان في جميع النماذج المطبوعة."
+
+msgid "Company Logo"
+msgstr "شعار الشركة"
+
+msgid "Remove Logo"
+msgstr "إزالة الشعار"
+
+msgid "Upload Logo"
+msgstr "رفع الشعار"
+
+msgid "PNG, JPG or SVG. Max 5 MB. Recommended: 400×120 px."
+msgstr "PNG أو JPG أو SVG. الحد الأقصى 5 ميجابايت. يُنصح بـ: 400×120 بكسل."
+
+msgid "Acknowledgment Policy"
+msgstr "سياسة الاستلام"
+
+msgid "Enter the policy or terms that employees must acknowledge when signing the receipt form…"
+msgstr "أدخل السياسة أو الشروط التي يجب على الموظفين الإقرار بها عند توقيع نموذج الاستلام…"
+
+msgid "Printed verbatim on the acknowledgment form. Supports line breaks."
+msgstr "يُطبع حرفياً على نموذج الاستلام. يدعم فواصل الأسطر."
+
+msgid "File too large (max 5 MB)."
+msgstr "الملف كبير جداً (الحد الأقصى 5 ميجابايت)."
+
+msgid "Company profile saved successfully."
+msgstr "تم حفظ بيانات الشركة بنجاح."
+
+# Acknowledgment form
+msgid "Acknowledgment Form"
+msgstr "نموذج الاستلام"
+
+msgid "Date"
+msgstr "التاريخ"
+
+msgid "Form No."
+msgstr "رقم النموذج"
+
+msgid "IT Asset Acknowledgment Form"
+msgstr "نموذج استلام أصول تقنية المعلومات"
+
+msgid "Employee Information"
+msgstr "بيانات الموظف"
+
+msgid "Employee ID"
+msgstr "رقم الموظف"
+
+msgid "Site / Branch"
+msgstr "الموقع / الفرع"
+
+msgid "Assigned Devices"
+msgstr "الأجهزة المعيّنة"
+
+msgid "Assigned Accessories"
+msgstr "الملحقات المعيّنة"
+
+msgid "No assets currently assigned to this employee."
+msgstr "لا توجد أصول معيّنة لهذا الموظف حالياً."
+
+msgid "Signatures"
+msgstr "التوقيعات"
+
+msgid "Employee Signature"
+msgstr "توقيع الموظف"
+
+msgid "I acknowledge receipt of the above assets and agree to the terms."
+msgstr "أقر باستلام الأصول المذكورة أعلاه وأوافق على الشروط."
+
+msgid "IT Administrator"
+msgstr "مسؤول تقنية المعلومات"
+
+msgid "Authorized by IT department."
+msgstr "معتمد من قسم تقنية المعلومات."
+
+msgid "IT Asset Management System"
+msgstr "نظام إدارة أصول تقنية المعلومات"
+
+msgid "Generated"
+msgstr "تاريخ الإنشاء"
+
+# Employee assets page
+msgid "Assets"
+msgstr "الأصول"
+
+msgid "Back"
+msgstr "رجوع"
+
+msgid "Print"
+msgstr "طباعة"
+
+msgid "Print Receipt"
+msgstr "طباعة الاستلام"
+
+msgid "Label"
+msgstr "الملصق"
+
+msgid "Print QR Label"
+msgstr "طباعة ملصق QR"
+
+# Permissions
+msgid "You do not have permission to perform this action."
+msgstr "ليس لديك صلاحية لتنفيذ هذا الإجراء."
+
+# Assignment/transfer messages
+msgid "Site access saved."
+msgstr "تم حفظ صلاحيات الوصول للمواقع."
+
+msgid "Select at least one device."
+msgstr "اختر جهازاً واحداً على الأقل."
+
+msgid "Select a destination site."
+msgstr "اختر موقع الوجهة."
+
+msgid "Invalid destination site."
+msgstr "موقع الوجهة غير صالح."
+
+msgid "No valid devices selected."
+msgstr "لا توجد أجهزة صالحة محددة."
+
+msgid "\"%s\" is currently assigned to an employee. Return it first."
+msgstr "الجهاز \"%s\" معيّن لموظف حالياً. يجب إرجاعه أولاً."
+
+msgid "\"%s\" is under maintenance. Close the maintenance record first."
+msgstr "الجهاز \"%s\" تحت الصيانة. يجب إغلاق سجل الصيانة أولاً."
+
+msgid "\"%s\" is marked as lost and cannot be transferred."
+msgstr "الجهاز \"%s\" مُصنَّف كمفقود ولا يمكن نقله."
+
+msgid "Transfer is not pending."
+msgstr "عملية النقل ليست في انتظار المعالجة."
+
+msgid "Transfer accepted. Device moved to new site."
+msgstr "تم قبول النقل. تم نقل الجهاز إلى الموقع الجديد."
+
+msgid "Transfer rejected. Device stays at original site."
+msgstr "تم رفض النقل. يبقى الجهاز في موقعه الأصلي."
+
+msgid "Transfer cancelled."
+msgstr "تم إلغاء عملية النقل."
+
+msgid "Only pending transfers can be cancelled."
+msgstr "يمكن إلغاء عمليات النقل المعلقة فقط."
+
+msgid "Accessory assigned successfully."
+msgstr "تم تعيين الملحق بنجاح."
+
+msgid "Accessory returned successfully."
+msgstr "تم إرجاع الملحق بنجاح."
+
+msgid "This accessory is already assigned and has not been returned yet."
+msgstr "هذا الملحق معيّن بالفعل ولم يتم إرجاعه بعد."
+
+msgid "Select at least one accessory."
+msgstr "اختر ملحقاً واحداً على الأقل."
+
+msgid "No valid accessories selected."
+msgstr "لا توجد ملحقات صالحة محددة."
+
+msgid "Transfer accepted. Accessory moved to new site."
+msgstr "تم قبول النقل. تم نقل الملحق إلى الموقع الجديد."
+
+msgid "Transfer rejected. Accessory stays at original site."
+msgstr "تم رفض النقل. يبقى الملحق في موقعه الأصلي."
+
+# Inventory messages
+msgid "Cannot delete: item is used by existing records."
+msgstr "لا يمكن الحذف: العنصر مستخدم في سجلات موجودة."
+
+msgid "Cannot delete device: it has assignment records."
+msgstr "لا يمكن حذف الجهاز: لديه سجلات تعيينات."
+
+msgid "Cannot delete device: it has transfer records."
+msgstr "لا يمكن حذف الجهاز: لديه سجلات نقل."
+
+msgid "Cannot delete device: it has maintenance records."
+msgstr "لا يمكن حذف الجهاز: لديه سجلات صيانة."
+
+msgid "Device is under active maintenance. Close the maintenance record first."
+msgstr "الجهاز تحت الصيانة النشطة. يجب إغلاق سجل الصيانة أولاً."
+
+msgid "Use the Maintenance page to put a device under maintenance."
+msgstr "استخدم صفحة الصيانة لوضع الجهاز في وضع الصيانة."
+
+msgid "Use the Assignments page to assign a device to an employee."
+msgstr "استخدم صفحة التعيينات لتعيين الجهاز لموظف."
+
+msgid "Device is currently assigned to an employee. Return it first."
+msgstr "الجهاز معيّن لموظف حالياً. يجب إرجاعه أولاً."
+
+msgid "Accessory flag updated."
+msgstr "تم تحديث حالة الملحق."
+
+msgid "Accessory is under active maintenance. Close the maintenance record first."
+msgstr "الملحق تحت الصيانة النشطة. يجب إغلاق سجل الصيانة أولاً."
+
+msgid "Use the Maintenance page to put an accessory under maintenance."
+msgstr "استخدم صفحة الصيانة لوضع الملحق في وضع الصيانة."
+
+msgid "Use the Assignments page to assign an accessory to an employee."
+msgstr "استخدم صفحة التعيينات لتعيين الملحق لموظف."
+
+msgid "Accessory is currently assigned to an employee. Return it first."
+msgstr "الملحق معيّن لموظف حالياً. يجب إرجاعه أولاً."
+
+# Maintenance messages
+msgid "This device already has an open maintenance record. Please close it before creating a new one."
+msgstr "يوجد سجل صيانة مفتوح لهذا الجهاز بالفعل. يرجى إغلاقه قبل إنشاء سجل جديد."
+
+msgid "This accessory already has an open maintenance record. Please close it before creating a new one."
+msgstr "يوجد سجل صيانة مفتوح لهذا الملحق بالفعل. يرجى إغلاقه قبل إنشاء سجل جديد."
+
+# Location messages
+msgid "Cannot delete: site has devices."
+msgstr "لا يمكن الحذف: الموقع يحتوي على أجهزة."
+
+msgid "Cannot delete: site has accessories."
+msgstr "لا يمكن الحذف: الموقع يحتوي على ملحقات."
+
+msgid "Cannot delete: site has employees."
+msgstr "لا يمكن الحذف: الموقع يحتوي على موظفين."
+
+msgid "Cannot delete: site has users."
+msgstr "لا يمكن الحذف: الموقع يحتوي على مستخدمين."
+
+msgid "Cannot delete: site has transfer records."
+msgstr "لا يمكن الحذف: الموقع يحتوي على سجلات نقل."
+
+# Employee messages
+msgid "Cannot delete: employee has assignment records."
+msgstr "لا يمكن الحذف: الموظف لديه سجلات تعيينات."
+
+# Single-word / short labels
+msgid "Accessory"
+msgstr "الملحق"
+
+msgid "Pending"
+msgstr "معلق"
+
+msgid "Accepted"
+msgstr "مقبول"
+
+msgid "Rejected"
+msgstr "مرفوض"
+
+msgid "Accept"
+msgstr "قبول"
+
+msgid "Reject"
+msgstr "رفض"
+
+msgid "No S/N"
+msgstr "بدون رقم تسلسلي"
+
+msgid "View Assets"
+msgstr "عرض الأصول"
+
+msgid "Acknowledgment"
+msgstr "الاستلام"
+
+# Login page
+msgid "Monitor open maintenance records"
+msgstr "مراقبة سجلات الصيانة المفتوحة"
+
+# Assignment page — new strings
+msgid "Track which devices and accessories are assigned to employees."
+msgstr "تتبع الأجهزة والملحقات المعيّنة للموظفين."
+
+msgid "New Device Assignment"
+msgstr "تعيين جهاز جديد"
+
+msgid "New Accessory Assignment"
+msgstr "تعيين ملحق جديد"
+
+msgid "Search by accessory type, serial or employee name…"
+msgstr "البحث بنوع الملحق أو الرقم التسلسلي أو اسم الموظف…"
+
+msgid "No device assignments found."
+msgstr "لم يتم العثور على تعيينات أجهزة."
+
+msgid "No accessory assignments found."
+msgstr "لم يتم العثور على تعيينات ملحقات."
+
+msgid "Failed to load accessory assignments."
+msgstr "فشل تحميل تعيينات الملحقات."
+
+msgid "Device Assignment Details"
+msgstr "تفاصيل تعيين الجهاز"
+
+msgid "Accessory Assignment Details"
+msgstr "تفاصيل تعيين الملحق"
+
+msgid "Return Accessory"
+msgstr "إرجاع الملحق"
+
+msgid "Record the return of this accessory."
+msgstr "تسجيل إرجاع هذا الملحق."
+
+# Transfer page — new strings
+msgid "Track device and accessory movements between sites."
+msgstr "تتبع تنقلات الأجهزة والملحقات بين المواقع."
+
+msgid "Search by serial, type, or site…"
+msgstr "البحث بالرقم التسلسلي أو النوع أو الموقع…"
+
+msgid "All Statuses"
+msgstr "جميع الحالات"
+
+msgid "New Device Transfer"
+msgstr "نقل جهاز جديد"
+
+msgid "New Accessory Transfer"
+msgstr "نقل ملحق جديد"
+
+msgid "Create Transfer"
+msgstr "إنشاء النقل"
+
+msgid "No available devices at this site."
+msgstr "لا توجد أجهزة متاحة في هذا الموقع."
+
+msgid "No available accessories at this site."
+msgstr "لا توجد ملحقات متاحة في هذا الموقع."
+
+msgid "Search by serial, model, or category…"
+msgstr "البحث بالرقم التسلسلي أو الموديل أو الفئة…"
+
+msgid "Search by type, serial, or brand…"
+msgstr "البحث بالنوع أو الرقم التسلسلي أو الماركة…"
+
+msgid "Select a From Site first"
+msgstr "اختر الموقع الأصلي أولاً"
+
+msgid "(select a From Site first)"
+msgstr "(اختر الموقع الأصلي أولاً)"
+
+msgid "Accept Transfer"
+msgstr "قبول النقل"
+
+msgid "Reject Transfer"
+msgstr "رفض النقل"
+
+msgid "Cancel Transfer"
+msgstr "إلغاء النقل"
+
+msgid "The asset will be moved to the destination site."
+msgstr "سيتم نقل الأصل إلى الموقع المستهدف."
+
+msgid "The asset stays at its original site."
+msgstr "يبقى الأصل في موقعه الأصلي."
+
+msgid "The asset's in-transfer flag will be cleared. This cannot be undone."
+msgstr "سيتم إلغاء علامة النقل للأصل. لا يمكن التراجع عن هذا الإجراء."
+
+msgid "Record created:"
+msgstr "تاريخ الإنشاء:"
+
+msgid "Resolved by"
+msgstr "تمت المعالجة بواسطة"
+
+msgid "Resolved on"
+msgstr "تاريخ المعالجة"
+
+# Inventory — devices/accessories
+msgid "Assign Device"
+msgstr "تعيين الجهاز"
+
+msgid "Assign Accessory"
+msgstr "تعيين الملحق"
+
+msgid "Send to Maintenance"
+msgstr "إرسال للصيانة"
+
+msgid "Create Record"
+msgstr "إنشاء سجل"
+
+msgid "Managed by assignment/maintenance system."
+msgstr "تُدار عبر نظام التعيينات/الصيانة."
+
+msgid "Selecting \"Assigned\" or \"Under Maintenance\" will open the relevant form."
+msgstr "اختيار \"معيّن\" أو \"تحت الصيانة\" سيفتح النموذج المناسب."
+
+msgid "This device is currently assigned. You can only send it to maintenance. To free it, return it from the Assignments page first."
+msgstr "هذا الجهاز معيّن حالياً. يمكنك فقط إرساله للصيانة. لتحريره، قم بإرجاعه من صفحة التعيينات أولاً."
+
+msgid "Device is already assigned. Return it first."
+msgstr "الجهاز معيّن بالفعل. يجب إرجاعه أولاً."
+
+msgid "Device is currently assigned to an employee. Return it from the Assignments page first."
+msgstr "الجهاز معيّن لموظف حالياً. قم بإرجاعه من صفحة التعيينات أولاً."
+
+msgid "This accessory is currently assigned. You can only send it to maintenance. To free it, return it from the Assignments page first."
+msgstr "هذا الملحق معيّن حالياً. يمكنك فقط إرساله للصيانة. لتحريره، قم بإرجاعه من صفحة التعيينات أولاً."
+
+msgid "Accessory is already assigned. Return it first."
+msgstr "الملحق معيّن بالفعل. يجب إرجاعه أولاً."
+
+msgid "Accessory is currently assigned to an employee. Return it from the Assignments page first."
+msgstr "الملحق معيّن لموظف حالياً. قم بإرجاعه من صفحة التعيينات أولاً."
+
+# Maintenance page — new strings
+msgid "Track device and accessory maintenance and repairs."
+msgstr "تتبع صيانة وإصلاح الأجهزة والملحقات."
+
+msgid "Search by type, serial, vendor, issue…"
+msgstr "البحث بالنوع أو الرقم التسلسلي أو المورد أو المشكلة…"
+
+msgid "New Device Maintenance Record"
+msgstr "سجل صيانة جهاز جديد"
+
+msgid "New Accessory Maintenance Record"
+msgstr "سجل صيانة ملحق جديد"
+
+msgid "Edit Device Maintenance Record"
+msgstr "تعديل سجل صيانة الجهاز"
+
+msgid "Edit Accessory Maintenance Record"
+msgstr "تعديل سجل صيانة الملحق"
+
+msgid "Close Device Maintenance Record"
+msgstr "إغلاق سجل صيانة الجهاز"
+
+msgid "Close Accessory Maintenance Record"
+msgstr "إغلاق سجل صيانة الملحق"
+
+msgid "Device Maintenance Details"
+msgstr "تفاصيل صيانة الجهاز"
+
+msgid "Accessory Maintenance Details"
+msgstr "تفاصيل صيانة الملحق"
+
+# Form field labels
+msgid "Site Scope"
+msgstr "نطاق الوصول للمواقع"
+
+msgid "Assignment Date"
+msgstr "تاريخ التعيين"
+
+msgid "Return Notes"
+msgstr "ملاحظات الإرجاع"
+
+msgid "Employee Card ID"
+msgstr "رقم بطاقة الموظف"
+
+msgid "Screen Size (inches)"
+msgstr "حجم الشاشة (بوصة)"

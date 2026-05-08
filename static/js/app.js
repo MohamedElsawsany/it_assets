@@ -159,6 +159,7 @@ function closeSidebar() {
 document.addEventListener('DOMContentLoaded', () => {
   const overlay = document.getElementById('sidebarOverlay');
   if (overlay) overlay.addEventListener('click', closeSidebar);
+
 });
 
 window.addEventListener('resize', () => {
@@ -307,7 +308,7 @@ function renderPagination(containerId, current, numPages, loadFn) {
   }
 
   html += `<li class="page-item${current === numPages ? ' disabled' : ''}">
-    <a class="page-link" href="#" data-page="${current + 1}">&rsaquo;</a></li>`;
+    <a class="page-link" href="#" data-page="${current + 1}">${nextArrow}</a></li>`;
   html += '</ul></nav>';
   el.innerHTML = html;
 

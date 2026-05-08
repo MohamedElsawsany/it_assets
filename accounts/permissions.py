@@ -38,6 +38,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import redirect
+from django.utils.translation import gettext as _
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -255,9 +256,9 @@ def permission_required(perm):
                 is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
                 if is_ajax:
                     return JsonResponse(
-                        {'success': False, 'message': 'Permission denied.'}, status=403
+                        {'success': False, 'message': _('Permission denied.')}, status=403
                     )
-                messages.error(request, 'You do not have permission to perform this action.')
+                messages.error(request, _('You do not have permission to perform this action.'))
                 return redirect('dashboard')
             return view_func(request, *args, **kwargs)
         return wrapper

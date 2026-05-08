@@ -130,3 +130,460 @@ msgstr "English"
 
 msgid "Arabic"
 msgstr "Arabic"
+
+# Sidebar
+msgid "Company"
+msgstr "Company"
+
+# Company settings
+msgid "Company Settings"
+msgstr "Company Settings"
+
+msgid "Configure branding and policy text used on acknowledgment forms."
+msgstr "Configure branding and policy text used on acknowledgment forms."
+
+msgid "Company Name"
+msgstr "Company Name"
+
+msgid "e.g. Acme Corporation"
+msgstr "e.g. Acme Corporation"
+
+msgid "Appears as the header on all printed forms."
+msgstr "Appears as the header on all printed forms."
+
+msgid "Company Logo"
+msgstr "Company Logo"
+
+msgid "Remove Logo"
+msgstr "Remove Logo"
+
+msgid "Upload Logo"
+msgstr "Upload Logo"
+
+msgid "PNG, JPG or SVG. Max 5 MB. Recommended: 400×120 px."
+msgstr "PNG, JPG or SVG. Max 5 MB. Recommended: 400×120 px."
+
+msgid "Acknowledgment Policy"
+msgstr "Acknowledgment Policy"
+
+msgid "Enter the policy or terms that employees must acknowledge when signing the receipt form…"
+msgstr "Enter the policy or terms that employees must acknowledge when signing the receipt form…"
+
+msgid "Printed verbatim on the acknowledgment form. Supports line breaks."
+msgstr "Printed verbatim on the acknowledgment form. Supports line breaks."
+
+msgid "File too large (max 5 MB)."
+msgstr "File too large (max 5 MB)."
+
+msgid "Company profile saved successfully."
+msgstr "Company profile saved successfully."
+
+# Acknowledgment form
+msgid "Acknowledgment Form"
+msgstr "Acknowledgment Form"
+
+msgid "Date"
+msgstr "Date"
+
+msgid "Form No."
+msgstr "Form No."
+
+msgid "IT Asset Acknowledgment Form"
+msgstr "IT Asset Acknowledgment Form"
+
+msgid "Employee Information"
+msgstr "Employee Information"
+
+msgid "Employee ID"
+msgstr "Employee ID"
+
+msgid "Site / Branch"
+msgstr "Site / Branch"
+
+msgid "Assigned Devices"
+msgstr "Assigned Devices"
+
+msgid "Assigned Accessories"
+msgstr "Assigned Accessories"
+
+msgid "No assets currently assigned to this employee."
+msgstr "No assets currently assigned to this employee."
+
+msgid "Signatures"
+msgstr "Signatures"
+
+msgid "Employee Signature"
+msgstr "Employee Signature"
+
+msgid "I acknowledge receipt of the above assets and agree to the terms."
+msgstr "I acknowledge receipt of the above assets and agree to the terms."
+
+msgid "IT Administrator"
+msgstr "IT Administrator"
+
+msgid "Authorized by IT department."
+msgstr "Authorized by IT department."
+
+msgid "IT Asset Management System"
+msgstr "IT Asset Management System"
+
+msgid "Generated"
+msgstr "Generated"
+
+# Employee assets page
+msgid "Assets"
+msgstr "Assets"
+
+msgid "Back"
+msgstr "Back"
+
+msgid "Print"
+msgstr "Print"
+
+msgid "Print Receipt"
+msgstr "Print Receipt"
+
+msgid "Label"
+msgstr "Label"
+
+msgid "Print QR Label"
+msgstr "Print QR Label"
+
+# Permissions
+msgid "You do not have permission to perform this action."
+msgstr "You do not have permission to perform this action."
+
+# Assignment/transfer messages
+msgid "Site access saved."
+msgstr "Site access saved."
+
+msgid "Select at least one device."
+msgstr "Select at least one device."
+
+msgid "Select a destination site."
+msgstr "Select a destination site."
+
+msgid "Invalid destination site."
+msgstr "Invalid destination site."
+
+msgid "No valid devices selected."
+msgstr "No valid devices selected."
+
+msgid "\"%s\" is currently assigned to an employee. Return it first."
+msgstr "\"%s\" is currently assigned to an employee. Return it first."
+
+msgid "\"%s\" is under maintenance. Close the maintenance record first."
+msgstr "\"%s\" is under maintenance. Close the maintenance record first."
+
+msgid "\"%s\" is marked as lost and cannot be transferred."
+msgstr "\"%s\" is marked as lost and cannot be transferred."
+
+msgid "Transfer is not pending."
+msgstr "Transfer is not pending."
+
+msgid "Transfer accepted. Device moved to new site."
+msgstr "Transfer accepted. Device moved to new site."
+
+msgid "Transfer rejected. Device stays at original site."
+msgstr "Transfer rejected. Device stays at original site."
+
+msgid "Transfer cancelled."
+msgstr "Transfer cancelled."
+
+msgid "Only pending transfers can be cancelled."
+msgstr "Only pending transfers can be cancelled."
+
+msgid "Accessory assigned successfully."
+msgstr "Accessory assigned successfully."
+
+msgid "Accessory returned successfully."
+msgstr "Accessory returned successfully."
+
+msgid "This accessory is already assigned and has not been returned yet."
+msgstr "This accessory is already assigned and has not been returned yet."
+
+msgid "Select at least one accessory."
+msgstr "Select at least one accessory."
+
+msgid "No valid accessories selected."
+msgstr "No valid accessories selected."
+
+msgid "Transfer accepted. Accessory moved to new site."
+msgstr "Transfer accepted. Accessory moved to new site."
+
+msgid "Transfer rejected. Accessory stays at original site."
+msgstr "Transfer rejected. Accessory stays at original site."
+
+# Inventory messages
+msgid "Cannot delete: item is used by existing records."
+msgstr "Cannot delete: item is used by existing records."
+
+msgid "Cannot delete device: it has assignment records."
+msgstr "Cannot delete device: it has assignment records."
+
+msgid "Cannot delete device: it has transfer records."
+msgstr "Cannot delete device: it has transfer records."
+
+msgid "Cannot delete device: it has maintenance records."
+msgstr "Cannot delete device: it has maintenance records."
+
+msgid "Device is under active maintenance. Close the maintenance record first."
+msgstr "Device is under active maintenance. Close the maintenance record first."
+
+msgid "Use the Maintenance page to put a device under maintenance."
+msgstr "Use the Maintenance page to put a device under maintenance."
+
+msgid "Use the Assignments page to assign a device to an employee."
+msgstr "Use the Assignments page to assign a device to an employee."
+
+msgid "Device is currently assigned to an employee. Return it first."
+msgstr "Device is currently assigned to an employee. Return it first."
+
+msgid "Accessory flag updated."
+msgstr "Accessory flag updated."
+
+msgid "Accessory is under active maintenance. Close the maintenance record first."
+msgstr "Accessory is under active maintenance. Close the maintenance record first."
+
+msgid "Use the Maintenance page to put an accessory under maintenance."
+msgstr "Use the Maintenance page to put an accessory under maintenance."
+
+msgid "Use the Assignments page to assign an accessory to an employee."
+msgstr "Use the Assignments page to assign an accessory to an employee."
+
+msgid "Accessory is currently assigned to an employee. Return it first."
+msgstr "Accessory is currently assigned to an employee. Return it first."
+
+# Maintenance messages
+msgid "This device already has an open maintenance record. Please close it before creating a new one."
+msgstr "This device already has an open maintenance record. Please close it before creating a new one."
+
+msgid "This accessory already has an open maintenance record. Please close it before creating a new one."
+msgstr "This accessory already has an open maintenance record. Please close it before creating a new one."
+
+# Location messages
+msgid "Cannot delete: site has devices."
+msgstr "Cannot delete: site has devices."
+
+msgid "Cannot delete: site has accessories."
+msgstr "Cannot delete: site has accessories."
+
+msgid "Cannot delete: site has employees."
+msgstr "Cannot delete: site has employees."
+
+msgid "Cannot delete: site has users."
+msgstr "Cannot delete: site has users."
+
+msgid "Cannot delete: site has transfer records."
+msgstr "Cannot delete: site has transfer records."
+
+# Employee messages
+msgid "Cannot delete: employee has assignment records."
+msgstr "Cannot delete: employee has assignment records."
+
+msgid "Accessory"
+msgstr "Accessory"
+
+msgid "Pending"
+msgstr "Pending"
+
+msgid "Accepted"
+msgstr "Accepted"
+
+msgid "Rejected"
+msgstr "Rejected"
+
+msgid "Accept"
+msgstr "Accept"
+
+msgid "Reject"
+msgstr "Reject"
+
+msgid "No S/N"
+msgstr "No S/N"
+
+msgid "View Assets"
+msgstr "View Assets"
+
+msgid "Acknowledgment"
+msgstr "Acknowledgment"
+
+msgid "Monitor open maintenance records"
+msgstr "Monitor open maintenance records"
+
+msgid "Track which devices and accessories are assigned to employees."
+msgstr "Track which devices and accessories are assigned to employees."
+
+msgid "New Device Assignment"
+msgstr "New Device Assignment"
+
+msgid "New Accessory Assignment"
+msgstr "New Accessory Assignment"
+
+msgid "Search by accessory type, serial or employee name…"
+msgstr "Search by accessory type, serial or employee name…"
+
+msgid "No device assignments found."
+msgstr "No device assignments found."
+
+msgid "No accessory assignments found."
+msgstr "No accessory assignments found."
+
+msgid "Failed to load accessory assignments."
+msgstr "Failed to load accessory assignments."
+
+msgid "Device Assignment Details"
+msgstr "Device Assignment Details"
+
+msgid "Accessory Assignment Details"
+msgstr "Accessory Assignment Details"
+
+msgid "Return Accessory"
+msgstr "Return Accessory"
+
+msgid "Record the return of this accessory."
+msgstr "Record the return of this accessory."
+
+msgid "Track device and accessory movements between sites."
+msgstr "Track device and accessory movements between sites."
+
+msgid "Search by serial, type, or site…"
+msgstr "Search by serial, type, or site…"
+
+msgid "All Statuses"
+msgstr "All Statuses"
+
+msgid "New Device Transfer"
+msgstr "New Device Transfer"
+
+msgid "New Accessory Transfer"
+msgstr "New Accessory Transfer"
+
+msgid "Create Transfer"
+msgstr "Create Transfer"
+
+msgid "No available devices at this site."
+msgstr "No available devices at this site."
+
+msgid "No available accessories at this site."
+msgstr "No available accessories at this site."
+
+msgid "Search by serial, model, or category…"
+msgstr "Search by serial, model, or category…"
+
+msgid "Search by type, serial, or brand…"
+msgstr "Search by type, serial, or brand…"
+
+msgid "Select a From Site first"
+msgstr "Select a From Site first"
+
+msgid "(select a From Site first)"
+msgstr "(select a From Site first)"
+
+msgid "Accept Transfer"
+msgstr "Accept Transfer"
+
+msgid "Reject Transfer"
+msgstr "Reject Transfer"
+
+msgid "Cancel Transfer"
+msgstr "Cancel Transfer"
+
+msgid "The asset will be moved to the destination site."
+msgstr "The asset will be moved to the destination site."
+
+msgid "The asset stays at its original site."
+msgstr "The asset stays at its original site."
+
+msgid "The asset's in-transfer flag will be cleared. This cannot be undone."
+msgstr "The asset's in-transfer flag will be cleared. This cannot be undone."
+
+msgid "Record created:"
+msgstr "Record created:"
+
+msgid "Resolved by"
+msgstr "Resolved by"
+
+msgid "Resolved on"
+msgstr "Resolved on"
+
+msgid "Assign Device"
+msgstr "Assign Device"
+
+msgid "Assign Accessory"
+msgstr "Assign Accessory"
+
+msgid "Send to Maintenance"
+msgstr "Send to Maintenance"
+
+msgid "Create Record"
+msgstr "Create Record"
+
+msgid "Managed by assignment/maintenance system."
+msgstr "Managed by assignment/maintenance system."
+
+msgid "Selecting \"Assigned\" or \"Under Maintenance\" will open the relevant form."
+msgstr "Selecting \"Assigned\" or \"Under Maintenance\" will open the relevant form."
+
+msgid "This device is currently assigned. You can only send it to maintenance. To free it, return it from the Assignments page first."
+msgstr "This device is currently assigned. You can only send it to maintenance. To free it, return it from the Assignments page first."
+
+msgid "Device is already assigned. Return it first."
+msgstr "Device is already assigned. Return it first."
+
+msgid "Device is currently assigned to an employee. Return it from the Assignments page first."
+msgstr "Device is currently assigned to an employee. Return it from the Assignments page first."
+
+msgid "This accessory is currently assigned. You can only send it to maintenance. To free it, return it from the Assignments page first."
+msgstr "This accessory is currently assigned. You can only send it to maintenance. To free it, return it from the Assignments page first."
+
+msgid "Accessory is already assigned. Return it first."
+msgstr "Accessory is already assigned. Return it first."
+
+msgid "Accessory is currently assigned to an employee. Return it from the Assignments page first."
+msgstr "Accessory is currently assigned to an employee. Return it from the Assignments page first."
+
+msgid "Track device and accessory maintenance and repairs."
+msgstr "Track device and accessory maintenance and repairs."
+
+msgid "Search by type, serial, vendor, issue…"
+msgstr "Search by type, serial, vendor, issue…"
+
+msgid "New Device Maintenance Record"
+msgstr "New Device Maintenance Record"
+
+msgid "New Accessory Maintenance Record"
+msgstr "New Accessory Maintenance Record"
+
+msgid "Edit Device Maintenance Record"
+msgstr "Edit Device Maintenance Record"
+
+msgid "Edit Accessory Maintenance Record"
+msgstr "Edit Accessory Maintenance Record"
+
+msgid "Close Device Maintenance Record"
+msgstr "Close Device Maintenance Record"
+
+msgid "Close Accessory Maintenance Record"
+msgstr "Close Accessory Maintenance Record"
+
+msgid "Device Maintenance Details"
+msgstr "Device Maintenance Details"
+
+msgid "Accessory Maintenance Details"
+msgstr "Accessory Maintenance Details"
+
+msgid "Site Scope"
+msgstr "Site Scope"
+
+msgid "Assignment Date"
+msgstr "Assignment Date"
+
+msgid "Return Notes"
+msgstr "Return Notes"
+
+msgid "Employee Card ID"
+msgstr "Employee Card ID"
+
+msgid "Screen Size (inches)"
+msgstr "Screen Size (inches)"

@@ -1379,7 +1379,7 @@ body {
   .modal .row { --bs-gutter-x: .75rem; }
 
   /* Inline checkboxes in permission grid wrap more aggressively */
-  .perm-group .form-check-inline { margin-right: .3rem; }
+  .perm-group .form-check-inline { margin-inline-end: .3rem; }
 }
 
 @media (max-width: 575.98px) {

@@ -1,5 +1,7 @@
+{% load i18n %}
+{% get_current_language as LANG %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ LANG }}" dir="{% if LANG == 'ar' %}rtl{% else %}ltr{% endif %}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,7 +9,7 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: 'Segoe UI', Arial, sans-serif;
+      font-family: {% if LANG == 'ar' %}'Segoe UI', 'Tahoma', Arial, sans-serif{% else %}'Segoe UI', Arial, sans-serif{% endif %};
       background: #f5f7fa;
       display: flex;
       align-items: center;
@@ -99,8 +101,8 @@
     <div class="site-badge">{{ site }}</div>
     <div class="url-hint">{{ detail_url }}</div>
     <div class="actions">
-      <button class="btn btn-print" onclick="window.print()">🖨 Print</button>
-      <button class="btn btn-close2" onclick="window.close()">Close</button>
+      <button class="btn btn-print" onclick="window.print()">🖨 {% trans "Print" %}</button>
+      <button class="btn btn-close2" onclick="window.close()">{% trans "Close" %}</button>
     </div>
   </div>
 </body>

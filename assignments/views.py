@@ -422,11 +422,11 @@ def device_transfer_create(request):
     blocked = []
     for device in devices:
         if device.flag == DeviceFlag.ASSIGNED:
-            blocked.append(_(f'"{device}" is currently assigned to an employee. Return it first.'))
+            blocked.append(_('"%s" is currently assigned to an employee. Return it first.') % str(device))
         elif device.flag == DeviceFlag.UNDER_MAINTENANCE:
-            blocked.append(_(f'"{device}" is under maintenance. Close the maintenance record first.'))
+            blocked.append(_('"%s" is under maintenance. Close the maintenance record first.') % str(device))
         elif device.flag == DeviceFlag.LOST:
-            blocked.append(_(f'"{device}" is marked as lost and cannot be transferred.'))
+            blocked.append(_('"%s" is marked as lost and cannot be transferred.') % str(device))
 
     if blocked:
         return JsonResponse({'success': False, 'message': ' | '.join(blocked)})
@@ -447,7 +447,7 @@ def device_transfer_create(request):
         created += 1
 
     return JsonResponse({'success': True,
-                         'message': _(f'{created} transfer(s) created successfully.')})
+                         'message': _('Transfer recorded successfully.')})
 
 
 @login_required
@@ -719,11 +719,11 @@ def accessory_transfer_create(request):
     blocked = []
     for accessory in accessories:
         if accessory.flag == DeviceFlag.ASSIGNED:
-            blocked.append(_(f'"{accessory}" is currently assigned to an employee. Return it first.'))
+            blocked.append(_('"%s" is currently assigned to an employee. Return it first.') % str(accessory))
         elif accessory.flag == DeviceFlag.UNDER_MAINTENANCE:
-            blocked.append(_(f'"{accessory}" is under maintenance. Close the maintenance record first.'))
+            blocked.append(_('"%s" is under maintenance. Close the maintenance record first.') % str(accessory))
         elif accessory.flag == DeviceFlag.LOST:
-            blocked.append(_(f'"{accessory}" is marked as lost and cannot be transferred.'))
+            blocked.append(_('"%s" is marked as lost and cannot be transferred.') % str(accessory))
 
     if blocked:
         return JsonResponse({'success': False, 'message': ' | '.join(blocked)})
@@ -744,7 +744,7 @@ def accessory_transfer_create(request):
         created += 1
 
     return JsonResponse({'success': True,
-                         'message': _(f'{created} transfer(s) created successfully.')})
+                         'message': _('Transfer recorded successfully.')})
 
 
 @login_required

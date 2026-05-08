@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% get_current_language as LANG %}
 
 {% block title %}{% trans "Acknowledgment Form" %} — {{ employee.full_name }}{% endblock %}
 
@@ -72,7 +73,7 @@
   background: #1E3A5F;
   color: #fff;
   padding: 7px 10px;
-  text-align: left;
+  text-align: start;
   font-weight: 600;
   font-size: 11px;
 }
@@ -147,7 +148,7 @@
   <!-- Toolbar (hidden on print) -->
   <div class="d-flex gap-2 mb-3 no-print">
     <a href="{% url 'employee-assets' employee.pk %}" class="btn btn-outline-secondary">
-      <i class="bi bi-arrow-left me-1"></i>{% trans "Back" %}
+      <i class="bi {% if LANG == 'ar' %}bi-arrow-right{% else %}bi-arrow-left{% endif %} me-1"></i>{% trans "Back" %}
     </a>
     <button class="btn btn-primary" onclick="window.print()">
       <i class="bi bi-printer me-1"></i>{% trans "Print" %}

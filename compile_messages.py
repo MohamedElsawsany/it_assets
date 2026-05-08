@@ -31,12 +31,15 @@ def parse_po(po_path):
         content = f.read()
 
     messages = {}
+    # str_re matches a quoted string, handling escaped quotes (\") inside
+    str_re = re.compile(r'"((?:[^"\\]|\\.)*)"')
+
     # Match msgid ... msgstr ... blocks (single or multi-line)
+    # Uses the escaped-quote-aware str_re pattern in the block regex
     block_re = re.compile(
-        r'msgid\s+((?:"[^"]*"\s*)+)\s*msgstr\s+((?:"[^"]*"\s*)+)',
+        r'msgid\s+((?:"(?:[^"\\]|\\.)*"\s*)+)\s*msgstr\s+((?:"(?:[^"\\]|\\.)*"\s*)+)',
         re.MULTILINE
     )
-    str_re = re.compile(r'"([^"]*)"')
 
     for m in block_re.finditer(content):
         raw_id  = ''.join(str_re.findall(m.group(1)))
