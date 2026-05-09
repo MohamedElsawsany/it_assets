@@ -1541,6 +1541,22 @@ msgstr "الاستلام"
 msgid "Monitor open maintenance records"
 msgstr "مراقبة سجلات الصيانة المفتوحة"
 
+# Username / login
+msgid "Username"
+msgstr "اسم المستخدم"
+
+msgid "Email or Username"
+msgstr "البريد الإلكتروني أو اسم المستخدم"
+
+msgid "Email or username"
+msgstr "البريد الإلكتروني أو اسم المستخدم"
+
+msgid "Used when site scope is \"Own Branch Only\"."
+msgstr "يُستخدم عندما يكون نطاق الوصول \"فرعه الخاص فقط\"."
+
+msgid "Used when site scope is \"Specific Branches\"."
+msgstr "يُستخدم عندما يكون نطاق الوصول \"فروع محددة\"."
+
 # Assignment page — new strings
 msgid "Track which devices and accessories are assigned to employees."
 msgstr "تتبع الأجهزة والملحقات المعيّنة للموظفين."

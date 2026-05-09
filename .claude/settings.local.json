@@ -16,7 +16,13 @@
       "Bash(xargs cat:*)",
       "Bash(grep -n '^msgid \"Accessory\"$\\\\|^msgid \"Pending\"$\\\\|^msgid \"Accepted\"$\\\\|^msgid \"Rejected\"$\\\\|^msgid \"Accept\"$\\\\|^msgid \"Reject\"$' locale/ar/LC_MESSAGES/django.po)",
       "Bash(curl -s \"https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css\")",
-      "Bash(claude:*)"
+      "Bash(claude:*)",
+      "Bash(.venv/Scripts/python:*)",
+      "Bash(DJANGO_SETTINGS_MODULE=it_assets.settings .venv/Scripts/python:*)",
+      "Bash(where msgfmt:*)",
+      "Bash(.venv/Scripts/pip show:*)",
+      "Bash(.venv/Scripts/pip install:*)",
+      "Bash(.venv/Scripts/pip freeze:*)"
     ]
   }
 }

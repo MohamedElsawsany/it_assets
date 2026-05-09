@@ -39,6 +39,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     first_name = models.CharField(max_length=255)
     last_name  = models.CharField(max_length=255)
     email      = models.EmailField(max_length=255, unique=True)
+    username   = models.CharField(max_length=150, unique=True, verbose_name=_('Username'))
 
     # Primary site FK — kept for backward compatibility and as default own_site.
     site = models.ForeignKey(
@@ -92,7 +93,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
 
     USERNAME_FIELD  = 'email'
-    REQUIRED_FIELDS = ['first_name', 'last_name']
+    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
 
     class Meta:
         db_table = 'Users'

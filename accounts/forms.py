@@ -14,6 +14,11 @@ class UserCreateForm(forms.ModelForm):
         label=_('Confirm Password'),
         widget=forms.PasswordInput(attrs={'class': 'form-control', 'autocomplete': 'new-password'}),
     )
+    username = forms.CharField(
+        label=_('Username'),
+        required=True,
+        widget=forms.TextInput(attrs={'class': 'form-control'}),
+    )
     site = forms.ModelChoiceField(
         queryset=Site.objects.all().order_by('name'),
         required=False,
@@ -24,16 +29,18 @@ class UserCreateForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'email', 'site', 'is_active']
+        fields = ['first_name', 'last_name', 'email', 'username', 'site', 'is_active']
         widgets = {
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
             'last_name':  forms.TextInput(attrs={'class': 'form-control'}),
             'email':      forms.EmailInput(attrs={'class': 'form-control'}),
+            'username':   forms.TextInput(attrs={'class': 'form-control'}),
         }
         labels = {
             'first_name': _('First Name'),
             'last_name':  _('Last Name'),
             'email':      _('Email Address'),
+            'username':   _('Username'),
             'is_active':  _('Active'),
         }
 
@@ -64,16 +71,18 @@ class UserEditForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'email', 'site', 'is_active']
+        fields = ['first_name', 'last_name', 'email', 'username', 'site', 'is_active']
         widgets = {
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
             'last_name':  forms.TextInput(attrs={'class': 'form-control'}),
             'email':      forms.EmailInput(attrs={'class': 'form-control'}),
+            'username':   forms.TextInput(attrs={'class': 'form-control'}),
         }
         labels = {
             'first_name': _('First Name'),
             'last_name':  _('Last Name'),
             'email':      _('Email Address'),
+            'username':   _('Username'),
             'is_active':  _('Active'),
         }
 

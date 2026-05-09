@@ -177,6 +177,7 @@ def user_detail(request, user_id):
             'last_name':   user.last_name,
             'full_name':   user.full_name,
             'email':       user.email,
+            'username':    user.username or '',
             'site_id':     user.site_id or '',
             'site_name':   user.site.name if user.site else '',
             'is_active':   user.is_active,

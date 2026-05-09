@@ -164,6 +164,11 @@
               <div class="invalid-feedback"></div>
             </div>
             <div class="col-md-6">
+              <label class="form-label">{% trans "Username" %} <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="username" required>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
               <label class="form-label">{% trans "Site" %}</label>
               <select class="form-select" name="site">
                 <option value="">— {% trans "No site" %} —</option>
@@ -292,6 +297,11 @@
                   <div class="col-md-6">
                     <label class="form-label">{% trans "Email Address" %} <span class="text-danger">*</span></label>
                     <input type="email" class="form-control" name="email" required>
+                    <div class="invalid-feedback"></div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">{% trans "Username" %}</label>
+                    <input type="text" class="form-control" name="username">
                     <div class="invalid-feedback"></div>
                   </div>
                   <div class="col-md-6">
@@ -778,6 +788,7 @@ function openEditModal(userId) {
     form.querySelector('[name=first_name]').value   = u.first_name;
     form.querySelector('[name=last_name]').value    = u.last_name;
     form.querySelector('[name=email]').value        = u.email;
+    form.querySelector('[name=username]').value     = u.username || '';
     form.querySelector('[name=site]').value         = u.site_id || '';
     form.querySelector('[name=is_active]').checked  = u.is_active;
 
