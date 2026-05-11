@@ -16,6 +16,16 @@
       <h4 class="page-title">{% trans "Locations" %}</h4>
       <p class="page-subtitle">{% trans "Manage governorates and sites." %}</p>
     </div>
+    {% if rbac.locations_create %}
+    <div>
+      <button id="btn-add-governorate" class="btn btn-primary d-flex align-items-center gap-2" onclick="openCreateModal('governorate')">
+        <i class="bi bi-plus-lg"></i><span>{% trans "Add Governorate" %}</span>
+      </button>
+      <button id="btn-add-site" class="btn btn-primary d-flex align-items-center gap-2 d-none" onclick="openCreateModal('site')">
+        <i class="bi bi-plus-lg"></i><span>{% trans "Add Site" %}</span>
+      </button>
+    </div>
+    {% endif %}
   </div>
 
   <!-- Tabs -->
@@ -47,13 +57,11 @@
                      oninput="currentGovPage=1; debounce(loadGovernorates, 400)()">
             </div>
           </div>
-          {% if rbac.locations_create %}
           <div class="col-md-auto ms-auto">
-            <button class="btn btn-primary d-flex align-items-center gap-2" onclick="openCreateModal('governorate')">
-              <i class="bi bi-plus-lg"></i><span>{% trans "Add Governorate" %}</span>
+            <button class="btn btn-outline-secondary" onclick="resetGovFilters()">
+              <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Reset" %}
             </button>
           </div>
-          {% endif %}
         </div>
       </div>
     </div>
@@ -107,13 +115,11 @@
               <option value="">{% trans "All Governorates" %}</option>
             </select>
           </div>
-          {% if rbac.locations_create %}
           <div class="col-md-auto ms-auto">
-            <button class="btn btn-primary d-flex align-items-center gap-2" onclick="openCreateModal('site')">
-              <i class="bi bi-plus-lg"></i><span>{% trans "Add Site" %}</span>
+            <button class="btn btn-outline-secondary" onclick="resetSiteFilters()">
+              <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Reset" %}
             </button>
           </div>
-          {% endif %}
         </div>
       </div>
     </div>
@@ -349,6 +355,10 @@ function switchTab(tab) {
   document.getElementById('panel-sites').classList.toggle('d-none', tab !== 'sites');
   document.getElementById('tab-gov').classList.toggle('active', tab === 'governorates');
   document.getElementById('tab-sites').classList.toggle('active', tab === 'sites');
+  const btnGov  = document.getElementById('btn-add-governorate');
+  const btnSite = document.getElementById('btn-add-site');
+  if (btnGov)  btnGov.classList.toggle('d-none', tab !== 'governorates');
+  if (btnSite) btnSite.classList.toggle('d-none', tab !== 'sites');
   if (tab === 'governorates') loadGovernorates();
   else loadSites();
 }
@@ -638,6 +648,19 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', function()
     .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
     .finally(() => { setButtonLoading(btn, false); deleteTarget.url = null; });
 });
+
+/* ── Reset ── */
+function resetGovFilters() {
+  document.getElementById('govSearch').value = '';
+  currentGovPage = 1;
+  loadGovernorates();
+}
+function resetSiteFilters() {
+  document.getElementById('siteSearch').value = '';
+  $('#govFilter').val('').trigger('change');
+  currentSitePage = 1;
+  loadSites();
+}
 
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', () => {

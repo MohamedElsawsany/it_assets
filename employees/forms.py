@@ -14,17 +14,15 @@ class DepartmentForm(forms.ModelForm):
 class EmployeeForm(forms.ModelForm):
     class Meta:
         model   = Employee
-        fields  = ['first_name', 'last_name', 'employee_card_id', 'department', 'site']
+        fields  = ['full_name', 'employee_card_id', 'department', 'site']
         widgets = {
-            'first_name':       forms.TextInput(attrs={'class': 'form-control'}),
-            'last_name':        forms.TextInput(attrs={'class': 'form-control'}),
+            'full_name':        forms.TextInput(attrs={'class': 'form-control'}),
             'employee_card_id': forms.NumberInput(attrs={'class': 'form-control'}),
             'department':       forms.Select(attrs={'class': 'form-select'}),
             'site':             forms.Select(attrs={'class': 'form-select'}),
         }
         labels = {
-            'first_name':       _('First Name'),
-            'last_name':        _('Last Name'),
+            'full_name':        _('Full Name'),
             'employee_card_id': _('Employee Card ID'),
             'department':       _('Department'),
             'site':             _('Site'),

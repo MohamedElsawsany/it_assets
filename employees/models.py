@@ -39,8 +39,7 @@ class Department(models.Model):
 
 
 class Employee(models.Model):
-    first_name       = models.CharField(max_length=255)
-    last_name        = models.CharField(max_length=255)
+    full_name        = models.CharField(max_length=255)
     employee_card_id = models.BigIntegerField(unique=True)
     department       = models.ForeignKey(
         Department, on_delete=models.PROTECT, related_name='employees',
@@ -68,8 +67,4 @@ class Employee(models.Model):
         ]
 
     def __str__(self):
-        return f'{self.first_name} {self.last_name}'
-
-    @property
-    def full_name(self):
-        return f'{self.first_name} {self.last_name}'
+        return self.full_name

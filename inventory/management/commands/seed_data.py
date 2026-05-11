@@ -149,26 +149,26 @@ class Command(BaseCommand):
     def _seed_employees(self, admin, sites, depts):
         from employees.models import Employee
 
-        first_names = [
-            'Ahmed', 'Mohamed', 'Sara', 'Nour', 'Khaled', 'Mona', 'Omar',
-            'Layla', 'Hassan', 'Fatima', 'Youssef', 'Dina', 'Tamer', 'Heba',
-            'Sherif', 'Rania', 'Mahmoud', 'Aya', 'Amr', 'Noha',
-        ]
-        last_names = [
-            'Hassan', 'Ali', 'Ibrahim', 'Mostafa', 'Sayed', 'Farouk',
-            'Mansour', 'Khalil', 'Nasser', 'Hamdy', 'Rashid', 'Aziz',
+        full_names = [
+            'Ahmed Hassan', 'Mohamed Ali', 'Sara Ibrahim', 'Nour Mostafa',
+            'Khaled Sayed', 'Mona Farouk', 'Omar Mansour', 'Layla Khalil',
+            'Hassan Nasser', 'Fatima Hamdy', 'Youssef Rashid', 'Dina Aziz',
+            'Tamer Hassan', 'Heba Ali', 'Sherif Ibrahim', 'Rania Mostafa',
+            'Mahmoud Sayed', 'Aya Farouk', 'Amr Mansour', 'Noha Khalil',
+            'Karim Nasser', 'Nadia Hamdy', 'Tarek Rashid', 'Yasmin Aziz',
+            'Bassem Hassan', 'Menna Ali', 'Wael Ibrahim', 'Hana Mostafa',
+            'Essam Sayed', 'Doaa Farouk', 'Samir Mansour', 'Reem Khalil',
+            'Ashraf Nasser', 'Eman Hamdy', 'Walid Rashid', 'Salma Aziz',
+            'Adel Hassan', 'Mariam Ali', 'Fady Ibrahim', 'Nermeen Mostafa',
         ]
 
         employees = []
         card_id = 100001
         for i in range(40):
-            fname = first_names[i % len(first_names)]
-            lname = last_names[i % len(last_names)]
             emp, created = Employee.objects.get_or_create(
                 employee_card_id=card_id,
                 defaults={
-                    'first_name': fname,
-                    'last_name': lname,
+                    'full_name': full_names[i % len(full_names)],
                     'department': random.choice(depts),
                     'site': random.choice(sites),
                     'created_by': admin,
@@ -187,25 +187,26 @@ class Command(BaseCommand):
         from accounts.models import User
 
         user_data = [
-            ('it.admin',     'Ahmed',   'Nasser',  None),
-            ('supervisor',   'Sara',    'Mansour', 0),
-            ('inv.manager',  'Khaled',  'Ali',     1),
-            ('site.mgr1',    'Mona',    'Hassan',  2),
-            ('site.mgr2',    'Omar',    'Ibrahim', 3),
-            ('maint.tech1',  'Youssef', 'Farouk',  4),
-            ('maint.tech2',  'Dina',    'Khalil',  5),
-            ('auditor',      'Layla',   'Sayed',   6),
-            ('viewer',       'Tamer',   'Hamdy',   7),
+            ('it_admin',    'itadmin',     'Ahmed',   'Nasser',  None),
+            ('supervisor',  'supervisor',  'Sara',    'Mansour', 0),
+            ('inv_manager', 'inv.manager', 'Khaled',  'Ali',     1),
+            ('site_mgr1',   'site.mgr1',   'Mona',    'Hassan',  2),
+            ('site_mgr2',   'site.mgr2',   'Omar',    'Ibrahim', 3),
+            ('maint_tech1', 'maint.tech1', 'Youssef', 'Farouk',  4),
+            ('maint_tech2', 'maint.tech2', 'Dina',    'Khalil',  5),
+            ('auditor',     'auditor',     'Layla',   'Sayed',   6),
+            ('viewer',      'viewer',      'Tamer',   'Hamdy',   7),
         ]
 
         admin = User.objects.filter(is_superuser=True).first()
         users = []
-        for username, fname, lname, site_idx in user_data:
-            email = f'{username}@itassets.local'
+        for username, email_prefix, fname, lname, site_idx in user_data:
+            email = f'{email_prefix}@itassets.local'
             site = sites[site_idx] if site_idx is not None else None
             u, created = User.objects.get_or_create(
                 email=email,
                 defaults={
+                    'username': username,
                     'first_name': fname,
                     'last_name': lname,
                     'site': site,
@@ -474,7 +475,7 @@ class Command(BaseCommand):
                     accessory=acc,
                     employee=emp,
                     assigned_date=assigned_date,
-                    notes=f'Assigned {acc.accessory_type} to {emp.first_name} {emp.last_name}',
+                    notes=f'Assigned {acc.accessory_type} to {emp.full_name}',
                     assigned_by=assigner,
                 )
             acc.flag = DeviceFlag.ASSIGNED

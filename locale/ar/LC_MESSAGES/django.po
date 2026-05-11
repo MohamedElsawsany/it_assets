@@ -181,6 +181,9 @@ msgstr "تعديل المستخدم"
 msgid "First Name"
 msgstr "الاسم الأول"
 
+msgid "Middle Name"
+msgstr "الاسم الأوسط"
+
 msgid "Last Name"
 msgstr "اسم العائلة"
 

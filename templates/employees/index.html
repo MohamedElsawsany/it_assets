@@ -15,6 +15,16 @@
       <h4 class="page-title">{% trans "Employees" %}</h4>
       <p class="page-subtitle">{% trans "Manage employees and departments." %}</p>
     </div>
+    {% if rbac.employees_create %}
+    <div>
+      <button id="btn-add-employee" class="btn btn-primary d-flex align-items-center gap-2" onclick="openCreateEmpModal()">
+        <i class="bi bi-plus-lg"></i><span>{% trans "Add Employee" %}</span>
+      </button>
+      <button id="btn-add-department" class="btn btn-primary d-flex align-items-center gap-2 d-none" onclick="openCreateDeptModal()">
+        <i class="bi bi-plus-lg"></i><span>{% trans "Add Department" %}</span>
+      </button>
+    </div>
+    {% endif %}
   </div>
 
   <!-- Tabs -->
@@ -58,8 +68,10 @@
             </select>
           </div>
           {% endif %}
-          {% if rbac.employees_create or rbac.employees_export %}
           <div class="col-md-auto ms-auto d-flex gap-2">
+            <button class="btn btn-outline-secondary" onclick="resetEmpFilters()">
+              <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Reset" %}
+            </button>
             {% if rbac.employees_export %}
             <div class="dropdown">
               <button class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
@@ -71,13 +83,7 @@
               </ul>
             </div>
             {% endif %}
-            {% if rbac.employees_create %}
-            <button class="btn btn-primary d-flex align-items-center gap-2" onclick="openCreateEmpModal()">
-              <i class="bi bi-plus-lg"></i><span>{% trans "Add Employee" %}</span>
-            </button>
-            {% endif %}
           </div>
-          {% endif %}
         </div>
       </div>
     </div>
@@ -128,13 +134,11 @@
                      oninput="currentDeptPage=1; debounce(loadDepartments, 400)()">
             </div>
           </div>
-          {% if rbac.employees_create %}
           <div class="col-md-auto ms-auto">
-            <button class="btn btn-primary d-flex align-items-center gap-2" onclick="openCreateDeptModal()">
-              <i class="bi bi-plus-lg"></i><span>{% trans "Add Department" %}</span>
+            <button class="btn btn-outline-secondary" onclick="resetDeptFilters()">
+              <i class="bi bi-arrow-counterclockwise me-1"></i>{% trans "Reset" %}
             </button>
           </div>
-          {% endif %}
         </div>
       </div>
     </div>
@@ -212,28 +216,23 @@
         <div class="modal-body">
           <div class="row g-3">
             <div class="col-md-6">
-              <label class="form-label">{% trans "First Name" %} <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" name="first_name" required>
+              <label class="form-label">{% trans "Full Name" %} <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="full_name" required>
               <div class="invalid-feedback"></div>
             </div>
             <div class="col-md-6">
-              <label class="form-label">{% trans "Last Name" %} <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" name="last_name" required>
-              <div class="invalid-feedback"></div>
-            </div>
-            <div class="col-md-4">
               <label class="form-label">{% trans "Card ID" %} <span class="text-danger">*</span></label>
               <input type="number" class="form-control" name="employee_card_id" required>
               <div class="invalid-feedback"></div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
               <label class="form-label">{% trans "Department" %} <span class="text-danger">*</span></label>
               <select class="form-select" name="department" required>
                 <option value=""></option>
               </select>
               <div class="invalid-feedback"></div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
               <label class="form-label">{% trans "Site" %} <span class="text-danger">*</span></label>
               <select class="form-select" name="site" required>
                 <option value=""></option>
@@ -270,28 +269,23 @@
           <div id="editEmpContent" class="d-none">
             <div class="row g-3">
               <div class="col-md-6">
-                <label class="form-label">{% trans "First Name" %} <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" name="first_name" required>
+                <label class="form-label">{% trans "Full Name" %} <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="full_name" required>
                 <div class="invalid-feedback"></div>
               </div>
               <div class="col-md-6">
-                <label class="form-label">{% trans "Last Name" %} <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" name="last_name" required>
-                <div class="invalid-feedback"></div>
-              </div>
-              <div class="col-md-4">
                 <label class="form-label">{% trans "Card ID" %} <span class="text-danger">*</span></label>
                 <input type="number" class="form-control" name="employee_card_id" required>
                 <div class="invalid-feedback"></div>
               </div>
-              <div class="col-md-4">
+              <div class="col-md-6">
                 <label class="form-label">{% trans "Department" %} <span class="text-danger">*</span></label>
                 <select class="form-select" name="department" required>
                   <option value=""></option>
                 </select>
                 <div class="invalid-feedback"></div>
               </div>
-              <div class="col-md-4">
+              <div class="col-md-6">
                 <label class="form-label">{% trans "Site" %} <span class="text-danger">*</span></label>
                 <select class="form-select" name="site" required>
                   <option value=""></option>
@@ -437,6 +431,10 @@ function switchTab(tab) {
   document.getElementById('panel-departments').classList.toggle('d-none', tab !== 'departments');
   document.getElementById('tab-employees').classList.toggle('active', tab === 'employees');
   document.getElementById('tab-departments').classList.toggle('active', tab === 'departments');
+  const btnEmp  = document.getElementById('btn-add-employee');
+  const btnDept = document.getElementById('btn-add-department');
+  if (btnEmp)  btnEmp.classList.toggle('d-none', tab !== 'employees');
+  if (btnDept) btnDept.classList.toggle('d-none', tab !== 'departments');
   if (tab === 'employees') loadEmployees(); else loadDepartments();
 }
 
@@ -557,7 +555,7 @@ function openViewEmpModal(pk) {
       const e = data.item;
       _showViewModal(
         '<i class="bi bi-person-badge me-2 text-secondary"></i>{% trans "Employee Details" %}',
-        `<div class="col-md-6"><p class="text-muted small mb-1">{% trans "Full Name" %}</p><p class="fw-medium mb-0">${escHtml(e.first_name + ' ' + e.last_name)}</p></div>
+        `<div class="col-md-6"><p class="text-muted small mb-1">{% trans "Full Name" %}</p><p class="fw-medium mb-0">${escHtml(e.full_name)}</p></div>
          <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Card ID" %}</p><p class="fw-medium mb-0">${escHtml(String(e.employee_card_id))}</p></div>
          <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Department" %}</p><p class="fw-medium mb-0">${escHtml(e.department_name)}</p></div>
          <div class="col-md-6"><p class="text-muted small mb-1">{% trans "Site" %}</p><p class="fw-medium mb-0">${escHtml(e.site_name)}</p></div>`,
@@ -613,8 +611,7 @@ function openEditEmpModal(pk) {
       if (!data.success) { showToast(data.message, 'danger'); editEmpModal.hide(); return; }
       const emp = data.item;
       const f   = document.getElementById('editEmpForm');
-      f.querySelector('[name=first_name]').value       = emp.first_name;
-      f.querySelector('[name=last_name]').value        = emp.last_name;
+      f.querySelector('[name=full_name]').value        = emp.full_name;
       f.querySelector('[name=employee_card_id]').value = emp.employee_card_id;
       setSelect2Value($('#editEmpForm [name=department]'), emp.department_id, emp.department_name);
       setSelect2Value($('#editEmpForm [name=site]'),       emp.site_id,       emp.site_name);
@@ -684,6 +681,21 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', function()
     .catch(() => showToast('{% trans "An error occurred." %}', 'danger'))
     .finally(() => { setButtonLoading(btn, false); deleteTarget.url = null; });
 });
+
+/* ── Reset ── */
+function resetEmpFilters() {
+  document.getElementById('empSearch').value = '';
+  $('#deptFilter').val('').trigger('change');
+  const siteEl = document.getElementById('empSiteFilter');
+  if (siteEl) $('#empSiteFilter').val('').trigger('change');
+  currentEmpPage = 1;
+  loadEmployees();
+}
+function resetDeptFilters() {
+  document.getElementById('deptSearch').value = '';
+  currentDeptPage = 1;
+  loadDepartments();
+}
 
 /* ── Export ── */
 function exportEmpData(fmt) {

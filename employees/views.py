@@ -124,14 +124,13 @@ def employees_data(request):
     ).select_related('department', 'site')
     if search:
         qs = qs.filter(
-            Q(first_name__icontains=search) | Q(last_name__icontains=search) |
-            Q(employee_card_id__icontains=search)
+            Q(full_name__icontains=search) | Q(employee_card_id__icontains=search)
         )
     if dept_id:
         qs = qs.filter(department_id=dept_id)
     if site_id:
         qs = qs.filter(site_id=site_id)
-    qs = qs.order_by('first_name', 'last_name')
+    qs = qs.order_by('full_name')
     paginator = Paginator(qs, PAGE_SIZE)
     try:
         page_num = int(request.GET.get('page', 1))
@@ -140,7 +139,6 @@ def employees_data(request):
     page_obj  = paginator.get_page(page_num)
     items = [
         {'id': e.pk, 'full_name': e.full_name,
-         'first_name': e.first_name, 'last_name': e.last_name,
          'employee_card_id': e.employee_card_id,
          'department_id': e.department_id, 'department_name': e.department.name,
          'site_id': e.site_id, 'site_name': e.site.name,
@@ -162,7 +160,7 @@ def employee_detail(request, pk):
         pk=pk, deleted_date__isnull=True,
     )
     return JsonResponse({'success': True, 'item': {
-        'id': emp.pk, 'first_name': emp.first_name, 'last_name': emp.last_name,
+        'id': emp.pk, 'full_name': emp.full_name,
         'employee_card_id': emp.employee_card_id,
         'department_id': emp.department_id, 'department_name': emp.department.name,
         'site_id': emp.site_id,             'site_name': emp.site.name,
@@ -299,17 +297,16 @@ def employees_export(request):
     ).select_related('department', 'site')
     if search:
         qs = qs.filter(
-            Q(first_name__icontains=search) | Q(last_name__icontains=search) |
-            Q(employee_card_id__icontains=search)
+            Q(full_name__icontains=search) | Q(employee_card_id__icontains=search)
         )
     if dept_id: qs = qs.filter(department_id=dept_id)
     if site_id: qs = qs.filter(site_id=site_id)
-    qs = qs.order_by('first_name', 'last_name')
+    qs = qs.order_by('full_name')
     fmt = request.GET.get('format', 'xlsx')
     headers = ['#', 'Full Name', 'Card ID', 'Department', 'Site', 'Created']
     rows = [
-        [i + 1, e.full_name, str(e.employee_card_id), e.department.name, e.site.name,
-         e.created_date.strftime('%Y-%m-%d')]
+        [i + 1, e.full_name, str(e.employee_card_id),
+         e.department.name, e.site.name, e.created_date.strftime('%Y-%m-%d')]
         for i, e in enumerate(qs)
     ]
     if fmt == 'pdf':

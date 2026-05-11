@@ -31,7 +31,7 @@ class DepartmentAdmin(admin.ModelAdmin):
 class EmployeeAdmin(admin.ModelAdmin):
     list_display  = ('full_name', 'employee_card_id', 'department', 'site', 'created_date')
     list_filter   = ('department', 'site')
-    search_fields = ('first_name', 'last_name', 'employee_card_id')
+    search_fields = ('full_name', 'employee_card_id')
     readonly_fields = ('created_date', 'updated_date')
 
     def save_model(self, request, obj, form, change):
